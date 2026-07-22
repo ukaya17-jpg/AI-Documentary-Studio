@@ -302,6 +302,11 @@
     "Documentary Quality Pacing": "Tempo",
     "Documentary Quality SEO": "SEO",
     "Documentary Quality Issues": "Tespit edilen kalite sorunları",
-    "Documentary Thumbnail": "Küçük Resim (Thumbnail)"
+    "Documentary Thumbnail": "Küçük Resim (Thumbnail)",
+    "Documentary SEO Extras": "SEO Ekstraları (danışman niteliğinde, uzun format/manuel kullanım için)",
+    "Documentary SEO Chapters": "Bölümler",
+    "Documentary SEO Chapters Help": "Sadece uzun format YouTube yüklemelerinde işlevseldir -- Shorts bölümleri desteklemez.",
+    "Documentary SEO End Screen": "Bitiş Ekranı Önerisi",
+    "Documentary SEO Pinned Comment": "Sabit Yorum Önerisi"
   }
 }

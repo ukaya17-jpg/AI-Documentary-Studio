@@ -329,6 +329,11 @@
     "Documentary Quality Pacing": "Pacing",
     "Documentary Quality SEO": "SEO",
     "Documentary Quality Issues": "Quality issues found",
-    "Documentary Thumbnail": "Thumbnail"
+    "Documentary Thumbnail": "Thumbnail",
+    "Documentary SEO Extras": "SEO Extras (advisory, for long-form/manual use)",
+    "Documentary SEO Chapters": "Chapters",
+    "Documentary SEO Chapters Help": "Only functional on long-form YouTube uploads -- Shorts don't support chapters.",
+    "Documentary SEO End Screen": "End Screen Suggestion",
+    "Documentary SEO Pinned Comment": "Pinned Comment Suggestion"
   }
 }

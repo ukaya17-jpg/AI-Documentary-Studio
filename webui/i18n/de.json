@@ -302,6 +302,11 @@
     "Documentary Quality Pacing": "Tempo",
     "Documentary Quality SEO": "SEO",
     "Documentary Quality Issues": "Gefundene Qualitätsprobleme",
-    "Documentary Thumbnail": "Vorschaubild"
+    "Documentary Thumbnail": "Vorschaubild",
+    "Documentary SEO Extras": "SEO-Extras (beratend, für Langform/manuelle Nutzung)",
+    "Documentary SEO Chapters": "Kapitel",
+    "Documentary SEO Chapters Help": "Funktioniert nur bei Langform-YouTube-Uploads -- Shorts unterstützen keine Kapitel.",
+    "Documentary SEO End Screen": "Abspann-Vorschlag",
+    "Documentary SEO Pinned Comment": "Vorschlag für angehefteten Kommentar"
   }
 }

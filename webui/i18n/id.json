@@ -302,6 +302,11 @@
     "Documentary Quality Pacing": "Tempo",
     "Documentary Quality SEO": "SEO",
     "Documentary Quality Issues": "Masalah kualitas yang ditemukan",
-    "Documentary Thumbnail": "Thumbnail"
+    "Documentary Thumbnail": "Thumbnail",
+    "Documentary SEO Extras": "Ekstra SEO (saran, untuk penggunaan format panjang/manual)",
+    "Documentary SEO Chapters": "Bab",
+    "Documentary SEO Chapters Help": "Hanya berfungsi pada unggahan YouTube format panjang -- Shorts tidak mendukung bab.",
+    "Documentary SEO End Screen": "Saran Layar Akhir",
+    "Documentary SEO Pinned Comment": "Saran Komentar Disematkan"
   }
 }

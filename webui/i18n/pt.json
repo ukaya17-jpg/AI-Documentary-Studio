@@ -302,6 +302,11 @@
     "Documentary Quality Pacing": "Ritmo",
     "Documentary Quality SEO": "SEO",
     "Documentary Quality Issues": "Problemas de qualidade encontrados",
-    "Documentary Thumbnail": "Miniatura"
+    "Documentary Thumbnail": "Miniatura",
+    "Documentary SEO Extras": "Extras de SEO (consultivo, para uso em formato longo/manual)",
+    "Documentary SEO Chapters": "Capítulos",
+    "Documentary SEO Chapters Help": "Só funciona em uploads do YouTube em formato longo -- os Shorts não suportam capítulos.",
+    "Documentary SEO End Screen": "Sugestão de tela final",
+    "Documentary SEO Pinned Comment": "Sugestão de comentário fixado"
   }
 }

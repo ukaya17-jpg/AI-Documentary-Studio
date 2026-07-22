@@ -4076,6 +4076,27 @@ def _render_documentary_studio_section():
                     value=" ".join(seo["hashtags"]),
                     disabled=True,
                 )
+            if seo.get("chapters") or seo.get("end_screen_suggestion") or seo.get("pinned_comment"):
+                with st.expander(tr("Documentary SEO Extras")):
+                    if seo.get("chapters"):
+                        st.caption(tr("Documentary SEO Chapters Help"))
+                        st.text_area(
+                            tr("Documentary SEO Chapters"),
+                            value="\n".join(seo["chapters"]),
+                            disabled=True,
+                        )
+                    if seo.get("end_screen_suggestion"):
+                        st.text_input(
+                            tr("Documentary SEO End Screen"),
+                            value=seo["end_screen_suggestion"],
+                            disabled=True,
+                        )
+                    if seo.get("pinned_comment"):
+                        st.text_input(
+                            tr("Documentary SEO Pinned Comment"),
+                            value=seo["pinned_comment"],
+                            disabled=True,
+                        )
 
             quality_verdict = (last_project or {}).get("quality_verdict")
             if quality_verdict:
