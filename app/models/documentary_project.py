@@ -40,3 +40,6 @@ class DocumentaryProject(BaseModel):
     # Informational only -- never gates final_video_path or blocks the
     # pipeline. See app.thinking.quality_critic.
     quality_verdict: QualityVerdict | None = None
+    # Best-effort; "" when generation failed or was skipped. See
+    # app.departments.growth.thumbnail_generator.
+    thumbnail_path: str = ""

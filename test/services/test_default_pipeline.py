@@ -125,6 +125,10 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
                 "app.pipeline.default_pipeline.quality_critic.evaluate_project",
                 return_value=quality_verdict,
             ),
+            "thumbnail": patch(
+                "app.pipeline.default_pipeline.thumbnail_generator.generate_thumbnail",
+                return_value="/tmp/tasks/proj-1/thumbnail.png",
+            ),
         }
         self.started = {name: m.start() for name, m in self.mocks.items()}
         for m in self.mocks.values():
@@ -220,6 +224,14 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         self.assertEqual(evaluated_project.final_video_path, "/tmp/tasks/proj-1/final.mp4")
         self.assertIs(evaluated_project.seo, self.seo)
 
+        # thumbnail_generator receives the combined (pre-subtitle-burn) video
+        # and the SEO metadata, not the final rendered video.
+        self.assertEqual(project.thumbnail_path, "/tmp/tasks/proj-1/thumbnail.png")
+        thumb_args, _ = self.started["thumbnail"].call_args
+        self.assertEqual(thumb_args[0], self.timeline.combined_video_path)
+        self.assertIs(thumb_args[1], self.seo)
+        self.assertEqual(thumb_args[2], "proj-1")
+
     def test_final_video_path_is_set_even_when_quality_review_is_unavailable(self):
         self.started["quality"].return_value = None
 
@@ -232,6 +244,20 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         )
 
         self.assertIsNone(project.quality_verdict)
+        self.assertEqual(project.final_video_path, "/tmp/tasks/proj-1/final.mp4")
+
+    def test_final_video_path_is_set_even_when_thumbnail_is_unavailable(self):
+        self.started["thumbnail"].return_value = ""
+
+        project = default_pipeline.run_pipeline(
+            project_id="proj-1",
+            topic="The Fall of Rome",
+            language="auto",
+            pacing=Pacing.short,
+            voice_name="en-US-JennyNeural",
+        )
+
+        self.assertEqual(project.thumbnail_path, "")
         self.assertEqual(project.final_video_path, "/tmp/tasks/proj-1/final.mp4")
 
 

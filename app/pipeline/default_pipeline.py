@@ -10,7 +10,7 @@ from app.config.profile_dimensions import PACING_SCENE_SPEC, Pacing, TopicCatego
 from app.models.documentary_project import DocumentaryProject
 from app.models.schema import VideoAspect, VideoConcatMode
 from app.departments.creative import scene_planner, script_generator, storyboard_generator
-from app.departments.growth import seo_generator
+from app.departments.growth import seo_generator, thumbnail_generator
 from app.departments.production import (
     asset_downloader,
     asset_generator,
@@ -160,6 +160,17 @@ def run_pipeline(
     else:
         logger.warning(
             "documentary pipeline: quality review unavailable, continuing without a verdict"
+        )
+
+    # Best-effort only: a missing thumbnail never blocks or fails the pipeline.
+    project.thumbnail_path = thumbnail_generator.generate_thumbnail(
+        project.timeline.combined_video_path, project.seo, project.project_id
+    )
+    if project.thumbnail_path:
+        logger.info(f"documentary pipeline: thumbnail generated -- {project.thumbnail_path}")
+    else:
+        logger.warning(
+            "documentary pipeline: thumbnail generation unavailable, continuing without one"
         )
 
     logger.success(f"documentary pipeline done: {project.final_video_path}")
