@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+from app.models.outline import Outline
 from app.models.scene import Scene, ScenePlan
 from app.departments.creative import script_generator
 
@@ -33,6 +34,50 @@ class TestBuildScriptPrompt(unittest.TestCase):
         self.assertIn("Custom voice instructions.", prompt)
         self.assertNotIn(script_generator.DEFAULT_SCRIPT_SYSTEM_PROMPT, prompt)
 
+    def test_omits_hook_and_callback_without_outline(self):
+        # Retention is independent of the outline and still applies to a
+        # multi-scene plan, but Hook/Callback require outline.hook/closing.
+        prompt = script_generator.build_script_prompt(_scene_plan(), "Topic")
+        self.assertNotIn("Hook:", prompt)
+        self.assertNotIn("Callback:", prompt)
+
+    def test_omits_story_craft_block_entirely_for_single_scene_without_outline(self):
+        single_scene_plan = ScenePlan(
+            scenes=[Scene(index=0, title="Only", narration_beat="The whole story", duration_seconds=5.0)]
+        )
+        prompt = script_generator.build_script_prompt(single_scene_plan, "Topic")
+        self.assertNotIn("Story craft requirements", prompt)
+
+    def test_includes_hook_and_callback_when_outline_present(self):
+        outline = Outline(
+            title="The Fall of Rome",
+            hook="An empire that ruled the known world collapsed.",
+            closing="Rome's legacy endures today.",
+        )
+        prompt = script_generator.build_script_prompt(_scene_plan(), "Topic", outline=outline)
+        self.assertIn("Story craft requirements", prompt)
+        self.assertIn("Hook:", prompt)
+        self.assertIn("An empire that ruled the known world collapsed.", prompt)
+        self.assertIn("Callback:", prompt)
+        self.assertIn("Rome's legacy endures today.", prompt)
+
+    def test_includes_retention_instruction_for_multi_scene_plan(self):
+        prompt = script_generator.build_script_prompt(_scene_plan(), "Topic")
+        self.assertIn("Retention:", prompt)
+
+    def test_omits_retention_instruction_for_single_scene_plan(self):
+        single_scene_plan = ScenePlan(
+            scenes=[Scene(index=0, title="Only", narration_beat="The whole story", duration_seconds=5.0)]
+        )
+        prompt = script_generator.build_script_prompt(single_scene_plan, "Topic")
+        self.assertNotIn("Retention:", prompt)
+
+    def test_omits_hook_instruction_when_outline_hook_is_blank(self):
+        outline = Outline(title="T", hook="", closing="Real closing.")
+        prompt = script_generator.build_script_prompt(_scene_plan(), "Topic", outline=outline)
+        self.assertNotIn("Hook:", prompt)
+        self.assertIn("Callback:", prompt)
+
 
 class TestGenerateScript(unittest.TestCase):
     @patch("app.departments.creative.script_generator.generate_json")
@@ -53,6 +98,17 @@ class TestGenerateScript(unittest.TestCase):
         mock_generate_json.return_value = {"lines": [{"scene_index": 0, "text": "Only scene 0 written."}]}
         script = script_generator.generate_script(_scene_plan(), "Topic")
         self.assertEqual(script.lines[1].text, "The turning point")
+
+    @patch("app.departments.creative.script_generator.generate_json")
+    def test_passes_outline_through_to_the_prompt(self, mock_generate_json):
+        mock_generate_json.return_value = {"lines": []}
+        outline = Outline(title="T", hook="Real hook line.", closing="Real closing line.")
+
+        script_generator.generate_script(_scene_plan(), "Topic", outline=outline)
+
+        prompt_arg = mock_generate_json.call_args[0][0]
+        self.assertIn("Real hook line.", prompt_arg)
+        self.assertIn("Real closing line.", prompt_arg)
 
     def test_empty_scene_plan_short_circuits_without_llm_call(self):
         with patch("app.departments.creative.script_generator.generate_json") as mock_generate_json:

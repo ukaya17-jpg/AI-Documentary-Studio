@@ -1,5 +1,12 @@
-"""Script stage: write per-scene narration lines sized to each scene's duration budget."""
+"""Script stage: write per-scene narration lines sized to each scene's duration budget.
 
+Also applies basic story-craft instructions (Hook/Retention/Callback) so the
+outline's hook and closing actually make it into the narration -- previously
+build_script_prompt() never saw the outline at all, which is why
+quality_critic found real generations missing the hook/closing entirely.
+"""
+
+from app.models.outline import Outline
 from app.models.scene import ScenePlan
 from app.models.script import Script, ScriptLine
 from app.services.documentary_llm_utils import generate_json
@@ -12,11 +19,36 @@ DEFAULT_SCRIPT_SYSTEM_PROMPT = (
 )
 
 
+def _story_craft_instructions(scene_plan: ScenePlan, outline: Outline | None) -> str:
+    instructions = []
+    if outline and outline.hook.strip():
+        instructions.append(
+            "- Hook: scene 0's narration must open with or directly deliver this "
+            f'hook, adapted into natural spoken narration: "{outline.hook.strip()}"'
+        )
+    if len(scene_plan.scenes) > 1:
+        instructions.append(
+            "- Retention: end most scenes on a forward-pulling detail, tension, "
+            "or open question rather than a fully resolved statement, so the "
+            "viewer wants to see what happens next."
+        )
+    if outline and outline.closing.strip():
+        instructions.append(
+            "- Callback: the LAST scene's narration must deliver a closing that "
+            "circles back to the hook and/or delivers this closing beat: "
+            f'"{outline.closing.strip()}"'
+        )
+    if not instructions:
+        return ""
+    return "\n\nStory craft requirements:\n" + "\n".join(instructions)
+
+
 def build_script_prompt(
     scene_plan: ScenePlan,
     topic: str,
     language: str = "",
     custom_system_prompt: str = "",
+    outline: Outline | None = None,
 ) -> str:
     scene_lines = []
     for scene in scene_plan.scenes:
@@ -35,6 +67,7 @@ Topic: "{topic}"
 Write one narration line per scene below, matching its target word count as
 closely as possible so the timing lines up with the scene's on-screen duration:
 {scenes_block}"""
+    prompt += _story_craft_instructions(scene_plan, outline)
     if language and language != "auto":
         prompt += f"\n\nRespond in language: {language}"
     prompt += """
@@ -66,11 +99,12 @@ def generate_script(
     topic: str,
     language: str = "",
     custom_system_prompt: str = "",
+    outline: Outline | None = None,
 ) -> Script:
     if not scene_plan.scenes:
         return Script(full_text="", lines=[], language=language)
 
-    prompt = build_script_prompt(scene_plan, topic, language, custom_system_prompt)
+    prompt = build_script_prompt(scene_plan, topic, language, custom_system_prompt, outline=outline)
     data = generate_json(prompt)
     lines_by_index = _parse_lines(data.get("lines", []))
 

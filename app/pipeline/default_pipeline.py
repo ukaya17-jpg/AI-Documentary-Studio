@@ -80,7 +80,7 @@ def run_pipeline(
 
     stage(5, "script")
     project.script = script_generator.generate_script(
-        project.scene_plan, topic, language=project.language
+        project.scene_plan, topic, language=project.language, outline=project.outline
     )
 
     stage(6, "storyboard")

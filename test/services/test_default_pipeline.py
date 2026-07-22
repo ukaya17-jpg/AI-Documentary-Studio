@@ -179,9 +179,11 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         self.assertIs(scene_args[0], self.outline)
         self.assertEqual(scene_kwargs["pacing"], Pacing.short)
 
-        # script_generator receives the scene plan.
-        script_args, _ = self.started["script"].call_args
+        # script_generator receives the scene plan and the outline (for
+        # Hook/Retention/Callback story-craft instructions).
+        script_args, script_kwargs = self.started["script"].call_args
         self.assertIs(script_args[0], self.scene_plan)
+        self.assertIs(script_kwargs["outline"], self.outline)
 
         # storyboard_generator receives both scene plan and script.
         storyboard_args, _ = self.started["storyboard"].call_args
