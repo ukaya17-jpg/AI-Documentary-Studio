@@ -24,9 +24,25 @@ bu günlük sıfırdan başlıyor.
 
 ## FAZ 1 — Documentary pipeline (devam ediyor)
 
-Henüz başlanmadı. Sıradaki adım: `app/models/`, `app/services/`, `app/pipeline/`,
-`app/config/profile_dimensions.py`, `app/config/templates/` dosyalarının sıfırdan
-kurulması.
+- [x] `app/config/profile_dimensions.py`: `TopicCategory` (travel/history/space/
+      psychology), `Pacing` (short/long), `Language` enum'ları + `PACING_SCENE_SPEC`
+      (short=4 sahne x5s, long=7 sahne x8s) + `resolve_topic_category`/`resolve_pacing`
+      yardımcıları.
+- [x] `app/config/templates/__init__.py`: 4 kategori için `PROFILE_PROMPTS` (style/
+      opening_hook/section_guidance/closing rehberi) + `get_template()`.
+      **Not:** Kullanıcının bahsettiği `documentary_tr.py` önceki (kaybolan) oturumdan
+      kalma bir referanstı, bu temiz repoda mevcut değildi — mimari sıfırdan, spec'e
+      uygun şekilde tasarlandı.
+- [x] `app/models/`: `research_plan.py`, `outline.py`, `scene.py`, `script.py`,
+      `storyboard.py`, `asset.py`, `audio.py`, `timeline.py`, `seo.py`,
+      `documentary_project.py` — düz "Plan" tabanlı pydantic modelleri, Project+
+      Metadata katmanı yok. `DocumentaryProject` her aşamanın çıktısını doğrudan
+      alan olarak tutuyor.
+- [x] Test: `test/services/test_documentary_models.py` (8 test) — tüm modeller,
+      enum çözümleme ve template fallback'i kapsıyor. **YEŞİL.**
+
+Sıradaki adım: `app/services/` altındaki pipeline servisleri (intent_analyzer'dan
+video_renderer'a kadar), sonra `app/pipeline/default_pipeline.py` orkestratörü.
 
 ## FAZ 2 — Content OS genişletmesi
 
