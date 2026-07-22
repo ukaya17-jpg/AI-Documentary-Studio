@@ -176,9 +176,43 @@ yazmadan ertelemek, Faz 1 birkaç gerçek video yayınlayıp geri bildirim
 verisi biriktirene kadar beklemek. Aksi halde besleyecek gerçek sinyali
 olmayan, test edilemeyen bir iskelet inşa etmiş oluruz.
 
-**KARAR BEKLENİYOR:** Yukarıdaki yorum/sıralama doğru mu, yoksa "Content OS"
-vizyonunuzda gözden kaçırdığım somut bir gereksinim var mı? Onay verirseniz
-1) ile başlarım.
+**Kullanıcı onayı alındı (2026-07-22):** Department yapısıyla başlanması,
+Learning Layer'ın ertelenmesi onaylandı. Thinking Layer henüz başlanmadı,
+Department yapısı bitince ayrıca ele alınacak.
+
+## FAZ 2 / Adım 1 — Department yapısı: TAMAMLANDI
+
+Saf organizasyonel taşıma, davranış değişmedi. Yeni yapı:
+`app/departments/{research,creative,production,growth}/` (her biri paket).
+
+- [x] **Growth**: `seo_generator.py` taşındı (en düşük riskli ilk adım).
+- [x] **Research**: `intent_analyzer.py`, `research_planner.py`,
+      `outline_generator.py` taşındı.
+- [x] **Creative**: `scene_planner.py`, `script_generator.py`,
+      `storyboard_generator.py` taşındı.
+- [x] **Production**: `asset_generator.py`, `asset_downloader.py`,
+      `audio_renderer.py`, `timeline_builder.py`, `video_renderer.py` taşındı.
+
+`app/services/documentary_llm_utils.py` (Research+Creative arası paylaşılan
+LLM JSON helper'ı) ve `app/prompts/storyboard/` (içerik, kod değil) planlandığı
+gibi yerinde kaldı — sadece 12 servis dosyası taşındı. `app/services/` artık
+sadece legacy MoneyPrinterTurbo servislerini (material/voice/video/llm/...)
+içeriyor.
+
+Her adımda: `default_pipeline.py` import'ları + ilgili test dosyalarının
+import/patch yolları güncellendi, o servisin testi + `test_default_pipeline.py`
+(mock wiring) + tam suite çalıştırıldı, sonra commit. 4 department = 4 ayrı
+commit. Ayrıca Faz 1'den kalan izlenmeyen `app/pipeline/__init__.py` bu sırada
+fark edilip git'e eklendi.
+
+**Son doğrulama:** Tam suite hâlâ yeşil (531 passed, 11 skipped). Ayrıca
+gerçek `streamlit run` + headless-Chromium ile webui açıldı, "AI Documentary
+Studio (Beta)" bölümü genişletildi — traceback/import hatası yok, console
+hatası yok, tüm alanlar (konu/dil/kategori/pacing/buton) görünüyor. Davranış
+değişmediği için gerçek API ile yeniden render **gerekmedi**.
+
+Sıradaki adım: Thinking Layer (idea_generator + quality_critic), kullanıcı
+onayı ile.
 
 ## FAZ 2 — Content OS genişletmesi
 
