@@ -5,12 +5,12 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+from app.departments.growth import seo_generator
 from app.models.script import Script
-from app.services import seo_generator
 
 
 class TestGenerateSeoMetadata(unittest.TestCase):
-    @patch("app.services.seo_generator.llm.generate_social_metadata")
+    @patch("app.departments.growth.seo_generator.llm.generate_social_metadata")
     def test_maps_social_metadata_result_to_seo_metadata(self, mock_generate_social_metadata):
         mock_generate_social_metadata.return_value = {
             "title": "The Fall of Rome",

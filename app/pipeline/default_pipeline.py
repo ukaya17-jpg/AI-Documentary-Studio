@@ -9,6 +9,7 @@ from loguru import logger
 from app.config.profile_dimensions import PACING_SCENE_SPEC, Pacing, TopicCategory, resolve_pacing
 from app.models.documentary_project import DocumentaryProject
 from app.models.schema import VideoAspect, VideoConcatMode
+from app.departments.growth import seo_generator
 from app.services import (
     asset_downloader,
     asset_generator,
@@ -18,7 +19,6 @@ from app.services import (
     research_planner,
     scene_planner,
     script_generator,
-    seo_generator,
     storyboard_generator,
     timeline_builder,
     video_renderer,
