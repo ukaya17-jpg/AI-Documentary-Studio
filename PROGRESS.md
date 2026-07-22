@@ -667,6 +667,13 @@ yoktu. Anında düzeltildi, devam edildi.
 
 **Tam suite son durum: 572 passed, 11 skipped.**
 
+**Push denemesi:** `git push fork overnight/thumbnail-and-backlog` denendi,
+beklendiği gibi kimlik doğrulama isteğiyle karşılaşıldı (bu ortamda GitHub
+credential'ı yok). Kural 4 gereği atlandı — token/şifre üretilmeye veya
+tahmin edilmeye çalışılmadı. **Dal sadece yerelde, main'e hiç dokunulmadı.**
+Sabah manuel push gerekiyor: `git push fork overnight/thumbnail-and-backlog`.
+
 ## Karar bekleyen noktalar
 
-Şu an yok — üç görev de tamamlandı, gerçek API bütçesi aşılmadı.
+Şu an yok — üç görev de tamamlandı, gerçek API bütçesi aşılmadı, dal main'e
+hiç dokunmadı, sadece uzak push manuel yapılmayı bekliyor.
