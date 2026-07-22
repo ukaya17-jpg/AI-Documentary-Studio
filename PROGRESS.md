@@ -301,15 +301,35 @@ tercihi), kullanıcı onayı alındı, sonra kodlandı.
       dersinden öğrenilerek) — `test_webui_i18n.py` bu turda hiç kırmızı çıkmadı.
 - [x] Tam suite: **542 passed, 11 skipped.**
 
-## FAZ 2 / Adım 2c — quality_critic → Pipeline entegrasyonu (Plan 2): ONAY BEKLENİYOR
+## FAZ 2 / Adım 2c — quality_critic → Pipeline entegrasyonu (Plan 2): TAMAMLANDI
 
-Plan raporu sunuldu (VideoRenderer'dan sonra, bilgi amaçlı, non-blocking,
-`DocumentaryProject.quality_verdict` alanı eklenecek, `test_default_pipeline.py`
-güncellenecek, maliyet/süre etkisi açıkça belirtildi: her üretimde +1 gerçek
-LLM çağrısı, ~7-9s, ~1500+ token). **Kullanıcı onayı henüz alınmadı, kodlama
-başlamadı.**
+Onay alındı, plan uygulandı.
+
+- [x] `DocumentaryProject`'e opsiyonel `quality_verdict: QualityVerdict | None = None`
+      alanı eklendi (geriye dönük uyumlu, varsayılan `None`).
+- [x] `default_pipeline.run_pipeline()`: VideoRenderer'dan (stage 12) hemen sonra,
+      `return`'den önce `quality_critic.evaluate_project(project)` çağrılıyor.
+      **Asla engellemiyor** — `final_video_path` bundan önce zaten set edilmiş
+      oluyor, verdict `None` gelse bile pipeline normal döner (ayrı test bunu
+      doğruluyor: `test_final_video_path_is_set_even_when_quality_review_is_unavailable`).
+- [x] `test_default_pipeline.py` güncellendi: `quality_critic.evaluate_project`
+      artık mock'lanıyor (önceden mock'lanmıyordu — eklenmeseydi wiring testi
+      gerçek bir LLM çağrısı yapmaya çalışırdı, ciddi bir gözden kaçırma
+      olurdu, fark edilip düzeltildi).
+- [x] `webui/Main.py`: `st.video()` altına "Kalite Notu" — `overall_score/5`
+      + geçti/uyarı ikonu + 3 alt-skor + `issues` varsa açılır liste. Video
+      **hiçbir zaman** verdict'e göre gizlenmiyor/engellenmiyor.
+- [x] Doğrulama iki parçalı yapıldı: (1) webui üzerinden gerçek uçtan uca
+      üretim ("The Great Wall of China", gerçek OpenAI+Pexels+ElevenLabs+
+      quality_critic) — DOM'da "Quality Note" metni doğrulandı, traceback/
+      console hatası yok; (2) Streamlit'in scroll container'ı yüzünden
+      tam sayfa ekran görüntüsü kesildiği için, aynı render kodu daha önce
+      gerçek bir `quality_critic` çalıştırmasından (Roma projesi) elde
+      edilmiş gerçek verilerle izole bir script'te tekrar çalıştırılıp
+      görsel olarak da doğrulandı (skor/ikon/alt-skorlar/issues listesi
+      doğru render oluyor).
+- [x] Tam suite: **543 passed, 11 skipped.**
 
 ## Karar bekleyen noktalar
 
-Şu an yok — Plan 2 onay bekliyor ama bu bir "karar bekleniyor" durdurması
-değil, rutin bir onay adımı.
+Şu an yok.
