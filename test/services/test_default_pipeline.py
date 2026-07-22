@@ -206,10 +206,11 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         self.assertIs(timeline_args[0], self.downloaded_asset_plan)
         self.assertIs(timeline_args[1], self.narration)
 
-        # seo_generator receives the topic and script.
-        seo_args, _ = self.started["seo"].call_args
+        # seo_generator receives the topic, script, and scene plan (for chapters).
+        seo_args, seo_kwargs = self.started["seo"].call_args
         self.assertEqual(seo_args[0], "The Fall of Rome")
         self.assertIs(seo_args[1], self.script)
+        self.assertIs(seo_kwargs["scene_plan"], self.scene_plan)
 
         # video_renderer receives the timeline and the narration track.
         video_args, video_kwargs = self.started["video"].call_args

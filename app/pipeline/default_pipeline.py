@@ -127,7 +127,9 @@ def run_pipeline(
     )
 
     stage(11, "seo")
-    project.seo = seo_generator.generate_seo_metadata(topic, project.script, language=project.language)
+    project.seo = seo_generator.generate_seo_metadata(
+        topic, project.script, language=project.language, scene_plan=project.scene_plan
+    )
 
     stage(12, "video render")
     params = video_renderer.build_video_params(
