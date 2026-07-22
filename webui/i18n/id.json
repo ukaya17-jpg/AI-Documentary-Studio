@@ -290,6 +290,12 @@
     "Documentary Generation Failed": "Pembuatan dokumenter gagal",
     "Documentary SEO Title": "Judul SEO",
     "Documentary SEO Description": "Deskripsi SEO",
-    "Documentary SEO Hashtags": "Hashtag SEO"
+    "Documentary SEO Hashtags": "Hashtag SEO",
+    "Refine Topic": "Perhalus Topik",
+    "Documentary Topic Refinement Failed": "Gagal memperhalus topik",
+    "Documentary Topic Already Clear": "Topik sudah terlihat jelas — tidak ada saran untuk ditampilkan.",
+    "Refining Topic": "Memperhalus topik...",
+    "Accept Suggestion": "Terima",
+    "Reject Suggestion": "Tolak"
   }
 }

@@ -290,6 +290,12 @@
     "Documentary Generation Failed": "Не удалось создать документальный фильм",
     "Documentary SEO Title": "SEO-заголовок",
     "Documentary SEO Description": "SEO-описание",
-    "Documentary SEO Hashtags": "SEO-хэштеги"
+    "Documentary SEO Hashtags": "SEO-хэштеги",
+    "Refine Topic": "Уточнить тему",
+    "Documentary Topic Refinement Failed": "Не удалось уточнить тему",
+    "Documentary Topic Already Clear": "Тема уже выглядит понятной — нет предложения для показа.",
+    "Refining Topic": "Уточнение темы...",
+    "Accept Suggestion": "Принять",
+    "Reject Suggestion": "Отклонить"
   }
 }

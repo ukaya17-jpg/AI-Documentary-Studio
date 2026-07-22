@@ -317,6 +317,12 @@
     "Documentary Generation Failed": "Documentary generation failed",
     "Documentary SEO Title": "SEO Title",
     "Documentary SEO Description": "SEO Description",
-    "Documentary SEO Hashtags": "SEO Hashtags"
+    "Documentary SEO Hashtags": "SEO Hashtags",
+    "Refine Topic": "Refine Topic",
+    "Documentary Topic Refinement Failed": "Topic refinement failed",
+    "Documentary Topic Already Clear": "The topic already looks clear — no suggestion to show.",
+    "Refining Topic": "Refining topic...",
+    "Accept Suggestion": "Accept",
+    "Reject Suggestion": "Reject"
   }
 }

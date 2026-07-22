@@ -290,6 +290,12 @@
     "Documentary Generation Failed": "Belgesel oluşturma başarısız oldu",
     "Documentary SEO Title": "SEO Başlığı",
     "Documentary SEO Description": "SEO Açıklaması",
-    "Documentary SEO Hashtags": "SEO Etiketleri"
+    "Documentary SEO Hashtags": "SEO Etiketleri",
+    "Refine Topic": "Konuyu Netleştir",
+    "Documentary Topic Refinement Failed": "Konu netleştirme başarısız oldu",
+    "Documentary Topic Already Clear": "Konu zaten net görünüyor — gösterilecek bir öneri yok.",
+    "Refining Topic": "Konu netleştiriliyor...",
+    "Accept Suggestion": "Kabul Et",
+    "Reject Suggestion": "Reddet"
   }
 }

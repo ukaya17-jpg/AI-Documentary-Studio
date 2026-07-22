@@ -290,6 +290,12 @@
     "Documentary Generation Failed": "Tạo phim tài liệu thất bại",
     "Documentary SEO Title": "Tiêu đề SEO",
     "Documentary SEO Description": "Mô tả SEO",
-    "Documentary SEO Hashtags": "Hashtag SEO"
+    "Documentary SEO Hashtags": "Hashtag SEO",
+    "Refine Topic": "Tinh chỉnh chủ đề",
+    "Documentary Topic Refinement Failed": "Tinh chỉnh chủ đề thất bại",
+    "Documentary Topic Already Clear": "Chủ đề đã đủ rõ ràng — không có đề xuất nào để hiển thị.",
+    "Refining Topic": "Đang tinh chỉnh chủ đề...",
+    "Accept Suggestion": "Chấp nhận",
+    "Reject Suggestion": "Từ chối"
   }
 }

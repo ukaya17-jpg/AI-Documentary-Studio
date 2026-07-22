@@ -290,6 +290,12 @@
     "Documentary Generation Failed": "Error al generar el documental",
     "Documentary SEO Title": "Título SEO",
     "Documentary SEO Description": "Descripción SEO",
-    "Documentary SEO Hashtags": "Hashtags SEO"
+    "Documentary SEO Hashtags": "Hashtags SEO",
+    "Refine Topic": "Refinar tema",
+    "Documentary Topic Refinement Failed": "Error al refinar el tema",
+    "Documentary Topic Already Clear": "El tema ya parece claro — no hay sugerencia que mostrar.",
+    "Refining Topic": "Refinando tema...",
+    "Accept Suggestion": "Aceptar",
+    "Reject Suggestion": "Rechazar"
   }
 }

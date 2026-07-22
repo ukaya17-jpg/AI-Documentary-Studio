@@ -41,6 +41,7 @@ from app.models.schema import (
     VideoTransitionMode,
 )
 from app.pipeline import default_pipeline
+from app.thinking import idea_generator
 from app.services import bgm as bgm_service
 from app.services import cache_manager, llm, video, voice, webui_task
 from app.services import elevenlabs_music as elevenlabs_music_service
@@ -3917,11 +3918,70 @@ def _render_documentary_studio_section():
     doğrudan bu script çalışması içinde gösterilir.
     """
     with st.expander(tr("AI Documentary Studio (Beta)"), expanded=False):
-        topic = st.text_input(
-            tr("Documentary Topic"),
-            key="documentary_topic",
-            placeholder=tr("Documentary Topic Placeholder"),
-        )
+        # Streamlit forbids writing to a widget's own session_state key after
+        # that widget has been instantiated in the same script run. So
+        # "Accept Suggestion" below stores the chosen topic under a separate
+        # key and reruns; this applies it here, before documentary_topic's
+        # text_input is created in the fresh run.
+        pending_topic_override = st.session_state.pop("documentary_topic_override", None)
+        if pending_topic_override is not None:
+            st.session_state["documentary_topic"] = pending_topic_override
+
+        topic_col, refine_col = st.columns([0.85, 0.15])
+        with topic_col:
+            topic = st.text_input(
+                tr("Documentary Topic"),
+                key="documentary_topic",
+                placeholder=tr("Documentary Topic Placeholder"),
+            )
+        with refine_col:
+            st.markdown("<div style='height: 1.85em'></div>", unsafe_allow_html=True)
+            refine_clicked = st.button(
+                tr("Refine Topic"),
+                key="documentary_refine_topic_button",
+                icon=":material/auto_awesome:",
+                use_container_width=True,
+            )
+
+        if refine_clicked:
+            if not topic.strip():
+                st.warning(tr("Documentary Topic Required"))
+            else:
+                with st.spinner(tr("Refining Topic")):
+                    try:
+                        idea = idea_generator.generate_idea(topic.strip())
+                        st.session_state["documentary_idea_suggestion"] = idea.model_dump()
+                    except Exception:
+                        logger.exception(
+                            f"documentary studio: idea refinement failed for topic={topic!r}"
+                        )
+                        st.error(tr("Documentary Topic Refinement Failed"))
+
+        suggestion = st.session_state.get("documentary_idea_suggestion")
+        if suggestion:
+            if suggestion["topic"].strip() == topic.strip():
+                st.caption(tr("Documentary Topic Already Clear"))
+                st.session_state.pop("documentary_idea_suggestion", None)
+            else:
+                st.info(f"**{suggestion['topic']}**\n\n{suggestion['angle']}")
+                accept_col, reject_col = st.columns(2)
+                with accept_col:
+                    if st.button(
+                        tr("Accept Suggestion"),
+                        key="documentary_accept_suggestion",
+                        use_container_width=True,
+                    ):
+                        st.session_state["documentary_topic_override"] = suggestion["topic"]
+                        st.session_state.pop("documentary_idea_suggestion", None)
+                        st.rerun()
+                with reject_col:
+                    if st.button(
+                        tr("Reject Suggestion"),
+                        key="documentary_reject_suggestion",
+                        use_container_width=True,
+                    ):
+                        st.session_state.pop("documentary_idea_suggestion", None)
+                        st.rerun()
 
         col1, col2, col3 = st.columns(3)
         with col1:

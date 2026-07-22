@@ -290,6 +290,12 @@
     "Documentary Generation Failed": "Erstellung der Dokumentation fehlgeschlagen",
     "Documentary SEO Title": "SEO-Titel",
     "Documentary SEO Description": "SEO-Beschreibung",
-    "Documentary SEO Hashtags": "SEO-Hashtags"
+    "Documentary SEO Hashtags": "SEO-Hashtags",
+    "Refine Topic": "Thema verfeinern",
+    "Documentary Topic Refinement Failed": "Themenverfeinerung fehlgeschlagen",
+    "Documentary Topic Already Clear": "Das Thema wirkt bereits klar — kein Vorschlag verfügbar.",
+    "Refining Topic": "Thema wird verfeinert...",
+    "Accept Suggestion": "Übernehmen",
+    "Reject Suggestion": "Ablehnen"
   }
 }

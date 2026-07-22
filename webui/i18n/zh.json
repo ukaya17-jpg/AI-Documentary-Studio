@@ -317,6 +317,12 @@
     "Documentary Generation Failed": "纪录片生成失败",
     "Documentary SEO Title": "SEO 标题",
     "Documentary SEO Description": "SEO 描述",
-    "Documentary SEO Hashtags": "SEO 标签"
+    "Documentary SEO Hashtags": "SEO 标签",
+    "Refine Topic": "优化主题",
+    "Documentary Topic Refinement Failed": "主题优化失败",
+    "Documentary Topic Already Clear": "主题已经足够清晰——没有建议可显示。",
+    "Refining Topic": "正在优化主题...",
+    "Accept Suggestion": "接受",
+    "Reject Suggestion": "拒绝"
   }
 }
