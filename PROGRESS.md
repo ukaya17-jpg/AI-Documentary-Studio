@@ -673,7 +673,27 @@ credential'ı yok). Kural 4 gereği atlandı — token/şifre üretilmeye veya
 tahmin edilmeye çalışılmadı. **Dal sadece yerelde, main'e hiç dokunulmadı.**
 Sabah manuel push gerekiyor: `git push fork overnight/thumbnail-and-backlog`.
 
+## Thumbnail başlık kesilme düzeltmesi (kullanıcı talebiyle, gündüz)
+
+Önce plan sunuldu (mevcut kod gösterildi, A/B seçenekleri karşılaştırıldı),
+kullanıcı **A: dinamik font küçültme + "..." son çare** seçeneğini onayladı.
+
+- [x] `_overlay_title()`: artık sabit font_size ile bir kez sarıp fazla
+      satırları sessizce silmek yerine, `_font_scales()` (1.0→0.6, %5
+      adımlarla) her adımda `_wrap_text()` ile yeniden satırlıyor, 3 satıra
+      sığınca duruyor. Alt sınırda hâlâ sığmıyorsa `_truncate_with_ellipsis()`
+      3. satırı "..." ile kesiyor (sessiz silme yok).
+- [x] 18 test (önceden 12'ydi) — yeni pure-function testleri (`_font_scales`,
+      `_wrap_text`, `_truncate_with_ellipsis`, gerçek font ile) + 2 gerçek
+      PIL render testi (mock yok, gerçek `BeVietnamPro-Bold.ttf`). Tam suite:
+      **583 passed, 11 skipped.**
+- [x] **Gerçek doğrulama (yeni API maliyeti yok):** Roma başlığı artık
+      "Empire" kelimesi dahil tam 3 satıra sığıyor; aşırı uzun uydurma bir
+      başlık da (son çare yolunu test etmek için) düzgünce "..." ile
+      kesiliyor, çökme yok. İki gerçek görsel de kullanıcıya gösterildi.
+
 ## Karar bekleyen noktalar
 
-Şu an yok — üç görev de tamamlandı, gerçek API bütçesi aşılmadı, dal main'e
-hiç dokunmadı, sadece uzak push manuel yapılmayı bekliyor.
+Şu an yok — üç görev de tamamlandı, thumbnail kesilme kusuru da düzeltildi,
+gerçek API bütçesi aşılmadı, dal main'e hiç dokunmadı, sadece uzak push
+manuel yapılmayı bekliyor.
