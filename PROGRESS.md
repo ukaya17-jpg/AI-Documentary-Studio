@@ -271,11 +271,45 @@ hesaplama doğruluğu (quality_critic).
 - [x] Test/suite: her iki servis de ilk denemede yeşil geçti (kırmızı test
       yok bu turda). Tam suite: **542 passed, 11 skipped.**
 
-**Not:** `idea_generator` henüz hiçbir yerden (webui dahil) çağrılmıyor —
-sadece servis olarak var, `run_pipeline(topic=...)`'ın önüne bağlanması ayrı
-bir entegrasyon adımı (webui'nin serbest metin kutusunu `idea_generator`'a
-yönlendirmesi gerekiyor). Bu, kullanıcı onayı gerektiren bir sonraki adım.
+## FAZ 2 / Adım 2b — idea_generator → WebUI entegrasyonu (Plan 1): TAMAMLANDI
+
+Önce plan raporu sunuldu (nereye, nasıl bağlanacağı, kenar durumu, stil
+tercihi), kullanıcı onayı alındı, sonra kodlandı.
+
+- [x] `webui/Main.py`: konu kutusunun yanına `icon=":material/auto_awesome:"`
+      ile **"Refine Topic"** butonu eklendi — **tamamen opt-in**, varsayılan
+      "konu yaz + Generate" akışı hiç değişmedi, otomatik/zorunlu çağrı yok.
+      Butona basılınca gerçek `idea_generator.generate_idea()` çağrısı
+      yapılıyor, sonuç (`topic` + `angle`) bir bilgi kutusunda "Kabul Et"/
+      "Reddet" seçenekleriyle gösteriliyor.
+- [x] Kenar durum: öneri, kullanıcının yazdığıyla birebir aynıysa (idea_generator'ın
+      kendi LLM-hata fallback'i bu durumu tetikleyebilir) boş bir öneri kutusu
+      yerine nötr bir mesaj gösteriliyor ("konu zaten net").
+- [x] **Gerçek bir Streamlit kısıtı bulundu ve düzeltildi:** `st.session_state[key]`,
+      o `key`'e sahip widget aynı script çalışmasında instantiate edildikten
+      SONRA değiştirilemiyor (`StreamlitAPIException`). "Kabul Et" butonu artık
+      ayrı bir `documentary_topic_override` anahtarına yazıp `st.rerun()`
+      çağırıyor; bu override, bir SONRAKİ çalışmada, `documentary_topic`
+      widget'ı instantiate edilmeden ÖNCE uygulanıyor. Bu hata gerçek
+      headless-Chromium testinde yakalandı (mock/statik inceleme ile
+      bulunamazdı), ilk denemede kırmızıydı, düzeltilip yeşile çevrildi.
+- [x] Gerçek tarayıcı ile uçtan uca doğrulandı (gerçek LLM çağrısı, mock değil):
+      "Japonya neden güvenli?" yazıldı → Refine Topic'e basıldı → öneri kutusu
+      çıktı → Kabul Et'e basıldı → konu kutusu gerçekten güncellendi
+      ("Japonya Neden Bu Kadar Güvenli?"), traceback/console hatası yok.
+- [x] 6 yeni UI string'i baştan 9 locale dosyasına eklendi (önceki i18n parity
+      dersinden öğrenilerek) — `test_webui_i18n.py` bu turda hiç kırmızı çıkmadı.
+- [x] Tam suite: **542 passed, 11 skipped.**
+
+## FAZ 2 / Adım 2c — quality_critic → Pipeline entegrasyonu (Plan 2): ONAY BEKLENİYOR
+
+Plan raporu sunuldu (VideoRenderer'dan sonra, bilgi amaçlı, non-blocking,
+`DocumentaryProject.quality_verdict` alanı eklenecek, `test_default_pipeline.py`
+güncellenecek, maliyet/süre etkisi açıkça belirtildi: her üretimde +1 gerçek
+LLM çağrısı, ~7-9s, ~1500+ token). **Kullanıcı onayı henüz alınmadı, kodlama
+başlamadı.**
 
 ## Karar bekleyen noktalar
 
-Şu an yok.
+Şu an yok — Plan 2 onay bekliyor ama bu bir "karar bekleniyor" durdurması
+değil, rutin bir onay adımı.
