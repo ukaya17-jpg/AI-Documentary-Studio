@@ -692,8 +692,41 @@ kullanıcı **A: dinamik font küçültme + "..." son çare** seçeneğini onayl
       başlık da (son çare yolunu test etmek için) düzgünce "..." ile
       kesiliyor, çökme yok. İki gerçek görsel de kullanıcıya gösterildi.
 
+**Güncelleme:** `overnight/thumbnail-and-backlog` dalı kullanıcı tarafından
+`main`'e fast-forward merge edildi (`6579afd`), main üzerinde tam suite
+tekrar doğrulandı (583 passed, 11 skipped). `git push fork main` bu ortamda
+kimlik bilgisi olmadığı için başarısız oldu (`fork/main` hâlâ eski
+`09df0cd`'de) — kullanıcı kendi makinesinden push edecek.
+
+## project.json kalıcılığı (kullanıcı talebiyle)
+
+**Sebep:** Kullanıcı gerçek bir Çanakkale (Gallipoli) projesinin
+`StoryboardGenerator` çıktısını (`search_terms`, hangi asset indirildi,
+timeline'da hangi klip hangi sahneye denk geliyor) sorduğunda, bu bilginin
+**hiçbir yerde kalıcı olarak durmadığını** keşfettik — `DocumentaryProject`
+sadece Streamlit'in bellek-içi `session_state`'inde tutuluyordu, diske hiç
+yazılmıyordu. O projenin verisi geri kurtarılamadı (kullanıcı bunu kabul
+etti, gerekirse yeniden üretilecek).
+
+- [x] `default_pipeline.py`: `_save_project_snapshot(project)` — düz
+      `project.model_dump_json(indent=2)`, yeni şema yok. Her aşamadan
+      sonra artımlı çağrılıyor + `finally` bloğunda garantili son çağrı
+      (başarılı/başarısız fark etmeksizin, bir aşama exception fırlatsa
+      bile o ana kadarki durum diskte kalıyor). Asla exception fırlatmıyor.
+      Çıktı: `storage/tasks/<id>/project.json`.
+- [x] 7 yeni/güncellenmiş test: izole `_save_project_snapshot` testleri
+      (geçerli JSON, yazma hatasında bile exception fırlatmıyor) + pipeline
+      wiring testleri (gerçek storyboard/asset verisiyle dosyanın
+      oluştuğu, bir aşama patlarsa bile önceki aşamaların diskte kaldığı).
+      Tam suite: **587 passed, 11 skipped.**
+- [x] **Gerçek doğrulama:** Yeni, ucuz gerçek bir üretim (mock yok,
+      pacing=short, konu "Why Octopuses Are So Intelligent") çalıştırıldı.
+      `storage/tasks/project-json-snapshot-check/project.json` oluştu,
+      içinde her sahnenin gerçek `search_terms`'i, hangi indirilen asset
+      dosyasının (içerik hash'i) kullanıldığı, ve timeline'daki sahne↔klip
+      eşlemesi eksiksiz görünüyor — tam olarak Çanakkale projesinde
+      kurtaramadığımız bilgi türü artık her üretimde kalıcı.
+
 ## Karar bekleyen noktalar
 
-Şu an yok — üç görev de tamamlandı, thumbnail kesilme kusuru da düzeltildi,
-gerçek API bütçesi aşılmadı, dal main'e hiç dokunmadı, sadece uzak push
-manuel yapılmayı bekliyor.
+Şu an yok.
