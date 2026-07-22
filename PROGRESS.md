@@ -41,8 +41,55 @@ bu günlük sıfırdan başlıyor.
 - [x] Test: `test/services/test_documentary_models.py` (8 test) — tüm modeller,
       enum çözümleme ve template fallback'i kapsıyor. **YEŞİL.**
 
-Sıradaki adım: `app/services/` altındaki pipeline servisleri (intent_analyzer'dan
-video_renderer'a kadar), sonra `app/pipeline/default_pipeline.py` orkestratörü.
+- [x] `app/services/intent_analyzer.py`: dil (auto → Türkçe karakter heuristiği)
+      ve topic category (LLM sınıflandırma + keyword heuristik fallback,
+      override her zaman kazanır) çözümü. Paylaşılan `documentary_llm_utils.py`
+      (`generate_json`) tüm JSON üreten aşamalarca kullanılıyor.
+- [x] `app/services/research_planner.py`: LLM'den key_questions/key_facts/angles
+      brief'i üretir. **Not:** Canlı web araması yok (böyle bir araç bu repoda
+      bağlı değil) — LLM'in kendi bilgisini yapılandırıyor, gerçek kaynak
+      taraması yapmıyor.
+- [x] `app/services/outline_generator.py`: kategori şablonuna göre title/hook/
+      sections(+importance 1-5)/closing outline'ı üretir.
+- [x] `app/services/scene_planner.py`: **LLM çağrısı yok**, saf mantık.
+      Pacing'e göre sahne sayısı/süresi (short=4x5s, long=7x8s), importance'a
+      göre en yüksek puanlı bölümler orijinal anlatı sırasıyla seçiliyor.
+- [x] `app/services/script_generator.py`: sahne başına ~2.3 kelime/sn hedefiyle
+      anlatım metni üretir; LLM bir sahneyi atlarsa narration_beat'e düşer.
+- [x] `app/services/storyboard_generator.py` + `app/prompts/storyboard/`:
+      kategoriye göre görsel/çekim rehberi (travel/history/space/psychology),
+      sahne başı 1 çekim + 3-5 stok görüntü arama terimi.
+- [x] `app/services/asset_generator.py` + `asset_downloader.py`: storyboard'u
+      sahne sıralı arama listesine çevirir; indirme **legacy `material.py`**
+      (`download_videos`, `match_script_order=True`) üzerinden yeniden yazılmadan
+      yapılıyor.
+- [x] `app/services/audio_renderer.py`: **legacy `voice.py`** (`tts()`,
+      `create_subtitle()`, `get_audio_duration()`) üzerinden sarmalayıcı.
+- [x] `app/services/timeline_builder.py`: **legacy `video.py`**
+      (`combine_videos()`) üzerinden sarmalayıcı.
+- [x] `app/services/seo_generator.py`: yeni prompt yazmak yerine mevcut
+      `llm.generate_social_metadata()` (title/caption/hashtags, kendi retry ve
+      heuristic fallback'i ile) yeniden kullanılıyor.
+- [x] **`app/services/video.py` düzeltmesi:** `generate_video()` içindeki son
+      `write_videofile` çağrısına `ffmpeg_params=["-movflags", "+faststart"]`
+      eklendi (moov atom sorunu — bazı player'lar dosya tam inmeden ses
+      pistini algılayamıyordu). Bu düzeltme legacy pipeline dahil **her**
+      üretilen videoya uygulanıyor. Mevcut 41 testlik `test_video.py` paketi
+      hâlâ yeşil.
+- [x] `app/services/video_renderer.py`: **legacy `video.py`**
+      (`generate_video()`) üzerinden sarmalayıcı; BGM mix başarısız olursa
+      uyarı logluyor ama anlatı-only video üretmeye devam ediyor.
+- [x] `app/pipeline/default_pipeline.py`: `run_pipeline()` — 12 aşamayı sırayla
+      çağıran orkestratör (Intent→Research→Outline→Scene→Script→Storyboard→
+      Asset→AssetDownload→Audio→Timeline→SEO→VideoRenderer).
+- [x] Test: her servis için ayrı unit test dosyası + `test_default_pipeline.py`
+      (tüm zincirin mock LLM/medya I/O ile uçtan uca kablo testi). **Toplam
+      test/services paketi: 503 test, hepsi YEŞİL** (11 skip — gerçek API/
+      FFmpeg gerektiren entegrasyon testleri, ortamda zaten öyleydi).
+
+Sıradaki adım: `webui/Main.py`'ye "AI Documentary Studio (Beta)" bölümünü
+eklemek, sonra gerçek API key'lerle uçtan uca bir `final.mp4` üretip ffprobe
+ile doğrulamak (kullanıcının config.toml'a kendi key'lerini girmesi gerekiyor).
 
 ## FAZ 2 — Content OS genişletmesi
 
