@@ -1263,6 +1263,10 @@ def generate_video(
             threads=params.n_threads or 2,
             logger=None,
             fps=fps,
+            # Move the moov atom to the front of the file so players/browsers can
+            # start playback (and detect the audio track) before the full file
+            # has downloaded, instead of waiting on a trailing moov atom.
+            ffmpeg_params=["-movflags", "+faststart"],
         )
         return bgm_mix_succeeded
 
