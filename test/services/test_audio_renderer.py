@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from app.models.script import Script
-from app.services import audio_renderer
+from app.departments.production import audio_renderer
 from app.utils import utils
 
 
@@ -19,10 +19,10 @@ class TestRenderNarration(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.task_directory, ignore_errors=True)
 
-    @patch("app.services.audio_renderer.voice.create_subtitle")
-    @patch("app.services.audio_renderer.voice.get_audio_duration", return_value=12.5)
-    @patch("app.services.audio_renderer.voice.tts")
-    @patch("app.services.audio_renderer.voice.parse_voice_name", side_effect=lambda v: v)
+    @patch("app.departments.production.audio_renderer.voice.create_subtitle")
+    @patch("app.departments.production.audio_renderer.voice.get_audio_duration", return_value=12.5)
+    @patch("app.departments.production.audio_renderer.voice.tts")
+    @patch("app.departments.production.audio_renderer.voice.parse_voice_name", side_effect=lambda v: v)
     def test_builds_audio_track_from_tts_result(
         self, mock_parse_voice_name, mock_tts, mock_get_duration, mock_create_subtitle
     ):
@@ -44,8 +44,8 @@ class TestRenderNarration(unittest.TestCase):
         _, kwargs = mock_tts.call_args
         self.assertEqual(kwargs["text"], "Rome was not built in a day.")
 
-    @patch("app.services.audio_renderer.voice.tts", return_value=None)
-    @patch("app.services.audio_renderer.voice.parse_voice_name", side_effect=lambda v: v)
+    @patch("app.departments.production.audio_renderer.voice.tts", return_value=None)
+    @patch("app.departments.production.audio_renderer.voice.parse_voice_name", side_effect=lambda v: v)
     def test_raises_when_tts_fails(self, mock_parse_voice_name, mock_tts):
         script = Script(full_text="Text")
         with self.assertRaises(RuntimeError):

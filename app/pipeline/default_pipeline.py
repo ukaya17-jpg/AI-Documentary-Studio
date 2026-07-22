@@ -11,14 +11,14 @@ from app.models.documentary_project import DocumentaryProject
 from app.models.schema import VideoAspect, VideoConcatMode
 from app.departments.creative import scene_planner, script_generator, storyboard_generator
 from app.departments.growth import seo_generator
-from app.departments.research import intent_analyzer, outline_generator, research_planner
-from app.services import (
+from app.departments.production import (
     asset_downloader,
     asset_generator,
     audio_renderer,
     timeline_builder,
     video_renderer,
 )
+from app.departments.research import intent_analyzer, outline_generator, research_planner
 
 TOTAL_STAGES = 12
 

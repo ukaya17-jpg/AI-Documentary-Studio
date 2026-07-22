@@ -10,7 +10,7 @@ from app.config import config
 from app.models.audio import AudioTrack
 from app.models.schema import VideoParams
 from app.models.timeline import Timeline
-from app.services import video_renderer
+from app.departments.production import video_renderer
 from app.utils import utils
 
 
@@ -22,7 +22,7 @@ class TestRenderFinalVideo(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.task_directory, ignore_errors=True)
 
-    @patch("app.services.video_renderer.video.generate_video", return_value=True)
+    @patch("app.departments.production.video_renderer.video.generate_video", return_value=True)
     def test_calls_generate_video_with_expected_paths(self, mock_generate_video):
         timeline = Timeline(combined_video_path="/tmp/combined.mp4")
         audio_track = AudioTrack(voice_file="/tmp/audio.mp3", subtitle_file="/tmp/subtitle.srt")
@@ -37,8 +37,8 @@ class TestRenderFinalVideo(unittest.TestCase):
         self.assertEqual(kwargs["subtitle_path"], "/tmp/subtitle.srt")
         self.assertTrue(output_file.endswith("final.mp4"))
 
-    @patch("app.services.video_renderer.logger.warning")
-    @patch("app.services.video_renderer.video.generate_video", return_value=False)
+    @patch("app.departments.production.video_renderer.logger.warning")
+    @patch("app.departments.production.video_renderer.video.generate_video", return_value=False)
     def test_logs_warning_when_bgm_mix_fails(self, mock_generate_video, mock_log_warning):
         timeline = Timeline(combined_video_path="/tmp/combined.mp4")
         audio_track = AudioTrack(voice_file="/tmp/audio.mp3")
@@ -48,8 +48,8 @@ class TestRenderFinalVideo(unittest.TestCase):
 
         mock_log_warning.assert_called_once()
 
-    @patch("app.services.video_renderer.logger.warning")
-    @patch("app.services.video_renderer.video.generate_video", return_value=True)
+    @patch("app.departments.production.video_renderer.logger.warning")
+    @patch("app.departments.production.video_renderer.video.generate_video", return_value=True)
     def test_no_warning_when_bgm_mix_succeeds(self, mock_generate_video, mock_log_warning):
         timeline = Timeline(combined_video_path="/tmp/combined.mp4")
         audio_track = AudioTrack(voice_file="/tmp/audio.mp3")

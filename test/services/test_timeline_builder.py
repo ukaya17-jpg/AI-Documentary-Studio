@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from app.models.asset import AssetCandidate, AssetPlan
 from app.models.audio import AudioTrack
-from app.services import timeline_builder
+from app.departments.production import timeline_builder
 from app.utils import utils
 
 
@@ -20,7 +20,7 @@ class TestBuildTimeline(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.task_directory, ignore_errors=True)
 
-    @patch("app.services.timeline_builder.video.combine_videos")
+    @patch("app.departments.production.timeline_builder.video.combine_videos")
     def test_calls_combine_videos_and_builds_timeline(self, mock_combine_videos):
         mock_combine_videos.side_effect = lambda combined_video_path, **kwargs: combined_video_path
 

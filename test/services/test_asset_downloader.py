@@ -6,11 +6,11 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from app.models.asset import AssetCandidate, AssetPlan
-from app.services import asset_downloader
+from app.departments.production import asset_downloader
 
 
 class TestDownloadAssets(unittest.TestCase):
-    @patch("app.services.asset_downloader.material.download_videos")
+    @patch("app.departments.production.asset_downloader.material.download_videos")
     def test_calls_legacy_download_videos_with_scene_ordered_terms(self, mock_download_videos):
         mock_download_videos.return_value = ["/tmp/a.mp4", "/tmp/b.mp4"]
         plan = AssetPlan(
@@ -29,7 +29,7 @@ class TestDownloadAssets(unittest.TestCase):
         self.assertTrue(kwargs["match_script_order"])
         self.assertEqual(result.downloaded_paths, ["/tmp/a.mp4", "/tmp/b.mp4"])
 
-    @patch("app.services.asset_downloader.material.download_videos")
+    @patch("app.departments.production.asset_downloader.material.download_videos")
     def test_skips_call_when_no_candidates(self, mock_download_videos):
         plan = AssetPlan(candidates=[])
         result = asset_downloader.download_assets(plan, task_id="t1", audio_duration=10.0)

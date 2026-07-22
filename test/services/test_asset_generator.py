@@ -5,7 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from app.models.storyboard import Storyboard, StoryboardShot
-from app.services import asset_generator
+from app.departments.production import asset_generator
 
 
 class TestBuildAssetPlan(unittest.TestCase):
