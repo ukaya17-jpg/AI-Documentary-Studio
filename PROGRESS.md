@@ -499,3 +499,43 @@ thumbnail için SEO başlığından ayrı, daha kısa bir "headline" üretmek
 (muhtemelen `seo_generator`'a küçük bir ek alan gerektirir).
 
 **Durum: Task A tamamen bitti. Task B'ye (Story Engine) geçiliyor.**
+
+### B) Story Engine (Hook/Retention/Callback) — PLAN (kendi kendine onaylandı)
+
+**Kök neden (gerçek veriyle doğrulanmış):** `quality_critic`'in Roma
+projesinde bulduğu gerçek sorun — *"The hook and closing promised by the
+outline are absent from the narration"* — `script_generator.py`'nin kod
+okumasıyla doğrulandı: `build_script_prompt()`/`generate_script()` hiçbir
+zaman `outline.hook`/`outline.closing`'i görmüyor, sadece `scene_plan` ve
+`topic` alıyor. Yani sorun "LLM'in şansı" değil, **prompt'a o bilginin hiç
+verilmemesi.**
+
+**OTONOM KARAR:** Kullanıcı "Hook/Retention/Callback alt-motorları" dedi —
+bunu 3 ayrı yeni servis/dosya (örn. ayrı bir "Retention Engine" modülü)
+olarak İNŞA ETMİYORUM. En tutucu/geri alınabilir seçenek: mevcut
+`script_generator.py`'yi genişletmek — tek bir prompt bloğunda üç kavramı
+da (Hook/Retention/Callback) açıkça adlandırılmış talimatlar olarak
+kodlamak. Gerekçe: (1) kök neden zaten tek bir noktada (script prompt'u
+outline'ı görmüyor), üç ayrı modül bu tek noktayı çözmek için gereksiz
+soyutlama olurdu; (2) "Retention" kavramının somut, ayrı bir veri yapısı
+gerektirmeyen, saf prompt-mühendisliği ile ifade edilebilir bir talimat
+olması (yeni maliyet/karmaşıklık yok).
+
+**Somut değişiklik:**
+- `build_script_prompt(scene_plan, topic, language, custom_system_prompt,
+  outline=None)` — yeni opsiyonel `outline` parametresi.
+- `outline.hook` varsa: "scene 0'ın anlatımı bu hook'u açılışta kullanmalı"
+  talimatı.
+- Birden fazla sahne varsa: "Retention" — sahnelerin çoğu tam çözülmüş bir
+  ifadeyle değil, ileriye çeken bir detay/gerilim/açık soruyla bitmeli
+  (genel anlatım tekniği, outline'a bağımlı değil).
+- `outline.closing` varsa: "son sahnenin anlatımı hook'a geri dönmeli ve/veya
+  bu closing beat'i vermeli" talimatı.
+- `generate_script()` aynı `outline` parametresini alıp geçiriyor.
+- `default_pipeline.py`: `script_generator.generate_script(project.scene_plan,
+  topic, language=..., outline=project.outline)`.
+
+**Maliyet:** $0 ek maliyet — aynı tek LLM çağrısı, sadece prompt'a birkaç
+satır ekleniyor. Yeni API/bağımlılık yok.
+
+**Durum: Plan onaylandı, kodlanıyor.**
