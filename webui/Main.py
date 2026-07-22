@@ -4054,6 +4054,11 @@ def _render_documentary_studio_section():
         final_video_path = (last_project or {}).get("final_video_path", "")
         if final_video_path and os.path.exists(final_video_path):
             st.video(final_video_path)
+
+            thumbnail_path = (last_project or {}).get("thumbnail_path", "")
+            if thumbnail_path and os.path.exists(thumbnail_path):
+                st.image(thumbnail_path, caption=tr("Documentary Thumbnail"), width=240)
+
             seo = (last_project or {}).get("seo") or {}
             if seo.get("title"):
                 st.text_input(
