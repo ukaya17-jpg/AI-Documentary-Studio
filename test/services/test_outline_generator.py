@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from app.config.profile_dimensions import TopicCategory
 from app.models.research_plan import ResearchPlan, ResearchQuestion
-from app.services import outline_generator
+from app.departments.research import outline_generator
 
 
 class TestBuildOutlinePrompt(unittest.TestCase):
@@ -34,7 +34,7 @@ class TestBuildOutlinePrompt(unittest.TestCase):
 
 
 class TestGenerateOutline(unittest.TestCase):
-    @patch("app.services.outline_generator.generate_json")
+    @patch("app.departments.research.outline_generator.generate_json")
     def test_parses_full_valid_response(self, mock_generate_json):
         mock_generate_json.return_value = {
             "title": "The Fall of Rome",
@@ -50,13 +50,13 @@ class TestGenerateOutline(unittest.TestCase):
         self.assertEqual(len(outline.sections), 2)
         self.assertEqual(outline.sections[1].importance, 5)
 
-    @patch("app.services.outline_generator.generate_json")
+    @patch("app.departments.research.outline_generator.generate_json")
     def test_falls_back_to_topic_when_title_missing(self, mock_generate_json):
         mock_generate_json.return_value = {"sections": []}
         outline = outline_generator.generate_outline("Mars")
         self.assertEqual(outline.title, "Mars")
 
-    @patch("app.services.outline_generator.generate_json")
+    @patch("app.departments.research.outline_generator.generate_json")
     def test_clamps_out_of_range_importance(self, mock_generate_json):
         mock_generate_json.return_value = {
             "title": "T",
@@ -66,7 +66,7 @@ class TestGenerateOutline(unittest.TestCase):
         self.assertEqual(outline.sections[0].importance, 5)
         self.assertEqual(outline.sections[1].importance, 1)
 
-    @patch("app.services.outline_generator.generate_json")
+    @patch("app.departments.research.outline_generator.generate_json")
     def test_skips_sections_without_title(self, mock_generate_json):
         mock_generate_json.return_value = {"title": "T", "sections": [{"summary": "no title"}]}
         outline = outline_generator.generate_outline("T")

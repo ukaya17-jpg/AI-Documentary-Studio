@@ -10,13 +10,11 @@ from app.config.profile_dimensions import PACING_SCENE_SPEC, Pacing, TopicCatego
 from app.models.documentary_project import DocumentaryProject
 from app.models.schema import VideoAspect, VideoConcatMode
 from app.departments.growth import seo_generator
+from app.departments.research import intent_analyzer, outline_generator, research_planner
 from app.services import (
     asset_downloader,
     asset_generator,
     audio_renderer,
-    intent_analyzer,
-    outline_generator,
-    research_planner,
     scene_planner,
     script_generator,
     storyboard_generator,

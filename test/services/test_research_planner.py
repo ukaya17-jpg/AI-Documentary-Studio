@@ -6,7 +6,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from app.config.profile_dimensions import TopicCategory
-from app.services import research_planner
+from app.departments.research import research_planner
 
 
 class TestBuildResearchPrompt(unittest.TestCase):
@@ -24,7 +24,7 @@ class TestBuildResearchPrompt(unittest.TestCase):
 
 
 class TestGenerateResearchPlan(unittest.TestCase):
-    @patch("app.services.research_planner.generate_json")
+    @patch("app.departments.research.research_planner.generate_json")
     def test_parses_full_valid_response(self, mock_generate_json):
         mock_generate_json.return_value = {
             "key_questions": [
@@ -40,7 +40,7 @@ class TestGenerateResearchPlan(unittest.TestCase):
         self.assertEqual(plan.key_facts, ["Rome fell in 476 AD."])
         self.assertEqual(plan.angles, ["Decline as a slow process, not a single event."])
 
-    @patch("app.services.research_planner.generate_json")
+    @patch("app.departments.research.research_planner.generate_json")
     def test_tolerates_string_only_questions(self, mock_generate_json):
         mock_generate_json.return_value = {
             "key_questions": ["Why did Rome fall?"],
@@ -51,7 +51,7 @@ class TestGenerateResearchPlan(unittest.TestCase):
         self.assertEqual(plan.key_questions[0].question, "Why did Rome fall?")
         self.assertEqual(plan.key_questions[0].rationale, "")
 
-    @patch("app.services.research_planner.generate_json")
+    @patch("app.departments.research.research_planner.generate_json")
     def test_drops_empty_questions(self, mock_generate_json):
         mock_generate_json.return_value = {
             "key_questions": [{"question": "", "rationale": "n/a"}, ""],
