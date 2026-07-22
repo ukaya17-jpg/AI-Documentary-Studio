@@ -6,7 +6,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from app.models.scene import Scene, ScenePlan
-from app.services import script_generator
+from app.departments.creative import script_generator
 
 
 def _scene_plan():
@@ -35,7 +35,7 @@ class TestBuildScriptPrompt(unittest.TestCase):
 
 
 class TestGenerateScript(unittest.TestCase):
-    @patch("app.services.script_generator.generate_json")
+    @patch("app.departments.creative.script_generator.generate_json")
     def test_parses_lines_in_scene_order(self, mock_generate_json):
         mock_generate_json.return_value = {
             "lines": [
@@ -48,14 +48,14 @@ class TestGenerateScript(unittest.TestCase):
         self.assertEqual(script.lines[1].text, "Everything changed in an instant.")
         self.assertIn("It all started long ago.", script.full_text)
 
-    @patch("app.services.script_generator.generate_json")
+    @patch("app.departments.creative.script_generator.generate_json")
     def test_falls_back_to_narration_beat_for_missing_scene(self, mock_generate_json):
         mock_generate_json.return_value = {"lines": [{"scene_index": 0, "text": "Only scene 0 written."}]}
         script = script_generator.generate_script(_scene_plan(), "Topic")
         self.assertEqual(script.lines[1].text, "The turning point")
 
     def test_empty_scene_plan_short_circuits_without_llm_call(self):
-        with patch("app.services.script_generator.generate_json") as mock_generate_json:
+        with patch("app.departments.creative.script_generator.generate_json") as mock_generate_json:
             script = script_generator.generate_script(ScenePlan(scenes=[]), "Topic")
             mock_generate_json.assert_not_called()
         self.assertEqual(script.full_text, "")

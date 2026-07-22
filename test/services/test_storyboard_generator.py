@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from app.config.profile_dimensions import TopicCategory
 from app.models.scene import Scene, ScenePlan
 from app.models.script import Script, ScriptLine
-from app.services import storyboard_generator
+from app.departments.creative import storyboard_generator
 
 
 def _scene_plan():
@@ -38,7 +38,7 @@ class TestBuildStoryboardPrompt(unittest.TestCase):
 
 
 class TestGenerateStoryboard(unittest.TestCase):
-    @patch("app.services.storyboard_generator.generate_json")
+    @patch("app.departments.creative.storyboard_generator.generate_json")
     def test_parses_shots_in_scene_order(self, mock_generate_json):
         mock_generate_json.return_value = {
             "shots": [
@@ -51,7 +51,7 @@ class TestGenerateStoryboard(unittest.TestCase):
         self.assertEqual(storyboard.shots[0].description, "ruins")
         self.assertEqual(storyboard.shots[1].scene_index, 1)
 
-    @patch("app.services.storyboard_generator.generate_json")
+    @patch("app.departments.creative.storyboard_generator.generate_json")
     def test_falls_back_to_scene_visual_keywords_when_missing(self, mock_generate_json):
         mock_generate_json.return_value = {"shots": [{"scene_index": 0, "description": "ruins", "search_terms": []}]}
         storyboard = storyboard_generator.generate_storyboard(_scene_plan(), _script())
@@ -59,7 +59,7 @@ class TestGenerateStoryboard(unittest.TestCase):
         self.assertEqual(storyboard.shots[1].search_terms, ["battle"])
 
     def test_empty_scene_plan_short_circuits(self):
-        with patch("app.services.storyboard_generator.generate_json") as mock_generate_json:
+        with patch("app.departments.creative.storyboard_generator.generate_json") as mock_generate_json:
             storyboard = storyboard_generator.generate_storyboard(ScenePlan(scenes=[]), Script())
             mock_generate_json.assert_not_called()
         self.assertEqual(storyboard.shots, [])

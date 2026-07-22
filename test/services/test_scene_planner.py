@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from app.config.profile_dimensions import Pacing
 from app.models.outline import Outline, OutlineSection
-from app.services import scene_planner
+from app.departments.creative import scene_planner
 
 
 def _outline_with_sections(importances: list[int]) -> Outline:
