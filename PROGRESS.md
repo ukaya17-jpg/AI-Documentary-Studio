@@ -539,3 +539,29 @@ olması (yeni maliyet/karmaşıklık yok).
 satır ekleniyor. Yeni API/bağımlılık yok.
 
 **Durum: Plan onaylandı, kodlanıyor.**
+
+### B) Story Engine — TAMAMLANDI
+
+- [x] `script_generator.build_script_prompt()`/`generate_script()` yeni
+      opsiyonel `outline` parametresi alıyor; Hook/Retention/Callback
+      talimatları tek prompt'a ekleniyor.
+- [x] `default_pipeline.py`: `script_generator.generate_script(...,
+      outline=project.outline)`.
+- [x] 12 test (script_generator, önceden 5'ti) + pipeline wiring assertion
+      — bir kırmızı test çıktı (**benim test tasarım hatam**: tek-sahne
+      olmayan bir plan için "Story craft requirements" bloğunun tamamen
+      yokluğunu bekliyordum, ama Retention outline'dan bağımsız olduğu için
+      çok-sahneli planda her zaman ekleniyor — kodun kendisi doğruydu, testi
+      düzelttim), sonra hepsi yeşil.
+- [x] Tam suite: **566 passed, 11 skipped.**
+- [x] **Gerçek doğrulama (1/5 gece bütçesi kullanıldı):** Aynı gerçek Roma
+      outline'ı (gerçek hook: "...Odoacer... Romulus Augustulus... 476 CE...")
+      ile `generate_script()` yeniden çalıştırıldı. **Yeni script'in ilk
+      satırı** artık "In 476, Odoacer deposed Rome's boy emperor" ile
+      açılıyor, **son satırı** "by 476, western authority simply unraveled"
+      ile kapanıyor — `quality_critic`'in bulduğu gerçek eksikliği somut
+      olarak kapattığını kanıtlıyor.
+
+**Kalan gerçek API bütçesi: 4/5.**
+
+**Durum: Task B tamamen bitti. Task C'ye (SEO Engine genişletme) geçiliyor.**
