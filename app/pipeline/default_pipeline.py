@@ -8,7 +8,7 @@ from loguru import logger
 
 from app.config.profile_dimensions import PACING_SCENE_SPEC, Pacing, TopicCategory, resolve_pacing
 from app.models.documentary_project import DocumentaryProject
-from app.models.schema import VideoAspect, VideoConcatMode, VideoParams
+from app.models.schema import VideoAspect, VideoConcatMode
 from app.services import (
     asset_downloader,
     asset_generator,
@@ -133,14 +133,13 @@ def run_pipeline(
     project.seo = seo_generator.generate_seo_metadata(topic, project.script, language=project.language)
 
     stage(12, "video render")
-    params = VideoParams(
-        video_subject=topic,
+    params = video_renderer.build_video_params(
+        topic=topic,
         video_aspect=video_aspect,
         voice_name=voice_name,
         bgm_type=bgm_type,
         bgm_file=bgm_file,
         bgm_volume=bgm_volume,
-        subtitle_enabled=True,
     )
     project.final_video_path = video_renderer.render_final_video(
         project.timeline,

@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+from app.config import config
 from app.models.audio import AudioTrack
 from app.models.schema import VideoParams
 from app.models.timeline import Timeline
@@ -57,6 +58,54 @@ class TestRenderFinalVideo(unittest.TestCase):
         video_renderer.render_final_video(timeline, audio_track, self.task_id, params)
 
         mock_log_warning.assert_not_called()
+
+
+class TestBuildVideoParams(unittest.TestCase):
+    def setUp(self):
+        self._saved_ui = dict(config.ui)
+
+    def tearDown(self):
+        config.ui.clear()
+        config.ui.update(self._saved_ui)
+
+    def test_uses_configured_subtitle_appearance(self):
+        config.ui["font_name"] = "MicrosoftYaHeiBold.ttc"
+        config.ui["text_fore_color"] = "#00FF00"
+        config.ui["font_size"] = 42
+        config.ui["subtitle_background_enabled"] = True
+        config.ui["subtitle_background_color"] = "#123456"
+        config.ui["rounded_subtitle_background"] = True
+
+        params = video_renderer.build_video_params(
+            topic="Rome", video_aspect="9:16", voice_name="en-US-JennyNeural"
+        )
+
+        self.assertEqual(params.font_name, "MicrosoftYaHeiBold.ttc")
+        self.assertEqual(params.text_fore_color, "#00FF00")
+        self.assertEqual(params.font_size, 42)
+        self.assertEqual(params.text_background_color, "#123456")
+        self.assertTrue(params.rounded_subtitle_background)
+
+    def test_no_background_color_when_subtitle_background_disabled(self):
+        config.ui["subtitle_background_enabled"] = False
+        config.ui["subtitle_background_color"] = "#123456"
+
+        params = video_renderer.build_video_params(
+            topic="Rome", video_aspect="9:16", voice_name="en-US-JennyNeural"
+        )
+
+        self.assertFalse(params.text_background_color)
+
+    def test_falls_back_to_defaults_when_unset(self):
+        config.ui.clear()
+
+        params = video_renderer.build_video_params(
+            topic="Rome", video_aspect="9:16", voice_name="en-US-JennyNeural"
+        )
+
+        self.assertEqual(params.font_name, "MicrosoftYaHeiBold.ttc")
+        self.assertEqual(params.text_fore_color, "#FFFFFF")
+        self.assertEqual(params.font_size, 60)
 
 
 if __name__ == "__main__":
