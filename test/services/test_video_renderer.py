@@ -103,7 +103,7 @@ class TestBuildVideoParams(unittest.TestCase):
             topic="Rome", video_aspect="9:16", voice_name="en-US-JennyNeural"
         )
 
-        self.assertEqual(params.font_name, "MicrosoftYaHeiBold.ttc")
+        self.assertEqual(params.font_name, "BeVietnamPro-Bold.ttf")
         self.assertEqual(params.text_fore_color, "#FFFFFF")
         self.assertEqual(params.font_size, 60)
 
