@@ -393,8 +393,49 @@ ikisi de varsayılan `""`), geriye dönük tam uyumlu. Yeni servis dosyası
 gibi paylaşılan altyapı — ileride başka departmanlar da kullanabilir).
 Küçük, izole ekleme; büyük refactor yok.
 
-**Kod henüz yazılmadı, şimdi başlıyorum.**
+### Knowledge Engine — UYGULANDI, TEST EDİLDİ, GERÇEK API İLE DOĞRULANDI
+
+- [x] `app/models/web_search.py` (`WebSearchResult`) + `app/services/web_search.py`
+      (`search_web(query) -> WebSearchResult | None`, DuckDuckGo Instant Answer
+      API, ücretsiz/key yok, asla exception fırlatmıyor). 5 test, mock'lu
+      (`requests.get` mock'landı — mevcut `material.py` konvansiyonuyla aynı,
+      test suite'inde gerçek ağ çağrısı yok). Ayrıca **ücretsiz** gerçek
+      çağrılarla doğrulandı: "Roman Empire" → gerçek Wikipedia özeti,
+      anlamsız niş sorgu → `None`.
+- [x] `ResearchPlan`'a `source_snippet`/`source_url` (opsiyonel, varsayılan
+      `""`) eklendi — geriye dönük tam uyumlu.
+- [x] `research_planner.generate_research_plan()`: LLM çağrısından önce
+      `web_search.search_web(topic)`; sonuç bulunursa tek LLM çağrısında
+      hem grounding hem "bu kaynakla çelişme" talimatı veriliyor. 4 yeni test
+      + 3 mevcut test `web_search.search_web` mock'u eklenerek güncellendi.
+- [x] Tam suite: **551 passed, 11 skipped.**
+- [x] **Gerçek API doğrulaması (1/3 bütçe kullanıldı):** "The Fall of the
+      Roman Empire" konusuyla gerçek OpenAI + gerçek DuckDuckGo grounding
+      ile `generate_research_plan()` çalıştırıldı.
+
+**Somut önce/sonra karşılaştırması — bu özelliğin gerçekten işe yaradığının
+kanıtı:** Daha önce (Faz 2 Thinking Layer bölümünde) `quality_critic`, aynı
+"Roma İmparatorluğu'nun çöküşü" konusuyla üretilen script'i şu gerekçeyle
+düşük puanlamıştı: *"Narration does not reach... 476 CE... Odoacer, Romulus
+Augustulus..."* — yani script bu somut olaylara hiç değinmiyordu (o script,
+grounding olmadan üretilmişti). **Şimdi, grounding ile üretilen `key_facts`
+listesi bu üç olayı da açıkça içeriyor:**
+> "In 476 CE, the Germanic commander Odoacer deposed the young western
+> emperor Romulus Augustulus; this date is often used as the conventional
+> marker for the fall of the Western Roman Empire."
+
+Bu, quality_critic'in bulduğu gerçek bir eksikliği, Knowledge Engine'in
+gerçekten kapattığını gösteriyor — spekülatif değil, aynı konuda ölçülmüş.
+
+**Kalan gerçek API bütçesi: 2/3.**
 
 ## Karar bekleyen noktalar
 
-Şu an yok.
+**Thumbnail Engine referansı hâlâ bulunamadı.** Knowledge Engine hedefi
+tamamlandığı için görev tanımına göre sıradaki adıma geçmem gerekiyordu, ama
+"PROGRESS.md'deki Bölüm 12 öncelik sırası" ve "Thumbnail Engine" bu dosyada
+veya erişebildiğim konuşma geçmişinde yok (yukarıda not düşülmüştü). Bunu
+icat edip spekülatif bir özellik inşa etmek yerine burada duruyorum — bu,
+"gerçekten belirsiz bir noktada dur" kuralına uyuyor: sıradaki özelliğin ne
+olduğu, küçük bir uygulama detayı değil, büyük bir belirsizlik. Sabah
+yönlendirme bekliyorum.
