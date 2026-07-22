@@ -273,6 +273,23 @@
     "Please Enter the Coverr API Key": "Introduce la **API Key de Coverr**",
     "Video Encoder": "Codificador de vídeo",
     "Default Video Encoder": "Predeterminado (recomendado)",
-    "Video Encoder Help": "Opción avanzada. Predeterminado sigue la política estable de la aplicación, actualmente libx264. Si un codificador de hardware no está disponible, la aplicación vuelve automáticamente a libx264."
+    "Video Encoder Help": "Opción avanzada. Predeterminado sigue la política estable de la aplicación, actualmente libx264. Si un codificador de hardware no está disponible, la aplicación vuelve automáticamente a libx264.",
+    "AI Documentary Studio (Beta)": "AI Documentary Studio (Beta)",
+    "Documentary Topic": "Tema del documental",
+    "Documentary Topic Placeholder": "p.ej. La caída del Imperio Romano",
+    "Documentary Language": "Idioma",
+    "Documentary Topic Category": "Categoría del tema",
+    "Documentary Topic Category Help": "Elige 'auto' para que la IA detecte la categoría a partir del tema, o cámbiala manualmente.",
+    "Documentary Pacing": "Ritmo",
+    "Documentary Voice Name": "Nombre de la voz",
+    "Documentary Voice Name Help": "Nombre de voz TTS, p.ej. en-US-JennyNeural o tr-TR-AhmetNeural.",
+    "Generate Documentary": "Generar documental",
+    "Documentary Topic Required": "Introduce primero un tema para el documental",
+    "Generating Documentary": "Generando documental, esto puede tardar unos minutos...",
+    "Documentary Generated": "Documental generado correctamente",
+    "Documentary Generation Failed": "Error al generar el documental",
+    "Documentary SEO Title": "Título SEO",
+    "Documentary SEO Description": "Descripción SEO",
+    "Documentary SEO Hashtags": "Hashtags SEO"
   }
 }

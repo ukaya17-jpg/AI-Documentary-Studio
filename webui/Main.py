@@ -25,6 +25,7 @@ if root_dir not in sys.path:
     sys.path.append(root_dir)
 
 from app.config import config
+from app.config.profile_dimensions import Pacing, TopicCategory
 from app.models import const
 from app.models.llm_provider import (
     DEFAULT_LLM_PROVIDER_ID,
@@ -39,6 +40,7 @@ from app.models.schema import (
     VideoParams,
     VideoTransitionMode,
 )
+from app.pipeline import default_pipeline
 from app.services import bgm as bgm_service
 from app.services import cache_manager, llm, video, voice, webui_task
 from app.services import elevenlabs_music as elevenlabs_music_service
@@ -3904,6 +3906,113 @@ def _render_generation_controls(
     return start_button
 
 
+def _render_documentary_studio_section():
+    """
+    AI Documentary Studio (Beta): Intent -> Research -> Outline -> Scene ->
+    Script -> Storyboard -> Asset -> AssetDownload -> Audio -> Timeline ->
+    SEO -> VideoRenderer pipeline'ı için ayrı, kendi kendine yeten bir bölüm.
+
+    Bilinçli olarak legacy üretim akışından (arka plan thread, task manager,
+    log fragment'ları) bağımsız tutuldu: pipeline senkron çalışır, sonuç
+    doğrudan bu script çalışması içinde gösterilir.
+    """
+    with st.expander(tr("AI Documentary Studio (Beta)"), expanded=False):
+        topic = st.text_input(
+            tr("Documentary Topic"),
+            key="documentary_topic",
+            placeholder=tr("Documentary Topic Placeholder"),
+        )
+
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            language = st.selectbox(
+                tr("Documentary Language"),
+                options=["auto", "tr", "en"],
+                index=0,
+                key="documentary_language",
+            )
+        with col2:
+            category_options = ["auto"] + [c.value for c in TopicCategory]
+            topic_category = st.selectbox(
+                tr("Documentary Topic Category"),
+                options=category_options,
+                index=0,
+                key="documentary_topic_category",
+                help=tr("Documentary Topic Category Help"),
+            )
+        with col3:
+            pacing = st.selectbox(
+                tr("Documentary Pacing"),
+                options=[p.value for p in Pacing],
+                index=0,
+                key="documentary_pacing",
+            )
+
+        voice_name = st.text_input(
+            tr("Documentary Voice Name"),
+            value=config.ui.get("voice_name", "") or "en-US-JennyNeural",
+            key="documentary_voice_name",
+            help=tr("Documentary Voice Name Help"),
+        )
+
+        generate_clicked = st.button(
+            tr("Generate Documentary"),
+            key="documentary_generate_button",
+            type="primary",
+            use_container_width=True,
+        )
+
+        if generate_clicked:
+            if not topic.strip():
+                st.error(tr("Documentary Topic Required"))
+                st.stop()
+
+            project_id = str(uuid4())
+            try:
+                with st.spinner(tr("Generating Documentary")):
+                    project = default_pipeline.run_pipeline(
+                        project_id=project_id,
+                        topic=topic.strip(),
+                        language=language,
+                        topic_category_override=(
+                            None if topic_category == "auto" else topic_category
+                        ),
+                        pacing=pacing,
+                        voice_name=voice_name.strip(),
+                    )
+            except Exception as exc:
+                logger.exception(
+                    f"documentary studio: pipeline failed for topic={topic!r}"
+                )
+                st.error(f"{tr('Documentary Generation Failed')}: {exc}")
+                st.stop()
+
+            st.session_state["documentary_last_project"] = project.model_dump(mode="json")
+            st.success(tr("Documentary Generated"))
+
+        last_project = st.session_state.get("documentary_last_project")
+        final_video_path = (last_project or {}).get("final_video_path", "")
+        if final_video_path and os.path.exists(final_video_path):
+            st.video(final_video_path)
+            seo = (last_project or {}).get("seo") or {}
+            if seo.get("title"):
+                st.text_input(
+                    tr("Documentary SEO Title"), value=seo["title"], disabled=True
+                )
+            if seo.get("description"):
+                st.text_area(
+                    tr("Documentary SEO Description"),
+                    value=seo["description"],
+                    disabled=True,
+                )
+            if seo.get("hashtags"):
+                st.text_input(
+                    tr("Documentary SEO Hashtags"),
+                    value=" ".join(seo["hashtags"]),
+                    disabled=True,
+                )
+
+
 def _render_application():
     """按固定顺序渲染顶部栏、弹窗、生成表单和任务结果。"""
     _render_top_bar()
@@ -3946,6 +4055,8 @@ def _render_application():
         uploaded_bgm_file,
         voice_mode,
     )
+
+    _render_documentary_studio_section()
 
     # 生成分支在启动后台线程前已经保存过配置。这里再次保存既没有收益，还可能
     # 与持有 runtime_config_lock 的长任务竞争，使当前 Streamlit 脚本一直阻塞

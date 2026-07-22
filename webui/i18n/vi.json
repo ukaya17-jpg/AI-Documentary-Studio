@@ -273,6 +273,23 @@
     "Please Enter the Coverr API Key": "Vui lòng nhập **API Key Coverr**",
     "Video Encoder": "Bộ Mã Hóa Video",
     "Default Video Encoder": "Mặc định (Khuyên dùng)",
-    "Video Encoder Help": "Tùy chọn nâng cao. Mặc định tuân theo chính sách mã hóa ổn định của ứng dụng, hiện là libx264. Nếu bộ mã hóa phần cứng không khả dụng, ứng dụng tự động chuyển về libx264."
+    "Video Encoder Help": "Tùy chọn nâng cao. Mặc định tuân theo chính sách mã hóa ổn định của ứng dụng, hiện là libx264. Nếu bộ mã hóa phần cứng không khả dụng, ứng dụng tự động chuyển về libx264.",
+    "AI Documentary Studio (Beta)": "AI Documentary Studio (Beta)",
+    "Documentary Topic": "Chủ đề phim tài liệu",
+    "Documentary Topic Placeholder": "vd. Sự sụp đổ của Đế chế La Mã",
+    "Documentary Language": "Ngôn ngữ",
+    "Documentary Topic Category": "Danh mục chủ đề",
+    "Documentary Topic Category Help": "Chọn 'auto' để AI tự nhận diện danh mục từ chủ đề, hoặc ghi đè thủ công.",
+    "Documentary Pacing": "Nhịp độ",
+    "Documentary Voice Name": "Tên giọng đọc",
+    "Documentary Voice Name Help": "Tên giọng TTS, vd. en-US-JennyNeural hoặc tr-TR-AhmetNeural.",
+    "Generate Documentary": "Tạo phim tài liệu",
+    "Documentary Topic Required": "Vui lòng nhập chủ đề phim tài liệu trước",
+    "Generating Documentary": "Đang tạo phim tài liệu, việc này có thể mất vài phút...",
+    "Documentary Generated": "Đã tạo phim tài liệu thành công",
+    "Documentary Generation Failed": "Tạo phim tài liệu thất bại",
+    "Documentary SEO Title": "Tiêu đề SEO",
+    "Documentary SEO Description": "Mô tả SEO",
+    "Documentary SEO Hashtags": "Hashtag SEO"
   }
 }

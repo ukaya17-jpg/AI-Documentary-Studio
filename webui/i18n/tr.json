@@ -273,6 +273,23 @@
     "Please Enter the Coverr API Key": "Lütfen **Coverr API Anahtarını** girin",
     "Video Encoder": "Video Kodlayıcı",
     "Default Video Encoder": "Varsayılan (Önerilen)",
-    "Video Encoder Help": "Gelişmiş seçenek. Varsayılan, uygulamanın kararlı kodlayıcı politikasını izler; şu anda libx264 kullanılır. Donanım kodlayıcı kullanılamıyorsa uygulama otomatik olarak libx264'e döner."
+    "Video Encoder Help": "Gelişmiş seçenek. Varsayılan, uygulamanın kararlı kodlayıcı politikasını izler; şu anda libx264 kullanılır. Donanım kodlayıcı kullanılamıyorsa uygulama otomatik olarak libx264'e döner.",
+    "AI Documentary Studio (Beta)": "AI Documentary Studio (Beta)",
+    "Documentary Topic": "Belgesel Konusu",
+    "Documentary Topic Placeholder": "örn. Roma İmparatorluğu'nun Çöküşü",
+    "Documentary Language": "Dil",
+    "Documentary Topic Category": "Konu Kategorisi",
+    "Documentary Topic Category Help": "AI'ın konudan kategoriyi otomatik algılaması için 'auto' seçin, ya da elle geçersiz kılın.",
+    "Documentary Pacing": "Temp",
+    "Documentary Voice Name": "Ses Adı",
+    "Documentary Voice Name Help": "TTS ses adı, örn. tr-TR-AhmetNeural veya en-US-JennyNeural.",
+    "Generate Documentary": "Belgesel Oluştur",
+    "Documentary Topic Required": "Lütfen önce bir belgesel konusu girin",
+    "Generating Documentary": "Belgesel oluşturuluyor, bu birkaç dakika sürebilir...",
+    "Documentary Generated": "Belgesel başarıyla oluşturuldu",
+    "Documentary Generation Failed": "Belgesel oluşturma başarısız oldu",
+    "Documentary SEO Title": "SEO Başlığı",
+    "Documentary SEO Description": "SEO Açıklaması",
+    "Documentary SEO Hashtags": "SEO Etiketleri"
   }
 }

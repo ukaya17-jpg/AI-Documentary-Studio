@@ -273,6 +273,23 @@
     "Video Source Settings": "**Videoquellen-Einstellungen**",
     "Coverr": "Coverr",
     "Coverr API Key": "Coverr API-Schlüssel ([API-Schlüssel holen](https://coverr.co/developers?ctx=header_navigation))",
-    "Please Enter the Coverr API Key": "Bitte geben Sie den **Coverr API-Schlüssel** ein"
+    "Please Enter the Coverr API Key": "Bitte geben Sie den **Coverr API-Schlüssel** ein",
+    "AI Documentary Studio (Beta)": "AI Documentary Studio (Beta)",
+    "Documentary Topic": "Dokumentarthema",
+    "Documentary Topic Placeholder": "z.B. Der Untergang des Römischen Reiches",
+    "Documentary Language": "Sprache",
+    "Documentary Topic Category": "Themenkategorie",
+    "Documentary Topic Category Help": "Wähle 'auto', damit die KI die Kategorie automatisch erkennt, oder überschreibe sie manuell.",
+    "Documentary Pacing": "Erzähltempo",
+    "Documentary Voice Name": "Stimmenname",
+    "Documentary Voice Name Help": "TTS-Stimmenname, z.B. en-US-JennyNeural oder tr-TR-AhmetNeural.",
+    "Generate Documentary": "Dokumentation erstellen",
+    "Documentary Topic Required": "Bitte zuerst ein Dokumentarthema eingeben",
+    "Generating Documentary": "Dokumentation wird erstellt, dies kann einige Minuten dauern...",
+    "Documentary Generated": "Dokumentation erfolgreich erstellt",
+    "Documentary Generation Failed": "Erstellung der Dokumentation fehlgeschlagen",
+    "Documentary SEO Title": "SEO-Titel",
+    "Documentary SEO Description": "SEO-Beschreibung",
+    "Documentary SEO Hashtags": "SEO-Hashtags"
   }
 }

@@ -273,6 +273,23 @@
     "Custom Position (% from top)": "Пользовательское положение (% от верхнего края)",
     "Please enter a value between 0 and 100": "Введите значение от 0 до 100",
     "Please enter a valid number": "Введите корректное число",
-    "Please Select a Valid Video Source": "Выберите поддерживаемый источник материалов"
+    "Please Select a Valid Video Source": "Выберите поддерживаемый источник материалов",
+    "AI Documentary Studio (Beta)": "AI Documentary Studio (Beta)",
+    "Documentary Topic": "Тема документального фильма",
+    "Documentary Topic Placeholder": "напр. Падение Римской империи",
+    "Documentary Language": "Язык",
+    "Documentary Topic Category": "Категория темы",
+    "Documentary Topic Category Help": "Выберите 'auto', чтобы ИИ определил категорию по теме, или задайте её вручную.",
+    "Documentary Pacing": "Темп",
+    "Documentary Voice Name": "Имя голоса",
+    "Documentary Voice Name Help": "Имя голоса TTS, напр. en-US-JennyNeural или tr-TR-AhmetNeural.",
+    "Generate Documentary": "Создать документальный фильм",
+    "Documentary Topic Required": "Сначала введите тему документального фильма",
+    "Generating Documentary": "Создание документального фильма, это может занять несколько минут...",
+    "Documentary Generated": "Документальный фильм успешно создан",
+    "Documentary Generation Failed": "Не удалось создать документальный фильм",
+    "Documentary SEO Title": "SEO-заголовок",
+    "Documentary SEO Description": "SEO-описание",
+    "Documentary SEO Hashtags": "SEO-хэштеги"
   }
 }

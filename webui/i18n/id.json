@@ -273,6 +273,23 @@
     "Please Enter the Coverr API Key": "Silakan Masukkan **Kunci API Coverr**",
     "Video Encoder": "Encoder Video",
     "Default Video Encoder": "Default (Direkomendasikan)",
-    "Video Encoder Help": "Opsi lanjutan. Default mengikuti kebijakan encoder stabil aplikasi, saat ini libx264. Jika encoder perangkat keras tidak tersedia, aplikasi otomatis kembali ke libx264."
+    "Video Encoder Help": "Opsi lanjutan. Default mengikuti kebijakan encoder stabil aplikasi, saat ini libx264. Jika encoder perangkat keras tidak tersedia, aplikasi otomatis kembali ke libx264.",
+    "AI Documentary Studio (Beta)": "AI Documentary Studio (Beta)",
+    "Documentary Topic": "Topik Dokumenter",
+    "Documentary Topic Placeholder": "mis. Keruntuhan Kekaisaran Romawi",
+    "Documentary Language": "Bahasa",
+    "Documentary Topic Category": "Kategori Topik",
+    "Documentary Topic Category Help": "Pilih 'auto' agar AI mendeteksi kategori dari topik, atau ganti secara manual.",
+    "Documentary Pacing": "Tempo",
+    "Documentary Voice Name": "Nama Suara",
+    "Documentary Voice Name Help": "Nama suara TTS, mis. en-US-JennyNeural atau tr-TR-AhmetNeural.",
+    "Generate Documentary": "Buat Dokumenter",
+    "Documentary Topic Required": "Silakan masukkan topik dokumenter terlebih dahulu",
+    "Generating Documentary": "Membuat dokumenter, ini mungkin memerlukan beberapa menit...",
+    "Documentary Generated": "Dokumenter berhasil dibuat",
+    "Documentary Generation Failed": "Pembuatan dokumenter gagal",
+    "Documentary SEO Title": "Judul SEO",
+    "Documentary SEO Description": "Deskripsi SEO",
+    "Documentary SEO Hashtags": "Hashtag SEO"
   }
 }
