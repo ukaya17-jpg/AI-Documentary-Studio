@@ -475,4 +475,27 @@ yeterli. Font: `config.ui.get("font_name", "BeVietnamPro-Bold.ttf")` —
 **Maliyet:** ~$0, ~2-5 saniye (ffmpeg kare çıkarma + PIL kompozisyon).
 Yeni LLM/API çağrısı yok — mevcut SEO başlığı yeniden kullanılıyor.
 
-**Durum: Plan onaylı, kodlamaya başlanıyor.**
+### A) Thumbnail Engine — TAMAMLANDI
+
+- [x] `app/departments/growth/thumbnail_generator.py`: `generate_thumbnail()`
+      — asla exception fırlatmıyor (`quality_verdict` ile aynı desen), her
+      hatada `""` döner.
+- [x] `DocumentaryProject.thumbnail_path: str = ""` eklendi, `default_pipeline`
+      VideoRenderer+quality_critic sonrası çağırıyor.
+- [x] 12 test (thumbnail_generator) + 2 yeni wiring testi
+      (`test_default_pipeline.py`) — hepsi ilk denemede yeşil.
+- [x] WebUI: video'nun yanında `st.image()` önizlemesi (Kalite Notu ile aynı
+      desen), 9 dile i18n eklendi, webui hatasız açıldığını doğruladım.
+- [x] Tam suite: **559 passed, 11 skipped.**
+- [x] **Gerçek doğrulama (yeni API maliyeti YOK — mevcut gerçek `combined.mp4`
+      kullanıldı):** Roma projesinin gerçek kombine videosundan gerçek bir
+      thumbnail üretildi.
+
+**Gerçek bir sınırlama bulundu (dürüstçe not düşüyorum, düzeltmedim):** Uzun
+SEO başlıkları ("Rome Didn't Fall Overnight—Here's What Cracked the Empire")
+3 satır sınırında kesiliyor, son kelime ("Empire") görünmüyor. Sabah
+değerlendirin — olası çözümler: font boyutunu dinamik küçültmek, ya da
+thumbnail için SEO başlığından ayrı, daha kısa bir "headline" üretmek
+(muhtemelen `seo_generator`'a küçük bir ek alan gerektirir).
+
+**Durum: Task A tamamen bitti. Task B'ye (Story Engine) geçiliyor.**
