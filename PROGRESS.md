@@ -111,11 +111,37 @@ temiz bir `ValueError` ile başarısız oldu (çökme/traceback yok) — bu da
 config okuma, provider çözümleme ve hata yayılımı zincirinin doğru
 çalıştığını kanıtlıyor.
 
-**Eksik olan tek şey:** gerçek bir API key'le (en az bir LLM provider; Pexels/
-Pixabay veya `video_source="local"`) tam bir `final.mp4` üretip `ffprobe` ile
-ses/görüntü sağlığını doğrulamak. Bu, kullanıcının config.toml'a kendi
-key'lerini girmesini bekliyor (Faz 0'da bilinçli olarak boş bırakıldı).
-**Kullanıcı key'leri girdiğinde bu adım tamamlanacak.**
+**Güncelleme — gerçek uçtan uca test TAMAMLANDI (2026-07-22):** Kullanıcı
+`config.toml`'a gerçek key girdi (OpenAI, Pexels, Pixabay, ElevenLabs).
+`run_pipeline()` gerçek OpenAI + gerçek Pexels indirme + gerçek ElevenLabs
+TTS ile (hiç mock yok), konu "The Fall of the Roman Empire", pacing=short,
+uçtan uca çalıştırıldı — 12 aşama da başarıyla tamamlandı, ~185 saniye sürdü.
+
+`ffprobe` doğrulaması:
+- video: h264, 1080x1920, 30fps, süre 20.87s
+- audio: aac, 44100Hz, stereo
+- format: süre 20.87s, boyut 9,137,074 byte, bit_rate ~3.5 Mbps
+- moov atom offset 32, mdat offset 24032 → **moov mdat'tan önce, faststart
+  doğru çalışıyor**
+- `ffmpeg volumedetect`: mean_volume -16.0 dB, max_volume -3.5 dB (kliplenme
+  yok, makul seviye)
+
+**Bu gerçek çalıştırma sırasında bir kusur bulundu ve düzeltildi:**
+`default_pipeline.py`, render aşamasında çıplak `VideoParams(...)` oluşturuyordu
+ve Faz 0'da `config.toml [ui]`'a yazdığım okunabilir altyazı ayarlarını
+(`MicrosoftYaHeiBold.ttc`, arka plan, yuvarlak köşe) hiç okumuyordu — üretilen
+videoda şemanın sabit varsayılanı (`STHeitiMedium.ttc`) kullanılmıştı. Legacy
+WebUI formu her widget değerini elle `params` üzerine yazıyor, benim pipeline'ım
+bunu yapmıyordu. Düzeltme: `video_renderer.build_video_params()` eklendi,
+`config.ui`'dan font/renk/boyut/arka plan ayarlarını okuyor (webui/Main.py'deki
+`DEFAULT_SUBTITLE_SETTINGS` ile aynı fallback mantığı, import edilemediği için
+yerelde tekrar tanımlandı). Var olan gerçek asset'lerle (yeni API çağrısı
+yapmadan) yeniden render edilip log'da `font: .../MicrosoftYaHeiBold.ttc`
+göründüğü doğrulandı, ikinci `ffprobe`/faststart kontrolü de geçti. 3 yeni
+test eklendi, tüm suite (531 passed, 11 skipped) hâlâ yeşil.
+
+**Faz 1 artık tamamen tamamlandı** — kod, mock testler, gerçek API testi ve
+bulunan kusurun düzeltmesi dahil.
 
 ## FAZ 2 — Content OS genişletmesi: TASLAK PLAN (onay bekleniyor)
 
