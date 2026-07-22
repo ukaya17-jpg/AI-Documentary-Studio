@@ -565,3 +565,45 @@ satır ekleniyor. Yeni API/bağımlılık yok.
 **Kalan gerçek API bütçesi: 4/5.**
 
 **Durum: Task B tamamen bitti. Task C'ye (SEO Engine genişletme) geçiliyor.**
+
+### C) SEO Engine genişletme — PLAN (kendi kendine onaylandı) + önemli bir gerçek bulgu
+
+**Önemli dürüst bulgu (kodlamadan önce fark ettim):** Bu pipeline'ın ürettiği
+videolar **dikey, kısa (9:16, 20-56s) — YouTube Shorts/TikTok/Reels formatı**
+(`seo_generator` zaten varsayılan olarak `platform="youtube_shorts"`
+kullanıyor). **YouTube "chapters" (bölümler) ve "end screen" (bitiş ekranı)
+resmi olarak sadece uzun-format videolarda çalışan özellikler** — Shorts'ta
+chapters hiç desteklenmiyor, end screen de aynı şekilde uzun video arayüzüne
+özel. Yani kullanıcının istediği bu iki özelliği "gerçekten YouTube'da
+işlevsel bir chapters/end-screen" gibi sunmak yanıltıcı olurdu.
+
+**OTONOM KARAR:** Bunları **platforma otomatik enjekte edilen** özellikler
+olarak değil, **üreticiye (kullanıcıya) manuel kullanması için sunulan
+danışman/öneri metaveri alanları** olarak uyguluyorum — tıpkı
+`quality_verdict` gibi bilgilendirici, hiçbir şeyi otomatik yapmıyor.
+`chapters` alanı, video uzun-format olarak yayınlanırsa gerçekten işe
+yarayabilir (sahne süre/başlıklarından deterministik, LLM çağrısı yok);
+Shorts'ta kullanılamayacağını hem kodda hem burada açıkça belirtiyorum.
+
+**Somut değişiklik:**
+- `SeoMetadata`'ya 3 opsiyonel alan: `chapters: list[str]`,
+  `end_screen_suggestion: str`, `pinned_comment: str` — hepsi varsayılan
+  boş, geriye dönük uyumlu.
+- `generate_chapters(scene_plan)`: **LLM çağrısı yok**, `scene_plan`'daki
+  sahne süre/başlıklarından deterministik "MM:SS Başlık" listesi
+  (`scene_planner.py` ile aynı "saf mantık" felsefesi).
+- Yeni, küçük, izole bir LLM çağrısı (**+1 çağrı, maliyet artışı — dürüstçe
+  belirtiyorum**): `end_screen_suggestion` + `pinned_comment`'i TEK çağrıda
+  üretiyor. Mevcut `llm.generate_social_metadata()`'yı (legacy, başka
+  çağıranları da var) değiştirmek yerine yeni bir fonksiyon — legacy paylaşılan
+  koda dokunmamak için en izole seçenek.
+- `generate_seo_metadata()` yeni opsiyonel `scene_plan` parametresi alıyor.
+- `default_pipeline.py`: `seo_generator.generate_seo_metadata(topic,
+  project.script, language=..., scene_plan=project.scene_plan)`.
+
+**Maliyet:** Chapters $0 (deterministik). Engagement metadata (end_screen+
+pinned_comment) +1 LLM çağrısı, küçük prompt — SEO aşamasının maliyetini
+yaklaşık ikiye katlıyor ama pipeline'ın toplam ~6 LLM çağrısına göre küçük
+bir artış.
+
+**Durum: Plan onaylandı, kodlanıyor.**
