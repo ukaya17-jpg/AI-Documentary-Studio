@@ -19,6 +19,7 @@ from app.departments.production import (
     video_renderer,
 )
 from app.departments.research import intent_analyzer, outline_generator, research_planner
+from app.thinking import quality_critic
 
 TOTAL_STAGES = 12
 
@@ -143,6 +144,23 @@ def run_pipeline(
         task_id=project.project_id,
         params=params,
     )
+
+    # Informational only: never blocks, never affects final_video_path.
+    # What a failing verdict should actually do (retry a stage, warn the
+    # user more loudly, ...) is a separate decision deferred until there's
+    # real usage data -- see PROGRESS.md.
+    project.quality_verdict = quality_critic.evaluate_project(project)
+    if project.quality_verdict is not None:
+        logger.info(
+            f"documentary pipeline: quality verdict -- overall={project.quality_verdict.overall_score}, "
+            f"passed={project.quality_verdict.passed}"
+        )
+        for issue in project.quality_verdict.issues:
+            logger.info(f"documentary pipeline: quality issue -- {issue}")
+    else:
+        logger.warning(
+            "documentary pipeline: quality review unavailable, continuing without a verdict"
+        )
 
     logger.success(f"documentary pipeline done: {project.final_video_path}")
     return project

@@ -4,6 +4,7 @@ from app.config.profile_dimensions import Pacing, TopicCategory
 from app.models.asset import AssetPlan
 from app.models.audio import AudioPlan
 from app.models.outline import Outline
+from app.models.quality import QualityVerdict
 from app.models.research_plan import ResearchPlan
 from app.models.scene import ScenePlan
 from app.models.script import Script
@@ -36,3 +37,6 @@ class DocumentaryProject(BaseModel):
     seo: SeoMetadata | None = None
 
     final_video_path: str = ""
+    # Informational only -- never gates final_video_path or blocks the
+    # pipeline. See app.thinking.quality_critic.
+    quality_verdict: QualityVerdict | None = None

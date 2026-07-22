@@ -9,6 +9,7 @@ from app.config.profile_dimensions import Pacing, TopicCategory
 from app.models.asset import AssetCandidate, AssetPlan
 from app.models.audio import AudioPlan, AudioTrack
 from app.models.outline import Outline, OutlineSection
+from app.models.quality import QualityVerdict
 from app.models.research_plan import ResearchPlan
 from app.models.scene import Scene, ScenePlan
 from app.models.script import Script, ScriptLine
@@ -69,6 +70,14 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         audio_plan = AudioPlan(narration=narration)
         timeline = Timeline(combined_video_path="/tmp/combined.mp4", total_duration=10.0)
         seo = SeoMetadata(title="The Fall of Rome", description="...", hashtags=["#history"])
+        quality_verdict = QualityVerdict(
+            coherence_score=4,
+            pacing_fit_score=4,
+            seo_quality_score=4,
+            overall_score=4.0,
+            passed=True,
+            issues=[],
+        )
 
         self.mocks = {
             "intent": patch(
@@ -112,6 +121,10 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
                 "app.pipeline.default_pipeline.video_renderer.render_final_video",
                 return_value="/tmp/tasks/proj-1/final.mp4",
             ),
+            "quality": patch(
+                "app.pipeline.default_pipeline.quality_critic.evaluate_project",
+                return_value=quality_verdict,
+            ),
         }
         self.started = {name: m.start() for name, m in self.mocks.items()}
         for m in self.mocks.values():
@@ -128,6 +141,7 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         self.audio_plan = audio_plan
         self.timeline = timeline
         self.seo = seo
+        self.quality_verdict = quality_verdict
 
     def test_full_pipeline_wiring(self):
         project = default_pipeline.run_pipeline(
@@ -197,6 +211,28 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         self.assertIs(video_args[1], self.narration)
         self.assertEqual(video_kwargs["task_id"], "proj-1")
         self.assertEqual(video_kwargs["params"].video_subject, "The Fall of Rome")
+
+        # quality_critic runs after the video is rendered (informational only)
+        # and receives the fully-populated project.
+        self.assertIs(project.quality_verdict, self.quality_verdict)
+        quality_args, _ = self.started["quality"].call_args
+        evaluated_project = quality_args[0]
+        self.assertEqual(evaluated_project.final_video_path, "/tmp/tasks/proj-1/final.mp4")
+        self.assertIs(evaluated_project.seo, self.seo)
+
+    def test_final_video_path_is_set_even_when_quality_review_is_unavailable(self):
+        self.started["quality"].return_value = None
+
+        project = default_pipeline.run_pipeline(
+            project_id="proj-1",
+            topic="The Fall of Rome",
+            language="auto",
+            pacing=Pacing.short,
+            voice_name="en-US-JennyNeural",
+        )
+
+        self.assertIsNone(project.quality_verdict)
+        self.assertEqual(project.final_video_path, "/tmp/tasks/proj-1/final.mp4")
 
 
 if __name__ == "__main__":
