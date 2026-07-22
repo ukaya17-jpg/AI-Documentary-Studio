@@ -211,13 +211,70 @@ Studio (Beta)" bölümü genişletildi — traceback/import hatası yok, console
 hatası yok, tüm alanlar (konu/dil/kategori/pacing/buton) görünüyor. Davranış
 değişmediği için gerçek API ile yeniden render **gerekmedi**.
 
-Sıradaki adım: Thinking Layer (idea_generator + quality_critic), kullanıcı
-onayı ile.
+## FAZ 2 / Adım 2 — Thinking Layer: TASARIM (onaylandı, kodlama başlıyor)
 
-## FAZ 2 — Content OS genişletmesi
+Kodlamadan önce sunulan tasarım planı, kullanıcı onayı ile:
 
-Başlanmadı. FAZ 1 sağlam bir şekilde bitmeden başlanmayacak. Faz 2 planı burada
-kullanıcı onayı beklenerek yazılacak.
+**Yeni paket:** `app/thinking/` — `app/departments/`'ın yanında, bir department
+değil, ayrı bir "katman". İçinde `idea_generator.py` ve `quality_critic.py`.
+
+**`idea_generator`** — ham/belirsiz kullanıcı girdisini düzgün bir belgesel
+konusuna çevirir. Kategori veya dil belirlemez (bu IntentAnalyzer'ın işi,
+çakışma yaratılmadı). Girdi: `raw_input: str`. Çıktı: `IdeaCandidate` modeli
+(`app/models/idea.py`): `topic: str`, `angle: str`. **Pipeline'ın dışında,
+`run_pipeline(topic=...)`'ın önünde** — WebUI serbest metin girdisini
+`idea_generator`'a verip çıkan `topic`'i `run_pipeline`'a geçirecek;
+`run_pipeline`'ın imzası değişmiyor, mevcut testler/gerçek e2e akışı kırılmıyor.
+Gerçek LLM çağrısı yapıyor (küçük prompt, ucuz); hata olursa ham girdiyi
+olduğu gibi `topic` yaparak geçer (fallback).
+
+Örnek: "Japonya neden güvenli?" → `{"topic": "Japonya'yı Bu Kadar Güvenli
+Yapan Nedir?", "angle": "Düşük suç oranının arkasındaki kültürel, tarihi ve
+toplumsal dinamikleri ortaya çıkarıyoruz."}`. **Not:** bu örnek, mevcut 4
+sabit kategorinin (travel/history/space/psychology) "toplum/kültür" gibi
+konuları tam karşılamadığını gösteriyor — idea_generator'ın çözeceği bir şey
+değil, kategori şemasının bilinen bir sınırı, kapsam dışı bırakıldı.
+
+**`quality_critic`** — tamamlanmış bir `DocumentaryProject`'i (outline+script+
+seo) değerlendirir. Girdi: `DocumentaryProject`. Çıktı: `QualityVerdict`
+modeli (`app/models/quality.py`): `coherence_score`, `pacing_fit_score`,
+`seo_quality_score` (1-5), `overall_score` (3'ünün ortalaması), `passed`
+(`overall_score >= 3.0`, sabit eşik), `issues: list[str]`. Gerçek LLM çağrısı
+yapıyor. **v1'de pipeline'a otomatik/zorunlu aşama olarak bağlanmıyor** —
+bağımsız `evaluate_project()` fonksiyonu olarak kalıyor, çünkü "başarısız
+olursa ne olsun" (durdur/yeniden dene/sadece uyar) sorusu henüz cevaplı değil
+ve bunu icat etmek daha büyük, ayrı bir mimari karar. LLM/parse hatasında
+sessizce `None` döner + log uyarısı, pipeline hiçbir zaman etkilenmez.
+
+**Kabul kriterleri:** her iki servis de mock LLM ile test edilecek — başarılı
+parse, fallback/hata davranışı, boş girdi kontrolü (idea_generator) ve eşik
+hesaplama doğruluğu (quality_critic).
+
+## FAZ 2 / Adım 2 — Thinking Layer: UYGULANDI
+
+- [x] `app/models/idea.py` (`IdeaCandidate`: topic, angle) ve
+      `app/models/quality.py` (`QualityVerdict` + `QUALITY_PASS_THRESHOLD = 3.0`).
+- [x] `app/thinking/idea_generator.py`: `generate_idea(raw_input) -> IdeaCandidate`.
+      Gerçek LLM çağrısı, hata/boş sonuçta ham girdiyi olduğu gibi geçirir
+      (fallback + log uyarısı). Boş/whitespace girdi LLM'e hiç gitmeden
+      `ValueError` fırlatır. 5 test, hepsi yeşil.
+- [x] `app/thinking/quality_critic.py`: `evaluate_project(project) -> QualityVerdict | None`.
+      Gerçek LLM çağrısı (outline+script+seo context), `overall_score` =
+      3 alt-skorun ortalaması, `passed = overall_score >= 3.0`. Hata/eksik/
+      aralık-dışı skor durumunda **hiçbir zaman exception fırlatmaz** —
+      `None` döner + log uyarısı. **Pipeline'a otomatik/zorunlu aşama olarak
+      bağlanmadı** — bağımsız, isteğe bağlı çağrılan bir fonksiyon (onaylanan
+      tasarım kararı: "başarısız olursa ne olsun" sorusu henüz cevaplı değil,
+      bunu icat etmek ayrı bir mimari karar, gerçek kullanım verisi
+      birikmeden ertelendi — Learning Layer ile aynı gerekçe). 6 test,
+      hepsi yeşil.
+- [x] Test/suite: her iki servis de ilk denemede yeşil geçti (kırmızı test
+      yok bu turda). Tam suite: **542 passed, 11 skipped.**
+
+**Not:** `idea_generator` henüz hiçbir yerden (webui dahil) çağrılmıyor —
+sadece servis olarak var, `run_pipeline(topic=...)`'ın önüne bağlanması ayrı
+bir entegrasyon adımı (webui'nin serbest metin kutusunu `idea_generator`'a
+yönlendirmesi gerekiyor). Bu, kullanıcı onayı gerektiren bir sonraki adım.
 
 ## Karar bekleyen noktalar
 
