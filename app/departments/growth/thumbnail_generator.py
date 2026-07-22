@@ -18,6 +18,9 @@ from app.utils import utils
 
 _DEFAULT_FONT_NAME = "BeVietnamPro-Bold.ttf"
 _MAX_TITLE_LINES = 3
+_MIN_FONT_SCALE = 0.6
+_FONT_SCALE_STEP = 0.05
+_ELLIPSIS = "..."
 
 
 def _extract_middle_frame(video_path: str, output_path: str) -> bool:
@@ -41,6 +44,46 @@ def _extract_middle_frame(video_path: str, output_path: str) -> bool:
         return False
 
 
+def _font_scales() -> list[float]:
+    """[1.0, 0.95, 0.90, ..., down to _MIN_FONT_SCALE]."""
+    scales = []
+    scale = 1.0
+    while scale > _MIN_FONT_SCALE:
+        scales.append(round(scale, 2))
+        scale -= _FONT_SCALE_STEP
+    scales.append(_MIN_FONT_SCALE)
+    return scales
+
+
+def _wrap_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont, max_width: int) -> list[str]:
+    """Greedy word-wrap. Returns however many lines the text needs -- the
+    caller decides what to do if that's more than it wants to display."""
+    lines: list[str] = []
+    current = ""
+    for word in text.split():
+        trial = (current + " " + word).strip()
+        if draw.textlength(trial, font=font) <= max_width:
+            current = trial
+        else:
+            if current:
+                lines.append(current)
+            current = word
+    if current:
+        lines.append(current)
+    return lines
+
+
+def _truncate_with_ellipsis(
+    draw: ImageDraw.ImageDraw, line: str, font: ImageFont.FreeTypeFont, max_width: int
+) -> str:
+    """Shorten `line` character by character until `line + "..."` fits."""
+    if draw.textlength(line + _ELLIPSIS, font=font) <= max_width:
+        return line + _ELLIPSIS
+    while line and draw.textlength(line + _ELLIPSIS, font=font) > max_width:
+        line = line[:-1].rstrip()
+    return (line + _ELLIPSIS) if line else _ELLIPSIS
+
+
 def _overlay_title(image_path: str, title: str) -> bool:
     if not title.strip():
         return True  # no title to overlay; keep the raw frame as-is
@@ -61,24 +104,28 @@ def _overlay_title(image_path: str, title: str) -> bool:
         draw = ImageDraw.Draw(img)
         font_name = config.ui.get("font_name", _DEFAULT_FONT_NAME)
         font_path = os.path.join(utils.font_dir(), font_name)
-        font_size = int(w * 0.085)
-        font = ImageFont.truetype(font_path, font_size)
+        base_font_size = int(w * 0.085)
 
         margin = int(w * 0.06)
         max_width = w - 2 * margin
+
+        # Shrink-and-retry: try progressively smaller font sizes until the
+        # title fits within _MAX_TITLE_LINES. If it still doesn't fit at the
+        # smallest scale, truncate the last line with an ellipsis instead of
+        # silently dropping the overflow words.
+        font_size = base_font_size
+        font = ImageFont.truetype(font_path, font_size)
         lines: list[str] = []
-        current = ""
-        for word in title.split():
-            trial = (current + " " + word).strip()
-            if draw.textlength(trial, font=font) <= max_width:
-                current = trial
-            else:
-                if current:
-                    lines.append(current)
-                current = word
-        if current:
-            lines.append(current)
-        lines = lines[:_MAX_TITLE_LINES]
+        for scale in _font_scales():
+            font_size = max(1, int(base_font_size * scale))
+            font = ImageFont.truetype(font_path, font_size)
+            lines = _wrap_text(draw, title, font, max_width)
+            if len(lines) <= _MAX_TITLE_LINES:
+                break
+
+        if len(lines) > _MAX_TITLE_LINES:
+            lines = lines[:_MAX_TITLE_LINES]
+            lines[-1] = _truncate_with_ellipsis(draw, lines[-1], font, max_width)
 
         line_height = int(font_size * 1.15)
         total_text_h = line_height * len(lines)
