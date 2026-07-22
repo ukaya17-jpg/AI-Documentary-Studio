@@ -1,18 +1,27 @@
 """Research stage: brainstorm key questions, facts, and narrative angles.
 
-There is no live web-search tool wired into this app, so "research" here means
-asking the LLM to structure what it already knows about the topic into a brief
-that the outline stage can build on -- not fetching live sources.
+When app.services.web_search finds a real grounding source for the topic
+(only for well-known entities/topics -- see its docstring), it's injected
+into the same LLM call as a "verified source" the model is told to prefer
+and not contradict. This is deliberately a single call combining grounding
+and basic fact-checking, not a separate verification pass -- for most
+(niche/specific) topics no source is found and behavior is identical to the
+pure LLM-only research brief this stage always produced.
 """
 
 from app.config.profile_dimensions import TopicCategory
 from app.config.templates import get_template
 from app.models.research_plan import ResearchPlan, ResearchQuestion
+from app.models.web_search import WebSearchResult
+from app.services import web_search
 from app.services.documentary_llm_utils import generate_json
 
 
 def build_research_prompt(
-    topic: str, topic_category: TopicCategory | None = None, language: str = ""
+    topic: str,
+    topic_category: TopicCategory | None = None,
+    language: str = "",
+    web_search_result: WebSearchResult | None = None,
 ) -> str:
     style = get_template(topic_category)["style"] if topic_category else ""
     prompt = (
@@ -22,6 +31,13 @@ def build_research_prompt(
     )
     if style:
         prompt += f"\nStyle guidance: {style}"
+    if web_search_result:
+        prompt += (
+            f"\n\nVerified web source ({web_search_result.source_url or 'web search'}):\n"
+            f"{web_search_result.abstract}\n"
+            "Prefer key_facts that are consistent with this source. Do not include "
+            "key_facts that contradict it."
+        )
     if language and language != "auto":
         prompt += f"\nRespond in language: {language}"
     prompt += """
@@ -55,11 +71,14 @@ def _parse_questions(raw: list) -> list[ResearchQuestion]:
 def generate_research_plan(
     topic: str, topic_category: TopicCategory | None = None, language: str = ""
 ) -> ResearchPlan:
-    prompt = build_research_prompt(topic, topic_category, language)
+    search_result = web_search.search_web(topic)
+    prompt = build_research_prompt(topic, topic_category, language, web_search_result=search_result)
     data = generate_json(prompt)
     return ResearchPlan(
         topic=topic,
         key_questions=_parse_questions(data.get("key_questions", [])),
         key_facts=[str(f).strip() for f in data.get("key_facts", []) if str(f).strip()],
         angles=[str(a).strip() for a in data.get("angles", []) if str(a).strip()],
+        source_snippet=search_result.abstract if search_result else "",
+        source_url=search_result.source_url if search_result else "",
     )
