@@ -296,6 +296,11 @@
     "Documentary Topic Already Clear": "O tema já parece claro — não há sugestão para mostrar.",
     "Refining Topic": "A refinar tema...",
     "Accept Suggestion": "Aceitar",
-    "Reject Suggestion": "Rejeitar"
+    "Reject Suggestion": "Rejeitar",
+    "Documentary Quality Note": "Nota de qualidade",
+    "Documentary Quality Coherence": "Coerência",
+    "Documentary Quality Pacing": "Ritmo",
+    "Documentary Quality SEO": "SEO",
+    "Documentary Quality Issues": "Problemas de qualidade encontrados"
   }
 }

@@ -323,6 +323,11 @@
     "Documentary Topic Already Clear": "主题已经足够清晰——没有建议可显示。",
     "Refining Topic": "正在优化主题...",
     "Accept Suggestion": "接受",
-    "Reject Suggestion": "拒绝"
+    "Reject Suggestion": "拒绝",
+    "Documentary Quality Note": "质量说明",
+    "Documentary Quality Coherence": "连贯性",
+    "Documentary Quality Pacing": "节奏",
+    "Documentary Quality SEO": "SEO",
+    "Documentary Quality Issues": "发现的质量问题"
   }
 }

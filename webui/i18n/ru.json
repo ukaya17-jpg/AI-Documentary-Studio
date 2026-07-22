@@ -296,6 +296,11 @@
     "Documentary Topic Already Clear": "Тема уже выглядит понятной — нет предложения для показа.",
     "Refining Topic": "Уточнение темы...",
     "Accept Suggestion": "Принять",
-    "Reject Suggestion": "Отклонить"
+    "Reject Suggestion": "Отклонить",
+    "Documentary Quality Note": "Оценка качества",
+    "Documentary Quality Coherence": "Связность",
+    "Documentary Quality Pacing": "Темп",
+    "Documentary Quality SEO": "SEO",
+    "Documentary Quality Issues": "Обнаруженные проблемы качества"
   }
 }

@@ -4072,6 +4072,23 @@ def _render_documentary_studio_section():
                     disabled=True,
                 )
 
+            quality_verdict = (last_project or {}).get("quality_verdict")
+            if quality_verdict:
+                status_icon = "✅" if quality_verdict["passed"] else "⚠️"
+                st.markdown(
+                    f"**{tr('Documentary Quality Note')}:** "
+                    f"{quality_verdict['overall_score']}/5 {status_icon}"
+                )
+                st.caption(
+                    f"{tr('Documentary Quality Coherence')}: {quality_verdict['coherence_score']}/5 · "
+                    f"{tr('Documentary Quality Pacing')}: {quality_verdict['pacing_fit_score']}/5 · "
+                    f"{tr('Documentary Quality SEO')}: {quality_verdict['seo_quality_score']}/5"
+                )
+                if quality_verdict["issues"]:
+                    with st.expander(tr("Documentary Quality Issues")):
+                        for issue in quality_verdict["issues"]:
+                            st.write(f"- {issue}")
+
 
 def _render_application():
     """按固定顺序渲染顶部栏、弹窗、生成表单和任务结果。"""

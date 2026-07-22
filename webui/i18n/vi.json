@@ -296,6 +296,11 @@
     "Documentary Topic Already Clear": "Chủ đề đã đủ rõ ràng — không có đề xuất nào để hiển thị.",
     "Refining Topic": "Đang tinh chỉnh chủ đề...",
     "Accept Suggestion": "Chấp nhận",
-    "Reject Suggestion": "Từ chối"
+    "Reject Suggestion": "Từ chối",
+    "Documentary Quality Note": "Ghi chú chất lượng",
+    "Documentary Quality Coherence": "Mạch lạc",
+    "Documentary Quality Pacing": "Nhịp độ",
+    "Documentary Quality SEO": "SEO",
+    "Documentary Quality Issues": "Các vấn đề chất lượng được phát hiện"
   }
 }

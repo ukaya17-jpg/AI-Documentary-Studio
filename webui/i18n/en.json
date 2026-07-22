@@ -323,6 +323,11 @@
     "Documentary Topic Already Clear": "The topic already looks clear — no suggestion to show.",
     "Refining Topic": "Refining topic...",
     "Accept Suggestion": "Accept",
-    "Reject Suggestion": "Reject"
+    "Reject Suggestion": "Reject",
+    "Documentary Quality Note": "Quality Note",
+    "Documentary Quality Coherence": "Coherence",
+    "Documentary Quality Pacing": "Pacing",
+    "Documentary Quality SEO": "SEO",
+    "Documentary Quality Issues": "Quality issues found"
   }
 }

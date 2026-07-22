@@ -296,6 +296,11 @@
     "Documentary Topic Already Clear": "Konu zaten net görünüyor — gösterilecek bir öneri yok.",
     "Refining Topic": "Konu netleştiriliyor...",
     "Accept Suggestion": "Kabul Et",
-    "Reject Suggestion": "Reddet"
+    "Reject Suggestion": "Reddet",
+    "Documentary Quality Note": "Kalite Notu",
+    "Documentary Quality Coherence": "Tutarlılık",
+    "Documentary Quality Pacing": "Tempo",
+    "Documentary Quality SEO": "SEO",
+    "Documentary Quality Issues": "Tespit edilen kalite sorunları"
   }
 }

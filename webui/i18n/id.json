@@ -296,6 +296,11 @@
     "Documentary Topic Already Clear": "Topik sudah terlihat jelas — tidak ada saran untuk ditampilkan.",
     "Refining Topic": "Memperhalus topik...",
     "Accept Suggestion": "Terima",
-    "Reject Suggestion": "Tolak"
+    "Reject Suggestion": "Tolak",
+    "Documentary Quality Note": "Catatan Kualitas",
+    "Documentary Quality Coherence": "Koherensi",
+    "Documentary Quality Pacing": "Tempo",
+    "Documentary Quality SEO": "SEO",
+    "Documentary Quality Issues": "Masalah kualitas yang ditemukan"
   }
 }
