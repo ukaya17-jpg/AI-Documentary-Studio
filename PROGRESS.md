@@ -87,9 +87,72 @@ bu günlük sıfırdan başlıyor.
       test/services paketi: 503 test, hepsi YEŞİL** (11 skip — gerçek API/
       FFmpeg gerektiren entegrasyon testleri, ortamda zaten öyleydi).
 
-Sıradaki adım: `webui/Main.py`'ye "AI Documentary Studio (Beta)" bölümünü
-eklemek, sonra gerçek API key'lerle uçtan uca bir `final.mp4` üretip ffprobe
-ile doğrulamak (kullanıcının config.toml'a kendi key'lerini girmesi gerekiyor).
+- [x] `webui/Main.py`: "AI Documentary Studio (Beta)" bölümü eklendi — konu,
+      dil, topic category (auto + override), pacing seçicileri, ses adı,
+      "Generate Documentary" butonu, `st.video()` ile sonuç + SEO metadata
+      gösterimi. Bilinçli olarak legacy arka-plan task manager'dan bağımsız
+      tutuldu (senkron çalışıyor, `st.spinner` ile) — "hızlı uygulama"
+      talebiyle uyumlu.
+      Gerçek headless-Chromium (Playwright) oturumuyla doğrulandı: traceback
+      yok, console hatası yok, tüm alanlar (konu/dil/kategori/pacing/buton)
+      görünüyor. `i18n` parity testi (`test_webui_i18n.py`) kırmızı çıktı
+      (yeni key'leri sadece en/tr'ye eklemiştim) → 9 locale dosyasının hepsine
+      çeviri eklendi, test tekrar yeşile döndü.
+      **Toplam test/services paketi hâlâ 503 test, hepsi YEŞİL.**
+
+## FAZ 1 — Durum: kod tamamlandı, gerçek uçtan-uca üretim key bekliyor
+
+12 aşamanın tamamı (Intent→Research→Outline→Scene→Script→Storyboard→Asset→
+AssetDownload→Audio→Timeline→SEO→VideoRenderer) yazıldı, birim test edildi
+(mock LLM/medya I/O) ve webui'ye bağlandı. Ayrıca gerçek `_generate_response`
+çağrı yoluna kadar bir "gerçek" smoke test yapıldı: config.toml'da hiçbir LLM
+key'i olmadan `run_pipeline()` çağrıldı, beklendiği gibi 3 deneme sonrası
+temiz bir `ValueError` ile başarısız oldu (çökme/traceback yok) — bu da
+config okuma, provider çözümleme ve hata yayılımı zincirinin doğru
+çalıştığını kanıtlıyor.
+
+**Eksik olan tek şey:** gerçek bir API key'le (en az bir LLM provider; Pexels/
+Pixabay veya `video_source="local"`) tam bir `final.mp4` üretip `ffprobe` ile
+ses/görüntü sağlığını doğrulamak. Bu, kullanıcının config.toml'a kendi
+key'lerini girmesini bekliyor (Faz 0'da bilinçli olarak boş bırakıldı).
+**Kullanıcı key'leri girdiğinde bu adım tamamlanacak.**
+
+## FAZ 2 — Content OS genişletmesi: TASLAK PLAN (onay bekleniyor)
+
+Önceki oturumdan kalan "Content OS" vizyonunun (Thinking Layer / Department
+yapısı / Learning Layer) tam ayrıntısı kaybolduğu için, aşağıdaki plan benim
+yorumumdur — başlamadan önce onayınızı istiyorum.
+
+**1) Department yapısı (organizasyonel, düşük risk, önce bu)**
+Mevcut servisleri mantıksal "departman" gruplarına taşı (davranış değişmez,
+sadece modül yerleşimi):
+- Research Dept: intent_analyzer, research_planner, outline_generator
+- Creative Dept: scene_planner, script_generator, storyboard_generator
+- Production Dept: asset_generator, asset_downloader, audio_renderer,
+  timeline_builder, video_renderer
+- Growth Dept: seo_generator (+ ileride: yayınlama/analytics)
+Test edilebilirlik: mevcut testler import yollarını güncelleyip yeşil kalmalı.
+
+**2) Thinking Layer (orta risk)**
+Tek bir documentary run'ının üstünde oturan, "sıradaki ne olsun" ve "bu çıktı
+yeterince iyi mi" sorularını cevaplayan meta katman:
+- `idea_generator.py`: niş/kategori bazlı aday konu üretir.
+- `quality_critic.py`: tamamlanmış bir `DocumentaryProject`'i (script tutarlılığı,
+  pacing uyumu, SEO kalitesi) puanlar, yayın öncesi eşik koyar.
+Faz 1 ile aynı desende (mock LLM ile test edilebilir) yazılabilir.
+
+**3) Learning Layer (yüksek risk / erken olabilir)**
+Yayınlanan videoların gerçek performansını (izlenme, etkileşim) toplayıp
+Thinking Layer'ın gelecekteki konu/prompt kararlarına geri besleyen katman.
+**Bunun için gerçek bir yayınlama + analytics entegrasyonu (örn. YouTube
+Data API) gerekiyor — ki bu henüz yok.** Önerim: bu katmanı şimdi kod
+yazmadan ertelemek, Faz 1 birkaç gerçek video yayınlayıp geri bildirim
+verisi biriktirene kadar beklemek. Aksi halde besleyecek gerçek sinyali
+olmayan, test edilemeyen bir iskelet inşa etmiş oluruz.
+
+**KARAR BEKLENİYOR:** Yukarıdaki yorum/sıralama doğru mu, yoksa "Content OS"
+vizyonunuzda gözden kaçırdığım somut bir gereksinim var mı? Onay verirseniz
+1) ile başlarım.
 
 ## FAZ 2 — Content OS genişletmesi
 
