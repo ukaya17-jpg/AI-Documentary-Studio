@@ -1,3 +1,6 @@
+import json
+import os
+import shutil
 import sys
 import unittest
 from pathlib import Path
@@ -17,6 +20,7 @@ from app.models.seo import SeoMetadata
 from app.models.storyboard import Storyboard, StoryboardShot
 from app.models.timeline import Timeline
 from app.pipeline import default_pipeline
+from app.utils import utils
 
 
 class TestRunPipelineWithMockedStages(unittest.TestCase):
@@ -133,6 +137,10 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         self.started = {name: m.start() for name, m in self.mocks.items()}
         for m in self.mocks.values():
             self.addCleanup(m.stop)
+
+        # _save_project_snapshot() writes a real file under storage/tasks/
+        # (not mocked -- it's the thing under test in some cases below).
+        self.addCleanup(lambda: shutil.rmtree(utils.task_dir("proj-1"), ignore_errors=True))
 
         self.research_plan = research_plan
         self.outline = outline
@@ -262,6 +270,82 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
 
         self.assertEqual(project.thumbnail_path, "")
         self.assertEqual(project.final_video_path, "/tmp/tasks/proj-1/final.mp4")
+
+    def test_saves_project_snapshot_to_disk_with_full_content(self):
+        project = default_pipeline.run_pipeline(
+            project_id="proj-1",
+            topic="The Fall of Rome",
+            language="auto",
+            pacing=Pacing.short,
+            voice_name="en-US-JennyNeural",
+        )
+
+        snapshot_path = os.path.join(utils.task_dir("proj-1"), "project.json")
+        self.assertTrue(os.path.exists(snapshot_path))
+        with open(snapshot_path, encoding="utf-8") as f:
+            saved = json.load(f)
+
+        self.assertEqual(saved["topic"], "The Fall of Rome")
+        self.assertEqual(saved["final_video_path"], project.final_video_path)
+        self.assertEqual(saved["thumbnail_path"], project.thumbnail_path)
+        # The exact data the user actually needs for retroactive debugging:
+        # per-scene storyboard search_terms and the downloaded asset paths.
+        self.assertEqual(
+            saved["storyboard"]["shots"][0]["search_terms"], ["ancient ruins"]
+        )
+        self.assertEqual(
+            saved["asset_plan"]["downloaded_paths"], ["/tmp/ruins.mp4", "/tmp/battle.mp4"]
+        )
+
+    def test_snapshot_survives_on_disk_when_a_later_stage_raises(self):
+        self.started["video"].side_effect = RuntimeError("render exploded")
+
+        with self.assertRaises(RuntimeError):
+            default_pipeline.run_pipeline(
+                project_id="proj-1",
+                topic="The Fall of Rome",
+                language="auto",
+                pacing=Pacing.short,
+                voice_name="en-US-JennyNeural",
+            )
+
+        snapshot_path = os.path.join(utils.task_dir("proj-1"), "project.json")
+        self.assertTrue(os.path.exists(snapshot_path))
+        with open(snapshot_path, encoding="utf-8") as f:
+            saved = json.load(f)
+
+        # SEO (the stage right before the one that raised) made it to disk...
+        self.assertEqual(saved["seo"]["title"], "The Fall of Rome")
+        # ...but the video render itself never completed.
+        self.assertEqual(saved["final_video_path"], "")
+
+
+class TestSaveProjectSnapshot(unittest.TestCase):
+    def setUp(self):
+        self.task_id = "test-save-project-snapshot"
+        self.task_directory = utils.task_dir(self.task_id)
+
+    def tearDown(self):
+        shutil.rmtree(self.task_directory, ignore_errors=True)
+
+    def test_writes_valid_json_matching_the_model(self):
+        from app.models.documentary_project import DocumentaryProject
+
+        project = DocumentaryProject(project_id=self.task_id, topic="Mars")
+        default_pipeline._save_project_snapshot(project)
+
+        snapshot_path = os.path.join(self.task_directory, "project.json")
+        with open(snapshot_path, encoding="utf-8") as f:
+            saved = json.load(f)
+        self.assertEqual(saved["project_id"], self.task_id)
+        self.assertEqual(saved["topic"], "Mars")
+
+    @patch("builtins.open", side_effect=OSError("disk full"))
+    def test_never_raises_on_write_failure(self, mock_open):
+        from app.models.documentary_project import DocumentaryProject
+
+        project = DocumentaryProject(project_id=self.task_id, topic="Mars")
+        default_pipeline._save_project_snapshot(project)  # must not raise
 
 
 if __name__ == "__main__":
