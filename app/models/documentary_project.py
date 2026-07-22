@@ -23,7 +23,7 @@ class DocumentaryProject(BaseModel):
     voice_rate: float = 1.0
     voice_volume: float = 1.0
     video_source: str = "pexels"
-    video_aspect: str = "portrait"
+    video_aspect: str = "9:16"  # VideoAspect value, e.g. "9:16", "16:9", "1:1"
 
     research_plan: ResearchPlan | None = None
     outline: Outline | None = None
