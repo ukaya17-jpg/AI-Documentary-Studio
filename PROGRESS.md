@@ -330,6 +330,71 @@ Onay alındı, plan uygulandı.
       doğru render oluyor).
 - [x] Tam suite: **543 passed, 11 skipped.**
 
+## GECE OTURUMU — dal: `overnight/knowledge-engine` (2026-07-22 gece → sabah)
+
+**Uyarı/tutarsızlık notu:** Kullanıcı bu görevi "önceki mesajımdaki 6 maddelik
+plan" ve "PROGRESS.md'deki Bölüm 12 öncelik sırası / Thumbnail Engine"
+referanslarıyla verdi. **Bu ikisi de elimdeki gerçek konuşma geçmişinde ve bu
+dosyada mevcut değil** — kontrol ettim, PROGRESS.md'de "Bölüm 12" veya
+"Thumbnail Engine" diye bir bölüm yok. Muhtemelen farklı bir oturuma ait bir
+referans. İcat etmedim; "Knowledge Engine" hedefinin kendisi yeterince açık
+olduğu için 6 maddelik analizi kendim sentezleyip aşağıya yazdım. Sabah bu
+notu görün — eğer gerçekten başka bir yerde böyle bir plan/bölüm varsa bana
+gösterin, yoksa bu bir hafıza karışıklığıydı.
+
+### Knowledge Engine — Plan (kendi kendine onaylandı, kodlamaya geçiliyor)
+
+**1) research_planner'ın mevcut durumu:** `app/departments/research/research_planner.py`
+saf LLM tabanlı — kendi docstring'i bile "gerçek web araması yok, LLM'in
+kendi bilgisini yapılandırıyoruz" diyor. `generate_research_plan(topic,
+topic_category, language) -> ResearchPlan` tek bir `generate_json()` çağrısı
+yapıyor, hiçbir dış kaynağa bakmıyor.
+
+**2) API seçimi:** Yeni bir arama API key'i yok, kullanıcı ücretsiz/key
+gerektirmeyen seçeneği istedi → **DuckDuckGo Instant Answer API**
+(`https://api.duckduckgo.com/?format=json`, key gerektirmiyor).
+**Dürüst sınırlama:** Bu genel bir web arama API'si DEĞİL — sadece bilinen
+varlıklar/konular için kısa bir "Abstract" (Wikipedia özeti gibi) döndürüyor;
+niş/çok spesifik/bileşik sorgularda sıklıkla boş dönüyor. **OTONOM KARAR:**
+Boş sonucu hata değil, normal durum olarak ele alıyorum (sessizce mevcut
+LLM-only davranışa düşüyor) — ücretli bir SERP API'si (Google/Bing/Serper/
+Tavily) gerçek, sıralı arama sonuçları döndürüp kaliteyi ciddi artırabilir,
+**sabah değerlendirin.**
+
+**3) Entegrasyon noktası:** `research_planner.generate_research_plan()`
+içine, LLM çağrısından ÖNCE bir `web_search.search_web(topic)` çağrısı.
+Sonuç bulunursa, prompt'a "doğrulanmış kaynak metni" olarak enjekte ediliyor
++ LLM'e "bu kaynakla çelişen key_facts üretme" talimatı veriliyor. **Tek LLM
+çağrısı** (araştırma + temel fact-check aynı çağrıda) — **OTONOM KARAR:**
+ayrı bir "doğrulama" LLM çağrısı eklemek yerine (maliyeti ikiye katlardı) tek
+çağrıda grounding+fact-check birleştirildi; en tutucu/en az maliyetli seçenek.
+
+**4) Somut örnek:** Konu "The Fall of the Roman Empire" → DuckDuckGo'dan
+gerçek bir Abstract dönerse (Roma İmparatorluğu bilinen bir konu, dönme
+ihtimali yüksek), prompt'a şu şekilde ekleniyor:
+```
+Verified web source (https://en.wikipedia.org/wiki/...):
+<DuckDuckGo'nun gerçek abstract metni>
+Prefer key_facts that are consistent with this source. Do not include
+key_facts that contradict it.
+```
+Niş bir konuda (örn. çok spesifik bir yerel olay) muhtemelen `None` döner,
+davranış mevcut LLM-only haliyle birebir aynı kalır.
+
+**5) Maliyet:** DuckDuckGo çağrısı **ücretsiz, key yok** — sınırsız test
+edilebilir. Sadece gerçek OpenAI+DuckDuckGo birlikte uçtan uca doğrulama
+"gerçek API bütçesi"nden (gece max 3) sayılacak.
+
+**6) Model/kod değişikliği kapsamı — OTONOM KARAR:** Yeni bir "Project+
+Metadata" katmanı ya da ayrı bir "FactCheck" modeli **kurmuyorum** — mevcut
+`ResearchPlan`'a 2 opsiyonel alan ekliyorum (`source_snippet`, `source_url`,
+ikisi de varsayılan `""`), geriye dönük tam uyumlu. Yeni servis dosyası
+`app/services/web_search.py` (department-özel değil, `documentary_llm_utils.py`
+gibi paylaşılan altyapı — ileride başka departmanlar da kullanabilir).
+Küçük, izole ekleme; büyük refactor yok.
+
+**Kod henüz yazılmadı, şimdi başlıyorum.**
+
 ## Karar bekleyen noktalar
 
 Şu an yok.
