@@ -84,6 +84,20 @@ i18n_dir = os.path.join(root_dir, "webui", "i18n")
 config_file = os.path.join(root_dir, "webui", ".streamlit", "webui.toml")
 # 语言列表必须在会话状态初始化前可用，首次访问时才能把浏览器 locale 映射到
 # 项目真正支持的语言；自动识别结果只进入当前会话，不修改全局配置。
+# OTONOM KARAR (gece oturumu, GÖREV 8d): bu repoda üç ayrı "dil" listesi var,
+# isimleri birbirine benzediği için karıştırılabiliyor (bkz. PROGRESS.md
+# "Bilinen teknik sınırlar" #1) -- birleştirmek yerine (legacy `task.py` tekil-
+# video akışını ve support_locales'i doğrudan AST ile arayan
+# test_webui_i18n.py'yi kırma riski taşırdı) her birine ne olduğunu ve
+# diğerleriyle ilişkisini açıklayan bu not eklendi:
+#   1. `locales` (burada) -- ARAYÜZ çeviri dili, 9 dil (bu sözlüğün key'leri).
+#   2. `support_locales` (aşağıda) -- LEGACY tekil-video pipeline'ının
+#      "Script Language" seçici listesi, 11 farklı locale kodu.
+#   3. `app.config.profile_dimensions.Language` enum -- Documentary Studio'nun
+#      kendi konu dili, sadece 3 değer (auto/tr/en).
+# Yeni bir dil eklerken hangisinin güncellenmesi gerektiğini karıştırmayın:
+# arayüz çevirisi mi (1), legacy script dili mi (2), yoksa Documentary
+# Studio'nun konu dili mi (3) -- üçü birbirinden bağımsız.
 locales = utils.load_locales(i18n_dir)
 DEFAULT_CHATTERBOX_BASE_URL = "http://127.0.0.1:4123/v1"
 DEFAULT_CHATTERBOX_MODEL = "chatterbox"
@@ -1167,6 +1181,11 @@ def _render_top_bar():
                     st.rerun()
 
 
+# Legacy tekil-video pipeline'ının "Script Language" seçici listesi -- bu,
+# yukarıdaki `locales` (arayüz çeviri dili) ile AYNI şey DEĞİL: bu listedeki
+# bazı diller (fr-FR, th-TH) arayüzde hiç gösterilemez (o dillerde .json
+# çeviri dosyası yok), sadece burada script/içerik dili olarak seçilebilir.
+# Bkz. `locales` tanımındaki not (GÖREV 8d, PROGRESS.md).
 support_locales = [
     "zh-CN",
     "zh-HK",

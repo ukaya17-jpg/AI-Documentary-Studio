@@ -47,6 +47,12 @@ class Pacing(str, Enum):
 
 
 class Language(str, Enum):
+    """Documentary Studio's own topic language -- independent of webui's
+    `locales` (UI translation language, 9 values) and the legacy pipeline's
+    `support_locales` (11-value "Script Language" list). Adding a language
+    here does not add it to either of those; see webui/Main.py's note next
+    to `locales` (GÖREV 8d, PROGRESS.md) for the full picture."""
+
     auto = "auto"
     tr = "tr"
     en = "en"

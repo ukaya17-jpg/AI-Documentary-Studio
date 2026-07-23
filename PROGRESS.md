@@ -1114,11 +1114,11 @@ düzeltmesi" bölümü) bilinçli olarak bu listeye alınmadı.
 
 | # | Madde | Risk/Etki | Karmaşıklık | Öncelik |
 |---|---|---|---|---|
-| 1 | Üç ayrı dil listesi | Düşük-Orta (bakım riski) | Orta (isim + test bağımlılığı) | Düşük |
+| 1 | Üç ayrı dil listesi | Düşük-Orta (bakım riski) | Orta (isim + test bağımlılığı) | Düşük — **[x] kısmen: açıklayıcı yorumlar eklendi (GÖREV 8d)** |
 | 2 | `estimate_words` taban sınırı | Çok düşük bugün (ölü kod) | Trivial | Düşük (ön koşul niteliğinde) |
 | 3 | `QUALITY_PASS_THRESHOLD` kalibrasyonu | Çok düşük (hiçbir kararı tetiklemiyor) | Belirsiz/yüksek (gerçek veri gerekir) | En düşük |
 | 4 | Altyazı font varsayılanı ikiliği | Orta (sessiz, taze kurulumda gerçek sapma) | Trivial-Küçük | **Yüksek** (efor/etki oranı en iyi) |
-| 5 | `shot_type`/`search_terms[1:]` tüketilmiyor | Orta (gereksiz LLM token maliyeti) | Küçük-Orta | Orta |
+| 5 | `shot_type`/`search_terms[1:]` tüketilmiyor | Orta (gereksiz LLM token maliyeti) | Küçük-Orta | Orta — **[ ] GÖREV 8c'de değerlendirildi, paylaşılan legacy koda regresyon riski nedeniyle bilinçli ertelendi** |
 | 6 | `TopicCategory` 4 kategori sınırı | Orta (yanlış ton/şablon riski) | Büyük (yeni tasarım kararı) | Düşük (bu oturumda) |
 | 7 | Research grounding sessiz düşüş | ~~Yüksek~~ **Orta** (Wikipedia fallback eklendi, GÖREV 4 — kapsam sorunu büyük ölçüde çözüldü, şeffaflık eksikliği duruyor) | Küçük-Orta (şeffaflık) | Orta (Yüksek'ten düşürüldü) |
 | 8 | Pexels tarihi görsel kapsam sınırı | Düşük (zaten kabul edilmiş) | Kodla çözülemez (veri sınırı) | En düşük |
@@ -1143,6 +1143,13 @@ düzeltmesi" bölümü) bilinçli olarak bu listeye alınmadı.
   — `test_webui_i18n.py:152-167` `support_locales` adını AST ile birebir
   arıyor, isim değişikliği bu testi kırar; üçünü birleştirmek/yeniden
   adlandırmak dikkatli bir refactor gerektirir. **Öncelik:** Düşük.
+  **[x] Kısmen ele alındı (GÖREV 8d, gece oturumu):** Üçünü birleştirmek
+  (test'i kırma riski nedeniyle) yapılmadı, ama her üç tanımın yanına
+  birbirine referans veren, ne işe yaradıklarını ve neden ayrı olduklarını
+  açıklayan yorumlar eklendi (`webui/Main.py`'de `locales` ve
+  `support_locales` tanımları, `profile_dimensions.py`'de `Language` enum
+  docstring'i). Kod davranışı değişmedi, sadece "yeni dil eklerken hangisini
+  güncellemeliyim" sorusu artık koddan cevaplanıyor.
 - [ ] **`script_generator.py:89` kelime hedefi taban sınırı canlı değil:**
   `target_words = max(5, round(scene.duration_seconds * _WORDS_PER_SECOND))`
   — taban olan 5, sadece `duration_seconds` ~2.2s altına düştüğünde devreye
@@ -1203,6 +1210,23 @@ düzeltmesi" bölümü) bilinçli olarak bu listeye alınmadı.
   ayrılmıştı). **Öncelik:** Orta — iki değişikliği ayrı commit'lerde ele
   almak (önce `search_terms[1:]` fallback, sonra `shot_type`) önerilir,
   kullanıcı onayı olmadan dokunulmamalı.
+  **[ ] GÖREV 8c denendi, bilinçli olarak ERTELENDİ (gece oturumu, OTONOM
+  KARAR):** `search_terms[1:]` fallback'i için gerçek bir tasarım incelendi
+  — `material.py`'nin `download_videos()`/`_download_videos_by_script_order()`
+  fonksiyonu hem yeni Documentary Studio'nun `asset_downloader.py`'si hem de
+  **legacy `task.py`'nin eski tekil-video pipeline'ı** tarafından
+  paylaşılıyor (`search_terms: List[str]` imzası ikisinde de aynı). Düzgün
+  bir fallback için bu imzayı `List[List[str]]` gibi bir yapıya değiştirmek
+  gerekiyor — bu hem legacy pipeline'ı hem de bu gece **az önce GÖREV 1a'da
+  düzelttiğim tam da bu asset-download alanını** tekrar riske atar, sabah
+  kullanıcının gözüyle doğrulayacağı en kritik alanın hemen yanı başında.
+  Tutucu/geri alınabilir seçenek: bu değişikliği **yapmamak**, düşük
+  öncelikli olduğu için (kullanıcı talimatı: "vakit yetmezse 8 yarım/hiç
+  başlanmamış kalabilir, sorun değil"). Somut, izole bir gelecek görevi
+  olarak bırakılıyor: `AssetCandidate`'e `search_term_fallbacks: list[str] =
+  []` eklemek (geriye uyumlu, varsayılan boş liste), `material.py`'nin iki
+  çağıranını da (yeni + legacy) güncelleyip ayrı ayrı gerçek testle
+  doğrulamak.
 - [ ] **`TopicCategory`'nin 4 sabit kategorisi (travel/history/space/
   psychology) her konuyu karşılamıyor:** `idea_generator` örneğinde
   doğrulanmış ("Japonya neden güvenli?" → toplum/kültür konusu, 4 kategoriden
@@ -1534,6 +1558,31 @@ içinde — sadece "Shorts'ta çalışmaz" uyarısı öne çıkarıldı. Yeni i1
 gerekmedi (mevcut `Documentary SEO Chapters Help` metni yeniden kullanıldı).
 
 - [x] Tam suite: **650 passed, 11 skipped** (önceden 647).
+
+### GÖREV 8 — Teknik borç temizliği (öncelik tablosundan, en yüksekten başlanarak)
+
+- [x] **8a (Yüksek öncelik):** Altyazı font varsayılanı birleştirildi —
+      `webui/Main.py`'nin `DEFAULT_SUBTITLE_SETTINGS["font_name"]`'i artık
+      `video_renderer.py` ile aynı (`BeVietnamPro-Bold.ttf`). 2 yeni test
+      (biri iki varsayılanın hep aynı kalacağını, biri gerçek değeri kilitliyor).
+- [x] **8b (Orta öncelik):** `ResearchPlan.grounded: bool` eklendi,
+      webui'de her zaman görünen bir ✅/ℹ️ uyarı (gerçek kaynakla mı
+      doğrulandı, yoksa AI'ın kendi bilgisi mi) gösteriliyor.
+- [ ] **8c (Orta öncelik) — BİLİNÇLİ OLARAK ERTELENDİ:** `search_terms[1:]`
+      0-sonuç fallback'i. Gerekçe: `material.py`'nin ilgili fonksiyonu hem
+      yeni pipeline hem **legacy tekil-video pipeline'ı** tarafından
+      paylaşılıyor, düzgün bir fallback imza değişikliği gerektiriyor — bu
+      da GÖREV 1a'da az önce düzelttiğim asset-download alanını sabah
+      kullanıcı testinden hemen önce tekrar riske atardı. Kullanıcının
+      açık izniyle ("vakit yetmezse 8 yarım kalabilir") **atlandı**, somut
+      bir gelecek görevi olarak yukarıdaki "Bilinen teknik sınırlar"
+      listesine (madde 5) not düşüldü.
+- [x] **8d (Düşük öncelik):** Üç dil listesi birleştirilmedi (test kırma
+      riski) ama her birine birbirine referans veren açıklayıcı yorumlar
+      eklendi (`webui/Main.py`'de `locales`/`support_locales`,
+      `profile_dimensions.py`'de `Language` docstring'i).
+- [x] Tam suite (8a+8b+8d sonrası): **652 passed, 11 skipped** (8c hiç kod
+      içermediği için sayıyı etkilemedi).
 
 ## Karar bekleyen noktalar
 
