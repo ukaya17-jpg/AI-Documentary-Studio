@@ -692,8 +692,55 @@ kullanıcı **A: dinamik font küçültme + "..." son çare** seçeneğini onayl
       başlık da (son çare yolunu test etmek için) düzgünce "..." ile
       kesiliyor, çökme yok. İki gerçek görsel de kullanıcıya gösterildi.
 
+## Storyboard arama terimi kalitesi düzeltmesi (kullanıcı talebiyle, gündüz)
+
+Gerçek bir Çanakkale Savaşı üretiminde `search_terms`/asset kareleri manuel
+incelendi: `old map` teriminin Pexels'ten alakasız bir Orta Asya haritası ve
+harita bile olmayan soyut bir doku döndürdüğü, `soldier statue`/`warship
+silhouette` gibi terimlerin de konudan kopuk sonuçlar getirdiği gözlemlendi.
+Kök neden araştırıldı ve onaylandı, ardından düzeltildi:
+
+- [x] **Kök neden:** `app/prompts/storyboard/__init__.py`'deki kategori
+      şablonu (`TopicCategory.history`: "old maps, monuments, ruins,
+      statues...") LLM tarafından konudan bağımsız, birebir kopyalanıyordu;
+      prompt'ta ne `topic` ne de `research_plan.key_facts` vardı, tek girdi
+      sahne başlığı + tek satır anlatımdı.
+- [x] `storyboard_generator.py`: `generate_storyboard()`/
+      `build_storyboard_prompt()`'a opsiyonel `topic`/`key_facts` parametreleri
+      eklendi (geriye dönük uyumlu, varsayılan boş), prompt başına "Documentary
+      topic: ..." + "Context facts: ..." bloğu ve açık bir özgüllük talimatı
+      ("avoid single generic nouns...anchor each term in this topic's
+      specific era/place/proper nouns") eklendi.
+- [x] `default_pipeline.py`: storyboard çağrısına `topic=project.topic`,
+      `key_facts=project.research_plan.key_facts[:3]` geçildi.
+- [x] 4 yeni test (`test_storyboard_generator.py`) + wiring assertion
+      (`test_default_pipeline.py`, topic/key_facts kwargs kontrolü). Tam
+      suite: **588 passed, 11 skipped.**
+- [x] **Gerçek doğrulama (2 tam üretim, gerçek API bütçesinden düşüldü):**
+      Aynı "Çanakkale Savaşı" konusu (tr, pacing=short) düzeltme öncesi ve
+      sonrası iki kez uçtan uca üretildi. Terimler `old map` / `warship
+      silhouette` / `rocky coastline` / `soldier statue` →
+      `Ottoman-era map Dardanelles` / `Dardanelles coastal fort` /
+      `Gallipoli coastline` / `Conkbayiri memorial` oldu; final videodan
+      çıkarılan karelerde 4 sahneden 3'ü artık net konu eşleşmesi gösterdi
+      (gerçek bir kıyı tabyası, Gelibolu tipi uçurumlu kıyı, asker anıtı).
+
+**Kalan sınırlama:** Storyboard search terms artık topic+key_facts ile
+grounded, kategori şablonundaki jenerik örnek kelime kopyalama sorunu
+çözüldü. Kalan sınırlama: Pexels'in bazı çok spesifik tarihi görsel
+türlerinde (örn. dönem haritaları) sınırlı kapsamı var — bu bir
+stok-kütüphane veri sınırı, kod sorunu değil, kabul edilebilir seviyede.
+
+**Push denemesi:** `git push origin main` denendi (commit `746d274`),
+beklendiği gibi kimlik doğrulama isteğiyle karşılaşıldı (bu ortamda GitHub
+credential'ı yok, `origin` tek remote — daha önceki oturumlardaki "fork"
+remote'u bu klonda mevcut değil). Kural 4 gereği atlandı — token/şifre
+üretilmeye veya tahmin edilmeye çalışılmadı. **Commit sadece yerelde,
+`origin/main`'in 1 commit ilerisinde.** Push için manuel kimlik doğrulama
+gerekiyor.
+
 ## Karar bekleyen noktalar
 
-Şu an yok — üç görev de tamamlandı, thumbnail kesilme kusuru da düzeltildi,
-gerçek API bütçesi aşılmadı, dal main'e hiç dokunmadı, sadece uzak push
-manuel yapılmayı bekliyor.
+`746d274` commit'i yerelde, `origin/main`'e push edilmeyi bekliyor (manuel
+kimlik doğrulama gerekiyor — bu ortamda GitHub credential'ı yok). Bunun
+dışında açık bir görev yok.
