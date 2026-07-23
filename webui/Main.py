@@ -25,7 +25,7 @@ if root_dir not in sys.path:
     sys.path.append(root_dir)
 
 from app.config import config
-from app.config.profile_dimensions import Pacing, TopicCategory
+from app.config.profile_dimensions import Format, Pacing, Tone, TopicCategory
 from app.models import const
 from app.models.llm_provider import (
     DEFAULT_LLM_PROVIDER_ID,
@@ -4008,6 +4008,26 @@ def _render_documentary_studio_section():
                 key="documentary_pacing",
             )
 
+        col4, col5 = st.columns(2)
+        with col4:
+            tone_options = ["auto"] + [t.value for t in Tone]
+            tone = st.selectbox(
+                tr("Documentary Tone"),
+                options=tone_options,
+                index=0,
+                key="documentary_tone",
+                help=tr("Documentary Tone Help"),
+            )
+        with col5:
+            format_options = ["standard"] + [f.value for f in Format]
+            format_choice = st.selectbox(
+                tr("Documentary Format"),
+                options=format_options,
+                index=0,
+                key="documentary_format",
+                help=tr("Documentary Format Help"),
+            )
+
         voice_name = st.text_input(
             tr("Documentary Voice Name"),
             value=config.ui.get("voice_name", "") or "en-US-JennyNeural",
@@ -4037,6 +4057,8 @@ def _render_documentary_studio_section():
                         topic_category_override=(
                             None if topic_category == "auto" else topic_category
                         ),
+                        tone=(None if tone == "auto" else tone),
+                        format=(None if format_choice == "standard" else format_choice),
                         pacing=pacing,
                         voice_name=voice_name.strip(),
                     )
