@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from app.config.profile_dimensions import Pacing, TopicCategory
+from app.config.profile_dimensions import Pacing, Tone, TopicCategory
 from app.models.asset import AssetPlan
 from app.models.audio import AudioPlan
 from app.models.outline import Outline
@@ -18,6 +18,9 @@ class DocumentaryProject(BaseModel):
     topic: str
     language: str = "auto"
     topic_category: TopicCategory | None = None
+    # Resolved once topic_category is known (see resolve_tone in
+    # default_pipeline.run_pipeline); None only before stage 1 completes.
+    tone: Tone | None = None
     pacing: Pacing = Pacing.short
 
     voice_name: str = ""

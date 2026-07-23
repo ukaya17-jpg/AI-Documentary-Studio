@@ -5,10 +5,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from app.config.profile_dimensions import (
+    DEFAULT_TONE_BY_CATEGORY,
     PACING_SCENE_SPEC,
     Pacing,
+    Tone,
     TopicCategory,
     resolve_pacing,
+    resolve_tone,
     resolve_topic_category,
 )
 from app.config.templates import PROFILE_PROMPTS, get_template
@@ -42,18 +45,48 @@ class TestProfileDimensions(unittest.TestCase):
         self.assertEqual(PACING_SCENE_SPEC[Pacing.short]["scene_count"], 4)
         self.assertEqual(PACING_SCENE_SPEC[Pacing.long]["scene_count"], 7)
 
+    def test_default_tone_by_category_matches_original_hard_locked_mapping(self):
+        # This mapping IS the regression contract: resolve_tone() with no
+        # override must reproduce exactly what each category used to get
+        # hard-locked to before Tone existed as an independent dimension.
+        self.assertEqual(DEFAULT_TONE_BY_CATEGORY[TopicCategory.travel], Tone.cinematic)
+        self.assertEqual(DEFAULT_TONE_BY_CATEGORY[TopicCategory.history], Tone.credibility)
+        self.assertEqual(DEFAULT_TONE_BY_CATEGORY[TopicCategory.space], Tone.epic)
+        self.assertEqual(DEFAULT_TONE_BY_CATEGORY[TopicCategory.psychology], Tone.scientific)
+
+    def test_resolve_tone_defaults_to_category_tone_when_no_override(self):
+        for category, expected_tone in DEFAULT_TONE_BY_CATEGORY.items():
+            self.assertEqual(resolve_tone(category, None), expected_tone)
+            self.assertEqual(resolve_tone(category, ""), expected_tone)
+
+    def test_resolve_tone_override_wins_regardless_of_category(self):
+        self.assertEqual(resolve_tone(TopicCategory.travel, Tone.scientific), Tone.scientific)
+        self.assertEqual(resolve_tone(TopicCategory.psychology, "epic"), Tone.epic)
+
+    def test_resolve_tone_invalid_override_falls_back_to_category_default(self):
+        self.assertEqual(resolve_tone(TopicCategory.space, "not-a-tone"), Tone.epic)
+
+    def test_resolve_tone_unknown_category_falls_back_to_neutral(self):
+        self.assertEqual(resolve_tone(None, None), Tone.neutral)
+        self.assertEqual(resolve_tone("not-a-category", None), Tone.neutral)
+
 
 class TestTemplates(unittest.TestCase):
-    def test_all_categories_have_a_template(self):
-        for category in TopicCategory:
-            template = get_template(category)
+    def test_all_tones_have_a_template(self):
+        for tone in Tone:
+            template = get_template(tone)
             self.assertIn("style", template)
             self.assertIn("opening_hook", template)
             self.assertIn("section_guidance", template)
             self.assertIn("closing", template)
 
     def test_get_template_falls_back_for_unknown(self):
-        self.assertIs(get_template(TopicCategory.history), PROFILE_PROMPTS[TopicCategory.history])
+        self.assertIs(get_template(Tone.credibility), PROFILE_PROMPTS[Tone.credibility])
+        self.assertIs(get_template(None), PROFILE_PROMPTS[Tone.credibility])
+        # Tone.neutral has no dedicated template (no new prompt content
+        # authored this phase) -- it deliberately reuses credibility's, the
+        # same fallback get_template always had before Tone existed.
+        self.assertIs(get_template(Tone.neutral), PROFILE_PROMPTS[Tone.credibility])
 
 
 class TestModels(unittest.TestCase):
@@ -71,6 +104,7 @@ class TestModels(unittest.TestCase):
         project = DocumentaryProject(project_id="p1", topic="Roman Empire")
         self.assertEqual(project.pacing, Pacing.short)
         self.assertIsNone(project.topic_category)
+        self.assertIsNone(project.tone)
         self.assertIsNone(project.outline)
 
     def test_documentary_project_full_construction(self):

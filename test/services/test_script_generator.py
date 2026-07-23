@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+from app.config.profile_dimensions import Tone
 from app.models.outline import Outline
 from app.models.scene import Scene, ScenePlan
 from app.departments.creative import script_generator
@@ -79,6 +80,35 @@ class TestBuildScriptPrompt(unittest.TestCase):
         self.assertIn("Callback:", prompt)
 
 
+class TestBuildScriptPromptTone(unittest.TestCase):
+    """script_generator previously took no topic_category/tone at all -- this
+    is new wiring (Tone as an independent dimension), not a re-keyed old
+    behavior, so there's no old text to stay byte-identical to. The only
+    regression contract here is: omitting tone must leave the prompt exactly
+    as it was before Tone existed.
+    """
+
+    def test_omitting_tone_adds_no_voice_line(self):
+        prompt = script_generator.build_script_prompt(_scene_plan(), "Topic")
+        self.assertNotIn("Voice:", prompt)
+
+    def test_tone_adds_a_voice_line_with_matching_guidance(self):
+        prompt = script_generator.build_script_prompt(_scene_plan(), "Topic", tone=Tone.epic)
+        self.assertIn("Voice:", prompt)
+        self.assertIn(script_generator.TONE_VOICE_GUIDANCE[Tone.epic], prompt)
+
+    def test_different_tones_produce_different_voice_text(self):
+        cinematic_prompt = script_generator.build_script_prompt(_scene_plan(), "Topic", tone=Tone.cinematic)
+        scientific_prompt = script_generator.build_script_prompt(_scene_plan(), "Topic", tone=Tone.scientific)
+        self.assertNotEqual(cinematic_prompt, scientific_prompt)
+        self.assertIn(script_generator.TONE_VOICE_GUIDANCE[Tone.cinematic], cinematic_prompt)
+        self.assertIn(script_generator.TONE_VOICE_GUIDANCE[Tone.scientific], scientific_prompt)
+
+    def test_all_tones_have_voice_guidance(self):
+        for tone in Tone:
+            self.assertIn(tone, script_generator.TONE_VOICE_GUIDANCE)
+
+
 class TestGenerateScript(unittest.TestCase):
     @patch("app.departments.creative.script_generator.generate_json")
     def test_parses_lines_in_scene_order(self, mock_generate_json):
@@ -109,6 +139,15 @@ class TestGenerateScript(unittest.TestCase):
         prompt_arg = mock_generate_json.call_args[0][0]
         self.assertIn("Real hook line.", prompt_arg)
         self.assertIn("Real closing line.", prompt_arg)
+
+    @patch("app.departments.creative.script_generator.generate_json")
+    def test_passes_tone_through_to_the_prompt(self, mock_generate_json):
+        mock_generate_json.return_value = {"lines": []}
+
+        script_generator.generate_script(_scene_plan(), "Topic", tone=Tone.scientific)
+
+        prompt_arg = mock_generate_json.call_args[0][0]
+        self.assertIn(script_generator.TONE_VOICE_GUIDANCE[Tone.scientific], prompt_arg)
 
     def test_empty_scene_plan_short_circuits_without_llm_call(self):
         with patch("app.departments.creative.script_generator.generate_json") as mock_generate_json:

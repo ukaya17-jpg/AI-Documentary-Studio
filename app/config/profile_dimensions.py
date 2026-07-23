@@ -10,6 +10,26 @@ class TopicCategory(str, Enum):
     psychology = "psychology"
 
 
+class Tone(str, Enum):
+    cinematic = "cinematic"
+    credibility = "credibility"
+    epic = "epic"
+    scientific = "scientific"
+    neutral = "neutral"
+
+
+# One default tone per topic category, chosen to match each category's
+# existing PROFILE_PROMPTS template exactly (travel=cinematic,
+# history=credibility, space=epic, psychology=scientific) -- resolve_tone()
+# with no override must reproduce today's category-locked behavior.
+DEFAULT_TONE_BY_CATEGORY = {
+    TopicCategory.travel: Tone.cinematic,
+    TopicCategory.history: Tone.credibility,
+    TopicCategory.space: Tone.epic,
+    TopicCategory.psychology: Tone.scientific,
+}
+
+
 class Pacing(str, Enum):
     short = "short"
     long = "long"
@@ -37,6 +57,21 @@ def resolve_topic_category(value: str | TopicCategory | None) -> TopicCategory |
         return TopicCategory(str(value).strip().lower())
     except ValueError:
         return None
+
+
+def resolve_tone(
+    topic_category: str | TopicCategory | None,
+    tone_override: str | Tone | None = None,
+) -> Tone:
+    if tone_override not in (None, ""):
+        if isinstance(tone_override, Tone):
+            return tone_override
+        try:
+            return Tone(str(tone_override).strip().lower())
+        except ValueError:
+            pass  # invalid override string -- fall through to the category default
+    category = resolve_topic_category(topic_category)
+    return DEFAULT_TONE_BY_CATEGORY.get(category, Tone.neutral)
 
 
 def resolve_pacing(value: str | Pacing | None, default: Pacing = Pacing.short) -> Pacing:

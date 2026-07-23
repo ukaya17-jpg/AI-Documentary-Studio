@@ -9,7 +9,7 @@ and basic fact-checking, not a separate verification pass -- for most
 pure LLM-only research brief this stage always produced.
 """
 
-from app.config.profile_dimensions import TopicCategory
+from app.config.profile_dimensions import Tone
 from app.config.templates import get_template
 from app.models.research_plan import ResearchPlan, ResearchQuestion
 from app.models.web_search import WebSearchResult
@@ -19,11 +19,11 @@ from app.services.documentary_llm_utils import generate_json
 
 def build_research_prompt(
     topic: str,
-    topic_category: TopicCategory | None = None,
+    tone: Tone | None = None,
     language: str = "",
     web_search_result: WebSearchResult | None = None,
 ) -> str:
-    style = get_template(topic_category)["style"] if topic_category else ""
+    style = get_template(tone)["style"] if tone else ""
     prompt = (
         "You are a documentary research assistant. For the topic below, produce "
         "a research brief that a scriptwriter can use to plan a short documentary."
@@ -69,10 +69,10 @@ def _parse_questions(raw: list) -> list[ResearchQuestion]:
 
 
 def generate_research_plan(
-    topic: str, topic_category: TopicCategory | None = None, language: str = ""
+    topic: str, tone: Tone | None = None, language: str = ""
 ) -> ResearchPlan:
     search_result = web_search.search_web(topic)
-    prompt = build_research_prompt(topic, topic_category, language, web_search_result=search_result)
+    prompt = build_research_prompt(topic, tone, language, web_search_result=search_result)
     data = generate_json(prompt)
     return ResearchPlan(
         topic=topic,

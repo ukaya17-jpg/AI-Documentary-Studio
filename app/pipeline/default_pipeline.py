@@ -8,7 +8,14 @@ import os
 
 from loguru import logger
 
-from app.config.profile_dimensions import PACING_SCENE_SPEC, Pacing, TopicCategory, resolve_pacing
+from app.config.profile_dimensions import (
+    PACING_SCENE_SPEC,
+    Pacing,
+    Tone,
+    TopicCategory,
+    resolve_pacing,
+    resolve_tone,
+)
 from app.models.documentary_project import DocumentaryProject
 from app.models.schema import VideoAspect, VideoConcatMode
 from app.departments.creative import scene_planner, script_generator, storyboard_generator
@@ -51,6 +58,7 @@ def run_pipeline(
     topic: str,
     language: str = "auto",
     topic_category_override: TopicCategory | str | None = None,
+    tone: Tone | str | None = None,
     pacing: Pacing | str = Pacing.short,
     voice_name: str = "",
     voice_rate: float = 1.0,
@@ -84,11 +92,17 @@ def run_pipeline(
         )
         project.language = intent["language"]
         project.topic_category = intent["topic_category"]
+        # Tone resolution depends on topic_category, which is only known
+        # after intent analysis -- can't be resolved alongside resolved_pacing
+        # up front. With no override, this reproduces each category's old
+        # hard-locked tone exactly (see resolve_tone/DEFAULT_TONE_BY_CATEGORY).
+        resolved_tone = resolve_tone(project.topic_category, tone)
+        project.tone = resolved_tone
         _save_project_snapshot(project)
 
         stage(2, "research")
         project.research_plan = research_planner.generate_research_plan(
-            topic, topic_category=project.topic_category, language=project.language
+            topic, tone=resolved_tone, language=project.language
         )
         _save_project_snapshot(project)
 
@@ -96,7 +110,7 @@ def run_pipeline(
         project.outline = outline_generator.generate_outline(
             topic,
             research_plan=project.research_plan,
-            topic_category=project.topic_category,
+            tone=resolved_tone,
             language=project.language,
         )
         _save_project_snapshot(project)
@@ -107,7 +121,11 @@ def run_pipeline(
 
         stage(5, "script")
         project.script = script_generator.generate_script(
-            project.scene_plan, topic, language=project.language, outline=project.outline
+            project.scene_plan,
+            topic,
+            language=project.language,
+            outline=project.outline,
+            tone=resolved_tone,
         )
         _save_project_snapshot(project)
 

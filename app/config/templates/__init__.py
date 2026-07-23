@@ -1,15 +1,23 @@
-"""Outline templates per TopicCategory.
+"""Outline templates per Tone.
 
 Each template is a plain dict of guidance strings plugged into the outline
 generation prompt: how to open the documentary, what kind of sections to
 favor, and how to close. ``PROFILE_PROMPTS`` keys mirror
-``app.config.profile_dimensions.TopicCategory`` values.
+``app.config.profile_dimensions.Tone`` values.
+
+Previously keyed directly by ``TopicCategory`` (one hard-locked tone per
+category); re-keyed by ``Tone`` so a topic's tone can be resolved
+independently of its category (see ``resolve_tone``). The template content
+itself is unchanged -- each category's former slot now sits under that
+category's default tone (travel->cinematic, history->credibility,
+space->epic, psychology->scientific), so resolving with no override
+reproduces the exact same prompt text as before.
 """
 
-from app.config.profile_dimensions import TopicCategory
+from app.config.profile_dimensions import Tone
 
 PROFILE_PROMPTS = {
-    TopicCategory.travel: {
+    Tone.cinematic: {
         "style": (
             "Travel documentary. Ground the narration in concrete sensory detail "
             "(sights, sounds, food, local life) and a strong sense of place."
@@ -24,7 +32,7 @@ PROFILE_PROMPTS = {
         ),
         "closing": "End with a reflective takeaway or an invitation to explore further.",
     },
-    TopicCategory.history: {
+    Tone.credibility: {
         "style": (
             "History documentary. Prioritize chronological or cause-effect clarity "
             "and named people, dates, and turning points."
@@ -38,7 +46,7 @@ PROFILE_PROMPTS = {
         ),
         "closing": "End by tying the historical event to its lasting significance.",
     },
-    TopicCategory.space: {
+    Tone.epic: {
         "style": (
             "Space/science documentary. Favor scale, precision, and awe; translate "
             "technical facts into vivid comparisons a general audience can grasp."
@@ -52,7 +60,7 @@ PROFILE_PROMPTS = {
         ),
         "closing": "End by widening the lens to what this means for our understanding of the universe.",
     },
-    TopicCategory.psychology: {
+    Tone.scientific: {
         "style": (
             "Psychology documentary. Ground abstract concepts in a relatable "
             "scenario or experiment before generalizing."
@@ -69,5 +77,5 @@ PROFILE_PROMPTS = {
 }
 
 
-def get_template(category: TopicCategory) -> dict:
-    return PROFILE_PROMPTS.get(category, PROFILE_PROMPTS[TopicCategory.history])
+def get_template(tone: Tone | None) -> dict:
+    return PROFILE_PROMPTS.get(tone, PROFILE_PROMPTS[Tone.credibility])

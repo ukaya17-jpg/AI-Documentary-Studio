@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from app.config.profile_dimensions import Pacing, TopicCategory
+from app.config.profile_dimensions import Pacing, Tone, TopicCategory
 from app.models.asset import AssetCandidate, AssetPlan
 from app.models.audio import AudioPlan, AudioTrack
 from app.models.outline import Outline, OutlineSection
@@ -174,6 +174,9 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
 
         self.assertEqual(project.language, "en")
         self.assertEqual(project.topic_category, TopicCategory.history)
+        # No tone override passed -- resolves to history's default tone,
+        # reproducing the category's old hard-locked behavior.
+        self.assertEqual(project.tone, Tone.credibility)
         self.assertIs(project.research_plan, self.research_plan)
         self.assertIs(project.outline, self.outline)
         self.assertIs(project.scene_plan, self.scene_plan)
@@ -185,21 +188,29 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         self.assertIs(project.seo, self.seo)
         self.assertEqual(project.final_video_path, "/tmp/tasks/proj-1/final.mp4")
 
-        # outline_generator receives the research plan produced by research_planner.
+        # research_planner receives the resolved tone (history's default:
+        # credibility), not the raw topic_category.
+        _, research_kwargs = self.started["research"].call_args
+        self.assertEqual(research_kwargs["tone"], Tone.credibility)
+
+        # outline_generator receives the research plan produced by research_planner,
+        # plus the same resolved tone.
         _, outline_kwargs = self.started["outline"].call_args
         self.assertIs(outline_kwargs["research_plan"], self.research_plan)
-        self.assertEqual(outline_kwargs["topic_category"], TopicCategory.history)
+        self.assertEqual(outline_kwargs["tone"], Tone.credibility)
 
         # scene_planner receives the outline and the resolved pacing.
         scene_args, scene_kwargs = self.started["scene"].call_args
         self.assertIs(scene_args[0], self.outline)
         self.assertEqual(scene_kwargs["pacing"], Pacing.short)
 
-        # script_generator receives the scene plan and the outline (for
-        # Hook/Retention/Callback story-craft instructions).
+        # script_generator receives the scene plan, the outline (for
+        # Hook/Retention/Callback story-craft instructions), and the resolved
+        # tone (previously script_generator never saw tone/category at all).
         script_args, script_kwargs = self.started["script"].call_args
         self.assertIs(script_args[0], self.scene_plan)
         self.assertIs(script_kwargs["outline"], self.outline)
+        self.assertEqual(script_kwargs["tone"], Tone.credibility)
 
         # storyboard_generator receives both scene plan and script, plus the
         # topic and a bounded slice of research key_facts -- these anchor the
@@ -262,6 +273,23 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         self.assertEqual(thumb_args[0], self.timeline.combined_video_path)
         self.assertIs(thumb_args[1], self.seo)
         self.assertEqual(thumb_args[2], "proj-1")
+
+    def test_tone_override_wins_over_category_default(self):
+        # Category resolves to history -> credibility by default (see
+        # test_full_pipeline_wiring), but an explicit override must win.
+        project = default_pipeline.run_pipeline(
+            project_id="proj-1",
+            topic="The Fall of Rome",
+            language="auto",
+            pacing=Pacing.short,
+            voice_name="en-US-JennyNeural",
+            tone=Tone.scientific,
+        )
+
+        self.assertEqual(project.tone, Tone.scientific)
+        self.assertEqual(self.started["research"].call_args[1]["tone"], Tone.scientific)
+        self.assertEqual(self.started["outline"].call_args[1]["tone"], Tone.scientific)
+        self.assertEqual(self.started["script"].call_args[1]["tone"], Tone.scientific)
 
     def test_final_video_path_is_set_even_when_quality_review_is_unavailable(self):
         self.started["quality"].return_value = None

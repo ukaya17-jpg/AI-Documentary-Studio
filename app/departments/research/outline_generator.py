@@ -1,6 +1,6 @@
 """Outline stage: turn a topic + research plan into a structured documentary outline."""
 
-from app.config.profile_dimensions import TopicCategory
+from app.config.profile_dimensions import Tone
 from app.config.templates import get_template
 from app.models.outline import Outline, OutlineSection
 from app.models.research_plan import ResearchPlan
@@ -26,10 +26,10 @@ def _research_brief(research_plan: ResearchPlan | None) -> str:
 def build_outline_prompt(
     topic: str,
     research_plan: ResearchPlan | None = None,
-    topic_category: TopicCategory | None = None,
+    tone: Tone | None = None,
     language: str = "",
 ) -> str:
-    template = get_template(topic_category)
+    template = get_template(tone)
     prompt = (
         "You are a documentary outline writer.\n"
         f"Style: {template['style']}\n"
@@ -87,10 +87,10 @@ def _parse_sections(raw: list) -> list[OutlineSection]:
 def generate_outline(
     topic: str,
     research_plan: ResearchPlan | None = None,
-    topic_category: TopicCategory | None = None,
+    tone: Tone | None = None,
     language: str = "",
 ) -> Outline:
-    prompt = build_outline_prompt(topic, research_plan, topic_category, language)
+    prompt = build_outline_prompt(topic, research_plan, tone, language)
     data = generate_json(prompt)
     return Outline(
         title=str(data.get("title", "")).strip() or topic,
