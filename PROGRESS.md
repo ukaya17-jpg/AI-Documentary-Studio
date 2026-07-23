@@ -1098,6 +1098,154 @@ manuel onaylı mı tetiklenmeli? **Kullanıcı manuel onayı seçti.** Bu yüzde
       yapıldı. Gerçek bir yayın testi için kullanıcının kendi Upload-Post
       API key'ini sağlayıp açıkça istemesi gerekiyor.
 
+## Bilinen teknik sınırlar (konsolide liste)
+
+Koda dağılmış, tek tek not düşülmüş ama bir araya toplanmamış küçük/orta
+teknik borç kalemleri — Podcast/Kids gibi büyük, onay bekleyen özellik
+kararlarından farklı olarak, bunların hepsi **çalışıyor**, sadece ya
+kusurlu/eksik bir davranışları ya da netleşmemiş bir kalibrasyonları var.
+Her biri koddan doğrulandı (bu oturumda, kullanıcı talebiyle); ayrıca
+`PROGRESS.md`'nin tamamı "not/sınırlama/kalan sınırlama" ifadeleri için
+tekrar tarandı — bu taramada bulunan ama **zaten sonradan düzeltilmiş**
+maddeler (ör. thumbnail başlık kesilmesi, bkz. "Thumbnail başlık kesilme
+düzeltmesi" bölümü) bilinçli olarak bu listeye alınmadı.
+
+**Özet tablo** (risk/etki × düzeltme karmaşıklığı → önerilen öncelik):
+
+| # | Madde | Risk/Etki | Karmaşıklık | Öncelik |
+|---|---|---|---|---|
+| 1 | Üç ayrı dil listesi | Düşük-Orta (bakım riski) | Orta (isim + test bağımlılığı) | Düşük |
+| 2 | `estimate_words` taban sınırı | Çok düşük bugün (ölü kod) | Trivial | Düşük (ön koşul niteliğinde) |
+| 3 | `QUALITY_PASS_THRESHOLD` kalibrasyonu | Çok düşük (hiçbir kararı tetiklemiyor) | Belirsiz/yüksek (gerçek veri gerekir) | En düşük |
+| 4 | Altyazı font varsayılanı ikiliği | Orta (sessiz, taze kurulumda gerçek sapma) | Trivial-Küçük | **Yüksek** (efor/etki oranı en iyi) |
+| 5 | `shot_type`/`search_terms[1:]` tüketilmiyor | Orta (gereksiz LLM token maliyeti) | Küçük-Orta | Orta |
+| 6 | `TopicCategory` 4 kategori sınırı | Orta (yanlış ton/şablon riski) | Büyük (yeni tasarım kararı) | Düşük (bu oturumda) |
+| 7 | Research grounding sessiz düşüş | **Yüksek** (içerik güvenilirliği/yanlış güven) | Küçük-Orta (şeffaflık) / Büyük (gerçek SERP API) | **Yüksek** (şeffaflık kısmı) |
+| 8 | Pexels tarihi görsel kapsam sınırı | Düşük (zaten kabul edilmiş) | Kodla çözülemez (veri sınırı) | En düşük |
+
+- [ ] **Üç ayrı "dil" kavramı, birbirini karşılamıyor:**
+  1. `webui/Main.py:87` `locales = utils.load_locales(i18n_dir)` → arayüz
+     çeviri dili, 9 dil (de/en/es/id/pt/ru/tr/vi/zh).
+  2. `webui/Main.py:1162` `support_locales` → **legacy** tekil-video
+     pipeline'ının "Script Language" seçici listesi, 11 locale kodu
+     (zh-CN/zh-HK/zh-TW/de-DE/en-US/es-ES/fr-FR/ru-RU/vi-VN/th-TH/tr-TR).
+  3. `app/config/profile_dimensions.py:49-52` `Language` enum → Documentary
+     Studio'nun kendi konu dili, sadece 3 değer (auto/tr/en).
+  Bu üçü birbirini kapsamıyor: `support_locales`'te olup arayüz çeviri
+  listesinde olmayan diller var (fr-FR, th-TH — bu dillerde arayüz asla
+  gösterilemez, sadece legacy script dili olarak seçilebilir), tersine "id"
+  (Endonezyaca) arayüz dili ama `support_locales`'te karşılığı yok. Üçü de
+  ayrı amaçlara hizmet ettiği için bu "hata" değil ama isim benzerliği
+  (`locales` / `support_locales` / `Language`) kafa karıştırıcı — yeni bir
+  dil eklerken hangisinin güncellenmesi gerektiği kolayca atlanabilir.
+  **Risk/Etki:** Düşük-Orta — bugün aktif bir hata/çökme yok, sadece gelecekte
+  yeni dil eklerken üç listeden birinin unutulma riski. **Karmaşıklık:** Orta
+  — `test_webui_i18n.py:152-167` `support_locales` adını AST ile birebir
+  arıyor, isim değişikliği bu testi kırar; üçünü birleştirmek/yeniden
+  adlandırmak dikkatli bir refactor gerektirir. **Öncelik:** Düşük.
+- [ ] **`script_generator.py:89` kelime hedefi taban sınırı canlı değil:**
+  `target_words = max(5, round(scene.duration_seconds * _WORDS_PER_SECOND))`
+  — taban olan 5, sadece `duration_seconds` ~2.2s altına düştüğünde devreye
+  girer. `PACING_SCENE_SPEC` bugün sadece 5.0s (short) ve 8.0s (long) üretiyor
+  (`scene_planner.py`'de her sahneye pacing'in **sabit** süresi atanıyor,
+  importance'a göre değişmiyor) — ikisi de tabanın çok üzerinde (12/18
+  kelime). Yani taban şu an **hiçbir zaman tetiklenmiyor**, ölü kod gibi
+  davranıyor; sadece ileride sahne süresi importance-ağırlıklı/değişken hale
+  gelirse (ör. çok kısa bir sahne) anlam kazanır — o zaman da taban tüm kısa
+  sahneleri aynı 5 kelimeye düzleyip pacing'in ayırt ediciliğini kaybettirir.
+  **Risk/Etki:** Çok düşük bugün (tetiklenmiyor); sahne süresi değişken hale
+  gelirse Orta. **Karmaşıklık:** Trivial — tek satırlık sabit/formül
+  değişikliği. **Öncelik:** Düşük, ama sahne süresi importance-ağırlıklı hale
+  getirilecekse bu maddenin **önce** ele alınması gereken bir ön koşul.
+- [ ] **`QUALITY_PASS_THRESHOLD = 3.0`** (`app/models/quality.py`) hiç
+  kalibre edilmedi — `quality_critic` pipeline'a otomatik/zorunlu
+  bağlanmadığı için (`default_pipeline.py:219`, "informational only, never
+  blocks") `passed` alanı hiçbir kararı tetiklemiyor, sadece log'a yazılıyor.
+  Düşük öncelik: gerçek eşik ancak `passed=False` bir şeyi gerçekten
+  durdurmaya/tekrar denetmeye başladığında anlam kazanacak.
+  **Risk/Etki:** Çok düşük — hiçbir karara bağlı değil. **Karmaşıklık:**
+  Sayının kendisini değiştirmek trivial ama "doğru" eşiği bulmak gerçek
+  kullanım verisi/insan etiketlemesi gerektirir, basit değil. **Öncelik:**
+  En düşük — zaten bilinçli olarak `quality_critic`'in pipeline'a bağlanacağı
+  ana kadar ertelenmiş.
+- [ ] **Altyazı font varsayılanı iki yerde farklı, sadece biri yorumla
+  belgelenmiş:** `webui/Main.py:99-101` `DEFAULT_SUBTITLE_SETTINGS["font_name"]`
+  = `"MicrosoftYaHeiBold.ttc"` (FAZ 0'dan kalma, CJK-ağırlıklı), `video_renderer.py:19-25`
+  `_DEFAULT_SUBTITLE_SETTINGS["font_name"]` = `"BeVietnamPro-Bold.ttf"` —
+  kasıtlı bir sapma, kod yorumunda açıklanmış ("this pipeline defaults to a
+  plain sans-serif ... instead of a CJK-weighted font"). **Pratikte ölü
+  değil:** `config.example.toml:345`'te `font_name` satırı yorum satırı
+  (`# font_name = ...`) olduğu için, hiç dokunmamış taze bir kurulumda
+  `config.ui`'da bu key hiç olmuyor ve her iki fallback da gerçekten devreye
+  giriyor — webui'nin gösterdiği/varsaydığı varsayılan ile videoya gerçekten
+  gömülen font o durumda **gerçekten farklı** oluyor, bu fark kullanıcıya
+  arayüzde hiç görünmüyor.
+  **Risk/Etki:** Orta — sadece kozmetik değil, taze kurulumlarda sessiz bir
+  UI/render sapması. **Karmaşıklık:** Trivial-Küçük — tek satırlık değer
+  eşitleme (`webui/Main.py`'nin varsayılanını da `BeVietnamPro-Bold.ttf`
+  yapmak, proje zaten bu yöne evrilmiş: thumbnail + video_renderer ikisi de
+  bunu kullanıyor). **Öncelik:** **Yüksek** — listede efor/etki oranı en iyi
+  kalem, tek satırlık bir düzeltme gerçek bir sapmayı kapatıyor.
+- [ ] **`shot_type` ve `search_terms[1:]` üretiliyor ama hiç tüketilmiyor:**
+  `storyboard_generator.py` LLM'den her shot için `shot_type` (wide/close-up/
+  aerial/...) ve bir `search_terms` **listesi** üretiyor
+  (`app/models/storyboard.py:7-8`), ama `asset_generator.py:16` sadece
+  `shot.search_terms[0]`'ı okuyor — `shot_type` hiç okunmuyor, listedeki
+  1'den sonraki terimler de hiç kullanılmıyor. Daha önce bir oturumda
+  bilinçli olarak dokunulmamıştı (bkz. yukarıda "`shot_type` bulgusu"), aynı
+  kalıp `search_terms[1:]` için de geçerli — LLM zaten bunları üretiyor,
+  token maliyeti var ama karşılığı kullanılmıyor.
+  **Risk/Etki:** Orta — gerçek bir maliyet var (üretilip atılan token'lar)
+  ama görünür bir hata/kalite kaybı yaratmıyor. **Karmaşıklık:** Küçük-Orta
+  — `search_terms[1:]` için 0-sonuç durumunda fallback eklemek küçük bir
+  değişiklik; `shot_type`'ı da aynı anda bağlamak iki değişkeni birden
+  gerçek API'ye sürer (önceki oturumda tam bu yüzden bilinçli olarak
+  ayrılmıştı). **Öncelik:** Orta — iki değişikliği ayrı commit'lerde ele
+  almak (önce `search_terms[1:]` fallback, sonra `shot_type`) önerilir,
+  kullanıcı onayı olmadan dokunulmamalı.
+- [ ] **`TopicCategory`'nin 4 sabit kategorisi (travel/history/space/
+  psychology) her konuyu karşılamıyor:** `idea_generator` örneğinde
+  doğrulanmış ("Japonya neden güvenli?" → toplum/kültür konusu, 4 kategoriden
+  hiçbirine tam oturmuyor). Bilinçli olarak kapsam dışı bırakılmıştı;
+  kategori şemasının kendisinin genişletilmesi ayrı bir karar gerektiriyor.
+  **Risk/Etki:** Orta — kapsam dışı konularda kategori-bazlı ton/prompt
+  şablonu (`PROFILE_PROMPTS`, `DEFAULT_TONE_BY_CATEGORY`) yanlış bir
+  varsayılana düşebilir. **Karmaşıklık:** Büyük — yeni kategori eklemek her
+  kategorinin şablonunu, tone eşlemesini, testleri ve gerçek doğrulamayı
+  gerektirir. **Öncelik:** Düşük (bu oturumda) — Podcast/Kids/Corporate ile
+  aynı kategoride, ayrı bir plan/onay turu gerektiriyor.
+- [ ] **Research grounding niş konularda sessizce LLM-only'e düşüyor:**
+  `app/services/web_search.py` (docstring'i zaten dürüstçe açıklıyor) sadece
+  DuckDuckGo Instant Answer API kullanıyor — genel bir web arama API'si
+  DEĞİL, sadece bilinen varlıklar için kısa bir "Abstract" döndürüyor, niş/
+  spesifik/bileşik sorgularda `search_web()` `None` dönüyor
+  (`web_search.py:46-48`). `research_planner.py:74-75` bu `None`'ı normal
+  kabul edip sessizce saf LLM bilgisine düşüyor (`build_research_prompt`'a
+  `web_search_result=None` geçiliyor) — **kullanıcıya veya `SeoMetadata`/
+  `ResearchPlan`'a hiçbir "bu belgesel doğrulanmış bir kaynak olmadan
+  üretildi" sinyali verilmiyor.** Bir "belgesel" aracı için bu, diğer
+  maddelerden farklı bir risk sınıfı: kod hatası değil, **içerik
+  güvenilirliği** riski.
+  **Risk/Etki:** **Yüksek** — halüsinasyon riski taşıyan içerik, doğrulanmış
+  gibi sunulabilir; kullanıcı hangi belgesellerin gerçekten kaynak-doğrulamalı
+  olduğunu bilemiyor. **Karmaşıklık:** Küçük-Orta sadece şeffaflık için
+  (`ResearchPlan`'a bir `grounded: bool` alanı + webui'de görünür bir uyarı);
+  gerçek bir SERP API'sine (Google/Bing/Serper/Tavily) geçmek ise Büyük (yeni
+  ücretli entegrasyon). **Öncelik:** **Yüksek** şeffaflık kısmı için (küçük
+  efor, gerçek güven riskini kapatıyor); SERP API entegrasyonu ayrı, büyük
+  bir karar olarak kalmalı.
+- [ ] **Pexels'in çok spesifik tarihi görsel türlerinde (ör. dönem
+  haritaları) sınırlı kapsamı:** Storyboard search terms artık topic+
+  key_facts ile grounded (jenerik kelime kopyalama sorunu çözüldü), ama
+  Pexels'in kendisi bazı niş tarihi görsel türlerini yeterince
+  kapsamıyor — bu bir stok-kütüphane veri sınırı, kod sorunu değil; önceki
+  bir oturumda **zaten "kabul edilebilir seviyede" olarak kapatılmıştı**.
+  **Risk/Etki:** Düşük — zaten kabul edilmiş, aksiyon beklenmiyor.
+  **Karmaşıklık:** Kodla çözülemez (veri sınırı); farklı/ek bir stok
+  sağlayıcı (tarihi arşiv görselleri sunan) eklemek Büyük bir değişiklik
+  olurdu. **Öncelik:** En düşük — sadece envanterde eksiksizlik için not
+  düşülüyor, aksiyon önerilmiyor.
+
 ## Karar bekleyen noktalar
 
 Bu commit dahil yerel `main`, `origin/main`'den ileride — push manuel
