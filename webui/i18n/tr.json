@@ -311,6 +311,16 @@
     "Documentary SEO Chapters": "Bölümler",
     "Documentary SEO Chapters Help": "Sadece uzun format YouTube yüklemelerinde işlevseldir -- Shorts bölümleri desteklemez.",
     "Documentary SEO End Screen": "Bitiş Ekranı Önerisi",
-    "Documentary SEO Pinned Comment": "Sabit Yorum Önerisi"
+    "Documentary SEO Pinned Comment": "Sabit Yorum Önerisi",
+    "Documentary Publish": "Sosyal Platformlara Yayınla",
+    "Documentary Publish Help": "Yayınla'ya tıklayana kadar hiçbir şey paylaşılmaz -- önce yukarıdaki video, küçük resim ve SEO meta verilerini gözden geçirin.",
+    "Documentary Publish Not Configured": "Upload-Post yapılandırılmamış. Yayınlamayı etkinleştirmek için config.toml'da upload_post_enabled/upload_post_api_key/upload_post_username değerlerini ayarlayın.",
+    "Documentary Publish Platforms": "Platformlar",
+    "Documentary Publish YouTube Privacy": "YouTube Gizliliği",
+    "Documentary Publish Button": "Yayınla",
+    "Documentary Publishing": "Yayınlanıyor...",
+    "Documentary Publish Success": "Başarıyla yayınlandı",
+    "Documentary Publish Failed": "Yayınlama başarısız oldu",
+    "Documentary Publish Already Done": "Zaten yayınlandı"
   }
 }

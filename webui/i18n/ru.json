@@ -311,6 +311,16 @@
     "Documentary SEO Chapters": "Главы",
     "Documentary SEO Chapters Help": "Работает только для видео в длинном формате на YouTube -- Shorts не поддерживают главы.",
     "Documentary SEO End Screen": "Предложение для конечного экрана",
-    "Documentary SEO Pinned Comment": "Предложение закреплённого комментария"
+    "Documentary SEO Pinned Comment": "Предложение закреплённого комментария",
+    "Documentary Publish": "Опубликовать в социальных сетях",
+    "Documentary Publish Help": "Ничего не публикуется, пока вы не нажмёте «Опубликовать» -- сначала проверьте видео, миниатюру и SEO-метаданные выше.",
+    "Documentary Publish Not Configured": "Upload-Post не настроен. Укажите upload_post_enabled/upload_post_api_key/upload_post_username в config.toml, чтобы включить публикацию.",
+    "Documentary Publish Platforms": "Платформы",
+    "Documentary Publish YouTube Privacy": "Конфиденциальность YouTube",
+    "Documentary Publish Button": "Опубликовать",
+    "Documentary Publishing": "Публикация...",
+    "Documentary Publish Success": "Успешно опубликовано",
+    "Documentary Publish Failed": "Ошибка публикации",
+    "Documentary Publish Already Done": "Уже опубликовано"
   }
 }

@@ -26,7 +26,9 @@ if root_dir not in sys.path:
 
 from app.config import config
 from app.config.profile_dimensions import Format, Pacing, Tone, TopicCategory
+from app.departments.growth import publisher
 from app.models import const
+from app.models.documentary_project import DocumentaryProject
 from app.models.llm_provider import (
     DEFAULT_LLM_PROVIDER_ID,
     LLM_PROVIDER_REGISTRY,
@@ -48,6 +50,7 @@ from app.services import elevenlabs_music as elevenlabs_music_service
 from app.services import sonilo as sonilo_service
 from app.services import state as sm
 from app.services import task as tm
+from app.services import upload_post
 from app.services import version_checker
 from app.utils.logging_utils import configure_terminal_logger
 from app.utils import utils
@@ -3907,6 +3910,75 @@ def _render_generation_controls(
     return start_button
 
 
+def _render_publish_section(last_project: dict):
+    """Manual publish step for the finished documentary -- deliberately not
+    part of default_pipeline.run_pipeline(): posting to real social accounts
+    is a public, hard-to-reverse action, so it only happens after the user
+    reviews the video/thumbnail/SEO above and explicitly clicks Publish, never
+    automatically after generation.
+    """
+    already_published = (last_project or {}).get("publish_result")
+
+    with st.expander(tr("Documentary Publish"), expanded=False):
+        st.caption(tr("Documentary Publish Help"))
+
+        if already_published:
+            st.info(
+                f"{tr('Documentary Publish Already Done')}: "
+                f"{already_published.get('published_at', '')} → "
+                f"{', '.join(already_published.get('platforms', []))}"
+            )
+
+        if not upload_post.upload_post_service.is_configured():
+            st.warning(tr("Documentary Publish Not Configured"))
+            return
+
+        known_platforms = ["tiktok", "instagram", "youtube"]
+        configured_default = [
+            p for p in upload_post.upload_post_service.platforms if p in known_platforms
+        ]
+        platform_choices = st.multiselect(
+            tr("Documentary Publish Platforms"),
+            options=known_platforms,
+            default=configured_default,
+            key="documentary_publish_platforms",
+        )
+
+        youtube_privacy = None
+        if "youtube" in platform_choices:
+            privacy_options = ["public", "unlisted", "private"]
+            configured_privacy = upload_post.upload_post_service.youtube_privacy_status
+            default_index = (
+                privacy_options.index(configured_privacy)
+                if configured_privacy in privacy_options
+                else 0
+            )
+            youtube_privacy = st.selectbox(
+                tr("Documentary Publish YouTube Privacy"),
+                options=privacy_options,
+                index=default_index,
+                key="documentary_publish_youtube_privacy",
+            )
+
+        publish_clicked = st.button(
+            tr("Documentary Publish Button"),
+            key="documentary_publish_button",
+            disabled=not platform_choices,
+        )
+        if publish_clicked:
+            project = DocumentaryProject(**last_project)
+            with st.spinner(tr("Documentary Publishing")):
+                result = publisher.publish_project(
+                    project, platforms=platform_choices, youtube_privacy_status=youtube_privacy
+                )
+            last_project["publish_result"] = result.model_dump(mode="json")
+            st.session_state["documentary_last_project"] = last_project
+            if result.success:
+                st.success(f"{tr('Documentary Publish Success')} ({', '.join(result.platforms)})")
+            else:
+                st.error(f"{tr('Documentary Publish Failed')}: {result.error}")
+
+
 def _render_documentary_studio_section():
     """
     AI Documentary Studio (Beta): Intent -> Research -> Outline -> Scene ->
@@ -4136,6 +4208,8 @@ def _render_documentary_studio_section():
                     with st.expander(tr("Documentary Quality Issues")):
                         for issue in quality_verdict["issues"]:
                             st.write(f"- {issue}")
+
+            _render_publish_section(last_project)
 
 
 def _render_application():

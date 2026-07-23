@@ -311,6 +311,16 @@
     "Documentary SEO Chapters": "Kapitel",
     "Documentary SEO Chapters Help": "Funktioniert nur bei Langform-YouTube-Uploads -- Shorts unterstützen keine Kapitel.",
     "Documentary SEO End Screen": "Abspann-Vorschlag",
-    "Documentary SEO Pinned Comment": "Vorschlag für angehefteten Kommentar"
+    "Documentary SEO Pinned Comment": "Vorschlag für angehefteten Kommentar",
+    "Documentary Publish": "Auf sozialen Plattformen veröffentlichen",
+    "Documentary Publish Help": "Es wird nichts veröffentlicht, bis Sie auf Veröffentlichen klicken -- prüfen Sie zuerst das Video, das Vorschaubild und die SEO-Metadaten oben.",
+    "Documentary Publish Not Configured": "Upload-Post ist nicht konfiguriert. Legen Sie upload_post_enabled/upload_post_api_key/upload_post_username in config.toml fest, um die Veröffentlichung zu aktivieren.",
+    "Documentary Publish Platforms": "Plattformen",
+    "Documentary Publish YouTube Privacy": "YouTube-Datenschutz",
+    "Documentary Publish Button": "Veröffentlichen",
+    "Documentary Publishing": "Wird veröffentlicht...",
+    "Documentary Publish Success": "Erfolgreich veröffentlicht",
+    "Documentary Publish Failed": "Veröffentlichung fehlgeschlagen",
+    "Documentary Publish Already Done": "Bereits veröffentlicht"
   }
 }

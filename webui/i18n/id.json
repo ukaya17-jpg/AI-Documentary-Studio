@@ -311,6 +311,16 @@
     "Documentary SEO Chapters": "Bab",
     "Documentary SEO Chapters Help": "Hanya berfungsi pada unggahan YouTube format panjang -- Shorts tidak mendukung bab.",
     "Documentary SEO End Screen": "Saran Layar Akhir",
-    "Documentary SEO Pinned Comment": "Saran Komentar Disematkan"
+    "Documentary SEO Pinned Comment": "Saran Komentar Disematkan",
+    "Documentary Publish": "Publikasikan ke Platform Sosial",
+    "Documentary Publish Help": "Tidak ada yang dipublikasikan sampai Anda mengklik Publikasikan -- tinjau dulu video, thumbnail, dan metadata SEO di atas.",
+    "Documentary Publish Not Configured": "Upload-Post belum dikonfigurasi. Atur upload_post_enabled/upload_post_api_key/upload_post_username di config.toml untuk mengaktifkan publikasi.",
+    "Documentary Publish Platforms": "Platform",
+    "Documentary Publish YouTube Privacy": "Privasi YouTube",
+    "Documentary Publish Button": "Publikasikan",
+    "Documentary Publishing": "Mempublikasikan...",
+    "Documentary Publish Success": "Berhasil dipublikasikan",
+    "Documentary Publish Failed": "Publikasi gagal",
+    "Documentary Publish Already Done": "Sudah dipublikasikan"
   }
 }

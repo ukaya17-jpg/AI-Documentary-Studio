@@ -4,6 +4,7 @@ from app.config.profile_dimensions import Format, Pacing, Tone, TopicCategory
 from app.models.asset import AssetPlan
 from app.models.audio import AudioPlan
 from app.models.outline import Outline
+from app.models.publish import PublishResult
 from app.models.quality import QualityVerdict
 from app.models.research_plan import ResearchPlan
 from app.models.scene import ScenePlan
@@ -49,3 +50,8 @@ class DocumentaryProject(BaseModel):
     # Best-effort; "" when generation failed or was skipped. See
     # app.departments.growth.thumbnail_generator.
     thumbnail_path: str = ""
+    # Never set automatically -- publishing is a public, hard-to-reverse
+    # action, so it's only populated after an explicit user-triggered call to
+    # app.departments.growth.publisher.publish_project (see webui's Publish
+    # section). None means "not published (yet)", not "publish failed".
+    publish_result: PublishResult | None = None

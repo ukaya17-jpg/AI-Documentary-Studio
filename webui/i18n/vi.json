@@ -311,6 +311,16 @@
     "Documentary SEO Chapters": "Chương",
     "Documentary SEO Chapters Help": "Chỉ hoạt động với video YouTube định dạng dài -- Shorts không hỗ trợ chương.",
     "Documentary SEO End Screen": "Gợi ý màn hình kết thúc",
-    "Documentary SEO Pinned Comment": "Gợi ý bình luận được ghim"
+    "Documentary SEO Pinned Comment": "Gợi ý bình luận được ghim",
+    "Documentary Publish": "Đăng lên nền tảng mạng xã hội",
+    "Documentary Publish Help": "Không có gì được đăng cho đến khi bạn nhấp vào Đăng -- hãy xem lại video, ảnh thu nhỏ và siêu dữ liệu SEO ở trên trước.",
+    "Documentary Publish Not Configured": "Upload-Post chưa được cấu hình. Đặt upload_post_enabled/upload_post_api_key/upload_post_username trong config.toml để bật tính năng đăng bài.",
+    "Documentary Publish Platforms": "Nền tảng",
+    "Documentary Publish YouTube Privacy": "Quyền riêng tư YouTube",
+    "Documentary Publish Button": "Đăng",
+    "Documentary Publishing": "Đang đăng...",
+    "Documentary Publish Success": "Đăng thành công",
+    "Documentary Publish Failed": "Đăng thất bại",
+    "Documentary Publish Already Done": "Đã đăng"
   }
 }

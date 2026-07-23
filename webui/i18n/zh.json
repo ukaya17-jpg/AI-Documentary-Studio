@@ -338,6 +338,16 @@
     "Documentary SEO Chapters": "章节",
     "Documentary SEO Chapters Help": "仅在长视频 YouTube 上传中有效——Shorts 不支持章节。",
     "Documentary SEO End Screen": "结束画面建议",
-    "Documentary SEO Pinned Comment": "置顶评论建议"
+    "Documentary SEO Pinned Comment": "置顶评论建议",
+    "Documentary Publish": "发布到社交平台",
+    "Documentary Publish Help": "点击“发布”之前不会发布任何内容——请先查看上方的视频、缩略图和 SEO 元数据。",
+    "Documentary Publish Not Configured": "Upload-Post 尚未配置。请在 config.toml 中设置 upload_post_enabled/upload_post_api_key/upload_post_username 以启用发布功能。",
+    "Documentary Publish Platforms": "平台",
+    "Documentary Publish YouTube Privacy": "YouTube 隐私设置",
+    "Documentary Publish Button": "发布",
+    "Documentary Publishing": "发布中……",
+    "Documentary Publish Success": "发布成功",
+    "Documentary Publish Failed": "发布失败",
+    "Documentary Publish Already Done": "已发布"
   }
 }
