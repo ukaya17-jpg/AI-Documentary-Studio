@@ -23,18 +23,20 @@ _FONT_SCALE_STEP = 0.05
 _ELLIPSIS = "..."
 
 
-def _extract_middle_frame(video_path: str, output_path: str) -> bool:
-    """Extract a single frame from the middle of the video's duration.
+def _extract_frame_at_fraction(video_path: str, output_path: str, fraction: float) -> bool:
+    """Extract a single frame at `fraction` of the video's duration (0.5 =
+    middle).
 
     Autonomous decision (overnight session, logged in PROGRESS.md): picking
-    the middle timestamp is the conservative choice -- scene-importance-based
-    selection would need scene<->timeline timestamp mapping that the legacy
-    combine_videos() timeline doesn't expose reliably (looping/trimming).
+    a fixed fraction of the timeline is the conservative choice -- scene-
+    importance-based selection would need scene<->timeline timestamp mapping
+    that the legacy combine_videos() timeline doesn't expose reliably
+    (looping/trimming).
     """
     try:
         clip = VideoFileClip(video_path)
         try:
-            timestamp = clip.duration / 2
+            timestamp = clip.duration * fraction
             clip.save_frame(output_path, t=timestamp)
         finally:
             clip.close()
@@ -145,7 +147,21 @@ def _overlay_title(image_path: str, title: str) -> bool:
         return False
 
 
-def generate_thumbnail(combined_video_path: str, seo: SeoMetadata | None, task_id: str) -> str:
+# GÖREV 7 (gece oturumu): second thumbnail choice for a quick A/B compare --
+# an earlier frame than the default middle one, same title overlay. Kept a
+# fixed fraction rather than anything scene-aware for the same reason as the
+# 0.5 default (see _extract_frame_at_fraction's docstring).
+_VARIANT_B_FRAME_FRACTION = 0.25
+
+
+def generate_thumbnail(
+    combined_video_path: str,
+    seo: SeoMetadata | None,
+    task_id: str,
+    *,
+    frame_fraction: float = 0.5,
+    filename: str = "thumbnail.png",
+) -> str:
     """Returns the thumbnail file path, or "" if generation failed at any step."""
     if not combined_video_path or not os.path.exists(combined_video_path):
         logger.warning(
@@ -154,9 +170,9 @@ def generate_thumbnail(combined_video_path: str, seo: SeoMetadata | None, task_i
         return ""
 
     task_directory = utils.task_dir(task_id)
-    output_path = os.path.join(task_directory, "thumbnail.png")
+    output_path = os.path.join(task_directory, filename)
 
-    if not _extract_middle_frame(combined_video_path, output_path):
+    if not _extract_frame_at_fraction(combined_video_path, output_path, frame_fraction):
         return ""
 
     title = seo.title if seo else ""
@@ -164,3 +180,16 @@ def generate_thumbnail(combined_video_path: str, seo: SeoMetadata | None, task_i
         return ""
 
     return output_path
+
+
+def generate_thumbnail_variant_b(combined_video_path: str, seo: SeoMetadata | None, task_id: str) -> str:
+    """A second, distinct thumbnail choice (earlier frame, same title) so the
+    user has two options to compare instead of only ever seeing one. Best-
+    effort like generate_thumbnail() -- "" on any failure, never raises."""
+    return generate_thumbnail(
+        combined_video_path,
+        seo,
+        task_id,
+        frame_fraction=_VARIANT_B_FRAME_FRACTION,
+        filename="thumbnail_b.png",
+    )

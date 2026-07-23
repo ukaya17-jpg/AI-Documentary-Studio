@@ -141,6 +141,10 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
                 "app.pipeline.default_pipeline.thumbnail_generator.generate_thumbnail",
                 return_value="/tmp/tasks/proj-1/thumbnail.png",
             ),
+            "thumbnail_b": patch(
+                "app.pipeline.default_pipeline.thumbnail_generator.generate_thumbnail_variant_b",
+                return_value="/tmp/tasks/proj-1/thumbnail_b.png",
+            ),
         }
         self.started = {name: m.start() for name, m in self.mocks.items()}
         for m in self.mocks.values():
@@ -283,6 +287,14 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         self.assertIs(thumb_args[1], self.seo)
         self.assertEqual(thumb_args[2], "proj-1")
 
+        # A second thumbnail choice (A/B compare) is generated the same way,
+        # only attempted because variant A succeeded above.
+        self.assertEqual(project.thumbnail_variant_b_path, "/tmp/tasks/proj-1/thumbnail_b.png")
+        thumb_b_args, _ = self.started["thumbnail_b"].call_args
+        self.assertEqual(thumb_b_args[0], self.timeline.combined_video_path)
+        self.assertIs(thumb_b_args[1], self.seo)
+        self.assertEqual(thumb_b_args[2], "proj-1")
+
     def test_tone_override_wins_over_category_default(self):
         # Category resolves to history -> credibility by default (see
         # test_full_pipeline_wiring), but an explicit override must win.
@@ -345,6 +357,10 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
 
         self.assertEqual(project.thumbnail_path, "")
         self.assertEqual(project.final_video_path, "/tmp/tasks/proj-1/final.mp4")
+        # No point extracting a second frame if the first one already failed
+        # (no combined video to extract from either).
+        self.started["thumbnail_b"].assert_not_called()
+        self.assertEqual(project.thumbnail_variant_b_path, "")
 
     def test_saves_project_snapshot_to_disk_with_full_content(self):
         project = default_pipeline.run_pipeline(
@@ -363,6 +379,7 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         self.assertEqual(saved["topic"], "The Fall of Rome")
         self.assertEqual(saved["final_video_path"], project.final_video_path)
         self.assertEqual(saved["thumbnail_path"], project.thumbnail_path)
+        self.assertEqual(saved["thumbnail_variant_b_path"], project.thumbnail_variant_b_path)
         # The exact data the user actually needs for retroactive debugging:
         # per-scene storyboard search_terms and the downloaded asset paths.
         self.assertEqual(

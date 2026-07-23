@@ -141,7 +141,7 @@ class TestGenerateThumbnail(unittest.TestCase):
         self.assertEqual(result, "")
 
     @patch("app.departments.growth.thumbnail_generator._overlay_title", return_value=True)
-    @patch("app.departments.growth.thumbnail_generator._extract_middle_frame", return_value=True)
+    @patch("app.departments.growth.thumbnail_generator._extract_frame_at_fraction", return_value=True)
     def test_returns_path_when_frame_and_overlay_succeed(self, mock_extract, mock_overlay):
         with patch("os.path.exists", return_value=True):
             result = thumbnail_generator.generate_thumbnail(
@@ -151,7 +151,7 @@ class TestGenerateThumbnail(unittest.TestCase):
         mock_extract.assert_called_once()
         mock_overlay.assert_called_once_with(result, "The Fall of Rome")
 
-    @patch("app.departments.growth.thumbnail_generator._extract_middle_frame", return_value=False)
+    @patch("app.departments.growth.thumbnail_generator._extract_frame_at_fraction", return_value=False)
     def test_returns_empty_string_when_frame_extraction_fails(self, mock_extract):
         with patch("os.path.exists", return_value=True):
             result = thumbnail_generator.generate_thumbnail(
@@ -160,7 +160,7 @@ class TestGenerateThumbnail(unittest.TestCase):
         self.assertEqual(result, "")
 
     @patch("app.departments.growth.thumbnail_generator._overlay_title", return_value=False)
-    @patch("app.departments.growth.thumbnail_generator._extract_middle_frame", return_value=True)
+    @patch("app.departments.growth.thumbnail_generator._extract_frame_at_fraction", return_value=True)
     def test_returns_empty_string_when_overlay_fails(self, mock_extract, mock_overlay):
         with patch("os.path.exists", return_value=True):
             result = thumbnail_generator.generate_thumbnail(
@@ -169,7 +169,7 @@ class TestGenerateThumbnail(unittest.TestCase):
         self.assertEqual(result, "")
 
     @patch("app.departments.growth.thumbnail_generator._overlay_title", return_value=True)
-    @patch("app.departments.growth.thumbnail_generator._extract_middle_frame", return_value=True)
+    @patch("app.departments.growth.thumbnail_generator._extract_frame_at_fraction", return_value=True)
     def test_handles_missing_seo(self, mock_extract, mock_overlay):
         with patch("os.path.exists", return_value=True):
             result = thumbnail_generator.generate_thumbnail("/tmp/combined.mp4", None, self.task_id)
@@ -177,24 +177,79 @@ class TestGenerateThumbnail(unittest.TestCase):
         mock_overlay.assert_called_once_with(result, "")
 
 
-class TestExtractMiddleFrame(unittest.TestCase):
+class TestExtractFrameAtFraction(unittest.TestCase):
     @patch("app.departments.growth.thumbnail_generator.VideoFileClip")
-    def test_saves_frame_at_half_duration(self, mock_video_file_clip):
+    def test_saves_frame_at_half_duration_by_default_fraction(self, mock_video_file_clip):
         mock_clip = MagicMock()
         mock_clip.duration = 20.0
         mock_video_file_clip.return_value = mock_clip
 
-        result = thumbnail_generator._extract_middle_frame("/tmp/combined.mp4", "/tmp/out.png")
+        result = thumbnail_generator._extract_frame_at_fraction(
+            "/tmp/combined.mp4", "/tmp/out.png", 0.5
+        )
 
         self.assertTrue(result)
         mock_clip.save_frame.assert_called_once_with("/tmp/out.png", t=10.0)
         mock_clip.close.assert_called_once()
 
     @patch("app.departments.growth.thumbnail_generator.VideoFileClip")
+    def test_saves_frame_at_a_quarter_duration(self, mock_video_file_clip):
+        mock_clip = MagicMock()
+        mock_clip.duration = 20.0
+        mock_video_file_clip.return_value = mock_clip
+
+        result = thumbnail_generator._extract_frame_at_fraction(
+            "/tmp/combined.mp4", "/tmp/out.png", 0.25
+        )
+
+        self.assertTrue(result)
+        mock_clip.save_frame.assert_called_once_with("/tmp/out.png", t=5.0)
+
+    @patch("app.departments.growth.thumbnail_generator.VideoFileClip")
     def test_returns_false_on_exception(self, mock_video_file_clip):
         mock_video_file_clip.side_effect = Exception("corrupt file")
-        result = thumbnail_generator._extract_middle_frame("/tmp/combined.mp4", "/tmp/out.png")
+        result = thumbnail_generator._extract_frame_at_fraction(
+            "/tmp/combined.mp4", "/tmp/out.png", 0.5
+        )
         self.assertFalse(result)
+
+
+class TestGenerateThumbnailVariantB(unittest.TestCase):
+    def setUp(self):
+        self.task_id = "variant-b-task"
+        self.addCleanup(
+            lambda: shutil.rmtree(utils.task_dir(self.task_id), ignore_errors=True)
+        )
+
+    @patch("app.departments.growth.thumbnail_generator._overlay_title", return_value=True)
+    @patch(
+        "app.departments.growth.thumbnail_generator._extract_frame_at_fraction",
+        return_value=True,
+    )
+    def test_uses_a_different_filename_and_earlier_fraction_than_variant_a(
+        self, mock_extract, mock_overlay
+    ):
+        with patch("os.path.exists", return_value=True):
+            result = thumbnail_generator.generate_thumbnail_variant_b(
+                "/tmp/combined.mp4", SeoMetadata(title="The Fall of Rome"), self.task_id
+            )
+
+        self.assertTrue(result.endswith("thumbnail_b.png"))
+        _video_path, _output_path, fraction = mock_extract.call_args[0]
+        self.assertEqual(fraction, thumbnail_generator._VARIANT_B_FRAME_FRACTION)
+        self.assertLess(thumbnail_generator._VARIANT_B_FRAME_FRACTION, 0.5)
+        mock_overlay.assert_called_once_with(result, "The Fall of Rome")
+
+    @patch(
+        "app.departments.growth.thumbnail_generator._extract_frame_at_fraction",
+        return_value=False,
+    )
+    def test_returns_empty_string_when_frame_extraction_fails(self, mock_extract):
+        with patch("os.path.exists", return_value=True):
+            result = thumbnail_generator.generate_thumbnail_variant_b(
+                "/tmp/combined.mp4", SeoMetadata(title="X"), self.task_id
+            )
+        self.assertEqual(result, "")
 
 
 if __name__ == "__main__":

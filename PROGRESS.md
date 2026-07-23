@@ -1498,6 +1498,43 @@ format eşleme mantığını da (sadece plumbing'i değil) sınıyor.
       646/4704 subtest → 647/4884 subtest). Çalışma süresi: ~1.5 saniye
       (tamamı mock, gerçek API maliyeti sıfır).
 
+### GÖREV 7 — A/B thumbnail varyantı + SEO chapters uyarısının görünürlüğü
+
+**A/B thumbnail:** `thumbnail_generator.py`'deki `_extract_middle_frame()`
+`_extract_frame_at_fraction(video_path, output_path, fraction)` olarak
+genelleştirildi (0.5 varsayılan, geriye dönük uyumlu). Yeni
+`generate_thumbnail_variant_b()` aynı fonksiyonu **%25'lik** bir zaman
+damgasıyla (`_VARIANT_B_FRAME_FRACTION = 0.25`) ve `thumbnail_b.png` dosya
+adıyla çağırıyor — aynı SEO başlığı, farklı kare. `DocumentaryProject`'e
+yeni `thumbnail_variant_b_path` alanı eklendi (mevcut `thumbnail_path` ile
+aynı best-effort desende: varyant A başarısız olursa B hiç denenmiyor).
+`default_pipeline.py` her iki thumbnail'i de üretiyor; webui artık ikisi de
+varsa yan yana iki sütunda gösteriyor (`Documentary Thumbnail Variant A/B`,
+9 dile eklendi), tek biri varsa eskisi gibi tek gösteriyor.
+
+- [x] 6 yeni/güncellenmiş test (`test_thumbnail_generator.py`,
+      `test_default_pipeline.py`): fraction parametresi doğru geçiyor mu,
+      farklı dosya adı, varyant A başarısızsa B hiç çağrılmıyor mu.
+- [x] **Gerçek doğrulama (yeni API maliyeti YOK — GÖREV 1 doğrulamasından
+      kalan gerçek `combined.mp4` kullanıldı):** "How Octopuses Change
+      Color" videosundan iki gerçek thumbnail üretildi — variant A ve B
+      görsel olarak **tamamen farklı kareler** gösterdi (biri bir el+kadeh,
+      diğeri bir iskele/su kenarı tabelası), ikisi de aynı başlığı taşıyor.
+      **Yan gözlem (kapsam dışı, sadece not):** bu iki kare de konuyla
+      ("ahtapot kamuflajı") pek ilgili değil — bu, storyboard/asset eşleşme
+      kalitesiyle ilgili, GÖREV 7'nin kapsamı olan "iki farklı kare
+      seçeneği sun" mekanizmasıyla ilgisi yok; ayrı bir gün ele alınabilir.
+
+**SEO chapters uyarısı:** Önceden `st.caption(...)` olarak sadece
+varsayılan kapalı `st.expander("Documentary SEO Extras")` içinde
+görünüyordu — kullanıcı genişletmeden asla görmüyordu. Artık expander'ın
+**dışında**, her zaman görünen bir `st.warning(...)` olarak gösteriliyor
+(chapters verisi varsa). Chapters'ın kendisi (asıl liste) hâlâ expander
+içinde — sadece "Shorts'ta çalışmaz" uyarısı öne çıkarıldı. Yeni i18n key
+gerekmedi (mevcut `Documentary SEO Chapters Help` metni yeniden kullanıldı).
+
+- [x] Tam suite: **650 passed, 11 skipped** (önceden 647).
+
 ## Karar bekleyen noktalar
 
 SSH push artık gerçekten çalışıyor (`git@github.com:...`, token'sız) —

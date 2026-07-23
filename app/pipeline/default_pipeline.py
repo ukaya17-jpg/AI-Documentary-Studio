@@ -261,6 +261,14 @@ def run_pipeline(
                 "documentary pipeline: thumbnail generation unavailable, continuing without one"
             )
 
+        # Second option for a quick A/B compare -- best-effort like the first,
+        # never blocks. Only attempted if the first succeeded (no combined
+        # video means no frame to extract from either).
+        if project.thumbnail_path:
+            project.thumbnail_variant_b_path = thumbnail_generator.generate_thumbnail_variant_b(
+                project.timeline.combined_video_path, project.seo, project.project_id
+            )
+
         logger.success(f"documentary pipeline done: {project.final_video_path}")
         return project
     finally:

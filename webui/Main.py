@@ -4150,8 +4150,22 @@ def _render_documentary_studio_section():
             st.video(final_video_path)
 
             thumbnail_path = (last_project or {}).get("thumbnail_path", "")
+            thumbnail_variant_b_path = (last_project or {}).get("thumbnail_variant_b_path", "")
             if thumbnail_path and os.path.exists(thumbnail_path):
-                st.image(thumbnail_path, caption=tr("Documentary Thumbnail"), width=240)
+                if thumbnail_variant_b_path and os.path.exists(thumbnail_variant_b_path):
+                    thumb_col_a, thumb_col_b = st.columns(2)
+                    with thumb_col_a:
+                        st.image(
+                            thumbnail_path, caption=tr("Documentary Thumbnail Variant A"), width=240
+                        )
+                    with thumb_col_b:
+                        st.image(
+                            thumbnail_variant_b_path,
+                            caption=tr("Documentary Thumbnail Variant B"),
+                            width=240,
+                        )
+                else:
+                    st.image(thumbnail_path, caption=tr("Documentary Thumbnail"), width=240)
 
             seo = (last_project or {}).get("seo") or {}
             if seo.get("title"):
@@ -4171,9 +4185,14 @@ def _render_documentary_studio_section():
                     disabled=True,
                 )
             if seo.get("chapters") or seo.get("end_screen_suggestion") or seo.get("pinned_comment"):
+                if seo.get("chapters"):
+                    # Shown outside the (collapsed-by-default) expander below --
+                    # a warning only the user sees after clicking to expand is
+                    # easy to miss and act on chapters that won't actually work
+                    # on the Shorts/TikTok/Reels output this pipeline produces.
+                    st.warning(tr("Documentary SEO Chapters Help"))
                 with st.expander(tr("Documentary SEO Extras")):
                     if seo.get("chapters"):
-                        st.caption(tr("Documentary SEO Chapters Help"))
                         st.text_area(
                             tr("Documentary SEO Chapters"),
                             value="\n".join(seo["chapters"]),

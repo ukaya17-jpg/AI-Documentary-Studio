@@ -50,6 +50,10 @@ class DocumentaryProject(BaseModel):
     # Best-effort; "" when generation failed or was skipped. See
     # app.departments.growth.thumbnail_generator.
     thumbnail_path: str = ""
+    # A second, distinct thumbnail choice (earlier frame, same title) for a
+    # quick A/B compare -- best-effort like thumbnail_path, "" if skipped/
+    # failed. See app.departments.growth.thumbnail_generator.generate_thumbnail_variant_b.
+    thumbnail_variant_b_path: str = ""
     # Never set automatically -- publishing is a public, hard-to-reverse
     # action, so it's only populated after an explicit user-triggered call to
     # app.departments.growth.publisher.publish_project (see webui's Publish
