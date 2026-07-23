@@ -1120,7 +1120,7 @@ düzeltmesi" bölümü) bilinçli olarak bu listeye alınmadı.
 | 4 | Altyazı font varsayılanı ikiliği | Orta (sessiz, taze kurulumda gerçek sapma) | Trivial-Küçük | **Yüksek** (efor/etki oranı en iyi) |
 | 5 | `shot_type`/`search_terms[1:]` tüketilmiyor | Orta (gereksiz LLM token maliyeti) | Küçük-Orta | Orta |
 | 6 | `TopicCategory` 4 kategori sınırı | Orta (yanlış ton/şablon riski) | Büyük (yeni tasarım kararı) | Düşük (bu oturumda) |
-| 7 | Research grounding sessiz düşüş | **Yüksek** (içerik güvenilirliği/yanlış güven) | Küçük-Orta (şeffaflık) / Büyük (gerçek SERP API) | **Yüksek** (şeffaflık kısmı) |
+| 7 | Research grounding sessiz düşüş | ~~Yüksek~~ **Orta** (Wikipedia fallback eklendi, GÖREV 4 — kapsam sorunu büyük ölçüde çözüldü, şeffaflık eksikliği duruyor) | Küçük-Orta (şeffaflık) | Orta (Yüksek'ten düşürüldü) |
 | 8 | Pexels tarihi görsel kapsam sınırı | Düşük (zaten kabul edilmiş) | Kodla çözülemez (veri sınırı) | En düşük |
 
 - [ ] **Üç ayrı "dil" kavramı, birbirini karşılamıyor:**
@@ -1214,26 +1214,20 @@ düzeltmesi" bölümü) bilinçli olarak bu listeye alınmadı.
   kategorinin şablonunu, tone eşlemesini, testleri ve gerçek doğrulamayı
   gerektirir. **Öncelik:** Düşük (bu oturumda) — Podcast/Kids/Corporate ile
   aynı kategoride, ayrı bir plan/onay turu gerektiriyor.
-- [ ] **Research grounding niş konularda sessizce LLM-only'e düşüyor:**
-  `app/services/web_search.py` (docstring'i zaten dürüstçe açıklıyor) sadece
-  DuckDuckGo Instant Answer API kullanıyor — genel bir web arama API'si
-  DEĞİL, sadece bilinen varlıklar için kısa bir "Abstract" döndürüyor, niş/
-  spesifik/bileşik sorgularda `search_web()` `None` dönüyor
-  (`web_search.py:46-48`). `research_planner.py:74-75` bu `None`'ı normal
-  kabul edip sessizce saf LLM bilgisine düşüyor (`build_research_prompt`'a
-  `web_search_result=None` geçiliyor) — **kullanıcıya veya `SeoMetadata`/
-  `ResearchPlan`'a hiçbir "bu belgesel doğrulanmış bir kaynak olmadan
-  üretildi" sinyali verilmiyor.** Bir "belgesel" aracı için bu, diğer
-  maddelerden farklı bir risk sınıfı: kod hatası değil, **içerik
-  güvenilirliği** riski.
-  **Risk/Etki:** **Yüksek** — halüsinasyon riski taşıyan içerik, doğrulanmış
-  gibi sunulabilir; kullanıcı hangi belgesellerin gerçekten kaynak-doğrulamalı
-  olduğunu bilemiyor. **Karmaşıklık:** Küçük-Orta sadece şeffaflık için
-  (`ResearchPlan`'a bir `grounded: bool` alanı + webui'de görünür bir uyarı);
-  gerçek bir SERP API'sine (Google/Bing/Serper/Tavily) geçmek ise Büyük (yeni
-  ücretli entegrasyon). **Öncelik:** **Yüksek** şeffaflık kısmı için (küçük
-  efor, gerçek güven riskini kapatıyor); SERP API entegrasyonu ayrı, büyük
-  bir karar olarak kalmalı.
+- [x] ~~**Research grounding niş konularda sessizce LLM-only'e düşüyor**~~
+  **Kısmen çözüldü (GÖREV 4, gece oturumu):** `web_search.search_web()`
+  artık DuckDuckGo boş dönerse Wikipedia REST API'sine düşüyor (bkz. "GÖREV
+  4 — Knowledge Engine güçlendirme"), kapsam ciddi genişledi (Wikipedia'da
+  makalesi olan hemen her konu). **Ama madde hâlâ tamamen kapanmadı:**
+  `research_planner.py` hâlâ ikisi de (DuckDuckGo + Wikipedia) `None`
+  dönerse sessizce saf LLM bilgisine düşüyor — kullanıcıya/`ResearchPlan`'a
+  hâlâ hiçbir "bu belgesel doğrulanmış kaynak olmadan üretildi" sinyali
+  verilmiyor. **Risk/Etki:** Artık Orta (önceden Yüksek) — kapsam
+  genişlemesi halüsinasyon riskini azalttı ama şeffaflık eksikliği duruyor.
+  **Karmaşıklık:** Küçük-Orta (`ResearchPlan`'a `grounded: bool` alanı +
+  webui'de görünür uyarı) — bilinçli olarak bu oturumda yapılmadı, ayrı bir
+  onay gerektirir. **Öncelik:** Orta (Yüksek'ten düşürüldü, kapsam sorunu
+  büyük ölçüde çözüldüğü için).
 - [ ] **Pexels'in çok spesifik tarihi görsel türlerinde (ör. dönem
   haritaları) sınırlı kapsamı:** Storyboard search terms artık topic+
   key_facts ile grounded (jenerik kelime kopyalama sorunu çözüldü), ama
@@ -1311,6 +1305,56 @@ ile ilgili hiçbir koda dokunulmadı/dokunulmayacak.
       değiştirilmedi** — kullanıcının kendi Upload-Post hesap tercihi,
       webui'deki multiselect zaten config varsayılanından bağımsız olarak
       Instagram'ı seçilebilir kılıyor.
+
+### GÖREV 4 — Knowledge Engine güçlendirme: Wikipedia REST API fallback
+
+**Araştırma:** DuckDuckGo Instant Answer niş/spesifik konularda sıklıkla
+`None` dönüyor (bilinen bir sınır, `PROGRESS.md`'nin "Bilinen teknik
+sınırlar" bölümünde zaten madde #7 olarak kayıtlı). Wikipedia'nın kendi REST
+API'si (`/w/rest.php/v1/search/page` + `/api/rest_v1/page/summary/{title}`)
+ücretsiz, key gerektirmiyor, ve kapsamı DuckDuckGo'dan çok daha geniş
+(Wikipedia'da makalesi olan hemen her konu) — **araştırma sonucu: eklemeye
+değer, eklendi.**
+
+- [x] `app/services/web_search.py`: mevcut DuckDuckGo mantığı `_search_duckduckgo()`
+      adıyla ayrı bir fonksiyona çıkarıldı, yeni `_search_wikipedia(query,
+      language)` eklendi (önce arama endpoint'i ile en iyi eşleşen sayfa
+      başlığını buluyor, sonra summary endpoint'inden `extract` metnini
+      çekiyor). `search_web(query, language="")` artık önce DuckDuckGo'yu
+      deniyor, o `None` dönerse Wikipedia'ya düşüyor — **aynı "bulunamazsa
+      sessizce `None`" deseni korundu**, `research_planner.py` tarafında
+      hiçbir ek değişiklik gerekmedi (zaten `None`'ı normal kabul ediyordu).
+- [x] `research_planner.generate_research_plan()` artık `language`'i
+      `search_web()`'e geçiriyor (`web_search.search_web(topic,
+      language=language)`) — Wikipedia'nın doğru dil alt alanını (tr/en)
+      seçebilmesi için gerekliydi, önceden `language` hiç iletilmiyordu.
+      `Language` enum'ının sadece `auto`→(`tr`|`en`) ürettiği doğrulandı
+      (`intent_analyzer.detect_language()`), bu yüzden Wikipedia tarafı
+      sadece tr/en'i destekliyor, tanınmayan her şey `en`'e düşüyor.
+- [x] 8 yeni test: `test_web_search.py`'de `TestWikipediaFallback` (7 test:
+      DuckDuckGo boşken Wikipedia'ya düşme, DuckDuckGo başarılıyken
+      Wikipedia'nın hiç çağrılmaması, sayfa bulunamama, boş extract, tr/en
+      alt alan seçimi, ağ hatası) + `test_research_planner.py`'de
+      `test_passes_language_through_to_search_web`. Tam suite: **642
+      passed, 11 skipped** (önceden 634).
+- [x] **Gerçek doğrulama (ücretsiz, key'siz API'ler — LLM/ödeme maliyeti
+      yok):** "Nusret Ottoman minelayer ship" (bu projenin kendi storyboard
+      örneklerinde geçen bir konu) ile test edildi. DuckDuckGo Instant
+      Answer beklendiği gibi boş döndü. **İlk denemede Wikipedia isteği 403
+      Forbidden döndü** — gerçek bir bulgu: Wikimedia'nın API politikası
+      açıklayıcı bir `User-Agent` header'ı olmayan istekleri reddediyor
+      (`requests`'in varsayılan `python-requests/x.y` User-Agent'ı
+      yetmiyor). Mock'lu testler bunu hiç yakalayamazdı çünkü gerçek HTTP
+      davranışını simüle etmiyorlardı. Düzeltme: `_WIKIPEDIA_HEADERS`
+      sabiti eklendi, her iki Wikipedia isteğine de geçiliyor. Düzeltme
+      sonrası aynı sorgu gerçek bir özet döndürdü: "Ottoman minelayer Nusret
+      ... served as a minelayer during the Gallipoli Campaign..."
+      (`https://en.wikipedia.org/wiki/Ottoman_minelayer_Nusret`). Türkçe
+      yönlendirme de ayrıca doğrulandı: "Nusret mayın gemisi" (`language="tr"`)
+      → `tr.wikipedia.org/wiki/Nusret`'ten gerçek bir Türkçe özet döndü.
+      Tam suite düzeltme sonrası da **642 passed, 11 skipped** (header
+      eklemek test edilen davranışı değiştirmedi, sadece gerçek isteği
+      düzeltti).
 
 ## Karar bekleyen noktalar
 

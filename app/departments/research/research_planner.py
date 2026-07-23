@@ -71,7 +71,7 @@ def _parse_questions(raw: list) -> list[ResearchQuestion]:
 def generate_research_plan(
     topic: str, tone: Tone | None = None, language: str = ""
 ) -> ResearchPlan:
-    search_result = web_search.search_web(topic)
+    search_result = web_search.search_web(topic, language=language)
     prompt = build_research_prompt(topic, tone, language, web_search_result=search_result)
     data = generate_json(prompt)
     return ResearchPlan(

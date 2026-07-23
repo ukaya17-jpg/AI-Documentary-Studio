@@ -142,7 +142,7 @@ class TestGenerateResearchPlan(unittest.TestCase):
 
         plan = research_planner.generate_research_plan("The Fall of Rome", Tone.credibility)
 
-        mock_search_web.assert_called_once_with("The Fall of Rome")
+        mock_search_web.assert_called_once_with("The Fall of Rome", language="")
         self.assertEqual(
             plan.source_snippet,
             "The Roman Empire was the post-Republican period of ancient Rome.",
@@ -151,6 +151,17 @@ class TestGenerateResearchPlan(unittest.TestCase):
         # The prompt actually sent to the LLM must carry the grounding text.
         prompt_arg = mock_generate_json.call_args[0][0]
         self.assertIn("Verified web source", prompt_arg)
+
+    @patch("app.departments.research.research_planner.web_search.search_web", return_value=None)
+    @patch("app.departments.research.research_planner.generate_json")
+    def test_passes_language_through_to_search_web(self, mock_generate_json, mock_search_web):
+        # search_web needs the language to pick a Wikipedia subdomain for its
+        # fallback -- this must actually reach it, not just default to "".
+        mock_generate_json.return_value = {"key_questions": [], "key_facts": [], "angles": []}
+
+        research_planner.generate_research_plan("Çanakkale Savaşı", language="tr")
+
+        mock_search_web.assert_called_once_with("Çanakkale Savaşı", language="tr")
 
 
 if __name__ == "__main__":
