@@ -745,6 +745,59 @@ class TestVoiceService(unittest.TestCase):
             self.assertIn("Gemini subtitle generation should work now", subtitle_content)
             self.assertIn("Testing multiple lines", subtitle_content)
 
+    def test_character_alignment_anchors_sentences_to_real_timestamps(self):
+        text = "First sentence. Second sentence runs longer."
+        characters = list(text)
+        # Give every character a distinct, monotonically increasing timestamp
+        # so mis-indexing would show up as a wrong (start, end) pair.
+        start_times = [round(i * 0.05, 2) for i in range(len(characters))]
+        end_times = [round((i + 1) * 0.05, 2) for i in range(len(characters))]
+
+        sub_maker = vs.populate_legacy_submaker_with_character_alignment(
+            vs.ensure_legacy_submaker_fields(vs.SubMaker()),
+            text,
+            characters,
+            start_times,
+            end_times,
+        )
+
+        self.assertIsNotNone(sub_maker)
+        self.assertEqual(sub_maker.subs, ["First sentence", "Second sentence runs longer"])
+        first_start_idx = text.index("First sentence")
+        second_start_idx = text.index("Second sentence")
+        self.assertEqual(
+            sub_maker.offset[0],
+            (
+                int(start_times[first_start_idx] * 10000000),
+                int(end_times[first_start_idx + len("First sentence") - 1] * 10000000),
+            ),
+        )
+        self.assertEqual(
+            sub_maker.offset[1][0], int(start_times[second_start_idx] * 10000000)
+        )
+
+    def test_character_alignment_returns_none_when_text_does_not_match(self):
+        sub_maker = vs.populate_legacy_submaker_with_character_alignment(
+            vs.ensure_legacy_submaker_fields(vs.SubMaker()),
+            "Real script text.",
+            list("Completely different text."),
+            [0.0] * 26,
+            [0.1] * 26,
+        )
+        self.assertIsNone(sub_maker)
+
+    def test_character_alignment_returns_none_for_empty_inputs(self):
+        self.assertIsNone(
+            vs.populate_legacy_submaker_with_character_alignment(
+                vs.ensure_legacy_submaker_fields(vs.SubMaker()), "", [], [], []
+            )
+        )
+        self.assertIsNone(
+            vs.populate_legacy_submaker_with_character_alignment(
+                vs.ensure_legacy_submaker_fields(vs.SubMaker()), "text", [], [], []
+            )
+        )
+
     def test_script_split_keeps_thousand_separator_comma(self):
         """
         Edge TTS 会把 "1,000 years" 作为连续文本返回。脚本断句时不能把
@@ -1002,10 +1055,62 @@ class TestElevenLabsVoice(unittest.TestCase):
     @patch("app.services.voice.requests.post")
     @patch("app.services.voice.AudioFileClip")
     @patch("app.services.voice.config")
-    def test_elevenlabs_tts_success(self, mock_config, mock_clip_cls, mock_post):
+    def test_elevenlabs_tts_success_uses_real_character_alignment(
+        self, mock_config, mock_clip_cls, mock_post
+    ):
+        # GÖREV 1b: elevenlabs_tts must call /with-timestamps and build
+        # subtitle cues from the real per-character alignment it returns,
+        # not a guessed character-count-proportional duration.
+        mock_config.elevenlabs.get.return_value = "fake-api-key"
+        text = "Hello world"
+        characters = list(text)
+        step = 0.2
+        start_times = [round(i * step, 2) for i in range(len(characters))]
+        end_times = [round((i + 1) * step, 2) for i in range(len(characters))]
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.json.return_value = {
+            "audio_base64": base64.b64encode(b"fake-mp3-bytes").decode("ascii"),
+            "alignment": {
+                "characters": characters,
+                "character_start_times_seconds": start_times,
+                "character_end_times_seconds": end_times,
+            },
+        }
+        mock_clip_cls.return_value.duration = 2.2
+        mock_clip_cls.return_value.close = lambda: None
+
+        with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
+            out_path = f.name
+
+        try:
+            result = vs.elevenlabs_tts(text, "abc123", out_path)
+            self.assertIsNotNone(result)
+            self.assertEqual(result.subs, ["Hello world"])
+            # First char 'H' starts at 0.0s, last char 'd' ends at 2.2s.
+            self.assertEqual(result.offset, [(0, int(2.2 * 10000000))])
+            call_url = mock_post.call_args[0][0]
+            self.assertTrue(call_url.endswith("/with-timestamps"))
+            with open(out_path, "rb") as f:
+                self.assertEqual(f.read(), b"fake-mp3-bytes")
+        finally:
+            if os.path.exists(out_path):
+                os.remove(out_path)
+
+    @patch("app.services.voice.requests.post")
+    @patch("app.services.voice.AudioFileClip")
+    @patch("app.services.voice.config")
+    def test_elevenlabs_tts_falls_back_to_proportional_timing_without_alignment(
+        self, mock_config, mock_clip_cls, mock_post
+    ):
+        # If the response has no usable alignment (older API behavior, or a
+        # mismatched text), this must still produce subtitles -- just with
+        # the older proportional-duration method -- rather than failing.
         mock_config.elevenlabs.get.return_value = "fake-api-key"
         mock_post.return_value.status_code = 200
-        mock_post.return_value.content = b"fake-mp3-bytes"
+        mock_post.return_value.json.return_value = {
+            "audio_base64": base64.b64encode(b"fake-mp3-bytes").decode("ascii"),
+            "alignment": {},
+        }
         mock_clip_cls.return_value.duration = 3.0
         mock_clip_cls.return_value.close = lambda: None
 
@@ -1017,6 +1122,7 @@ class TestElevenLabsVoice(unittest.TestCase):
             self.assertIsNotNone(result)
             self.assertTrue(hasattr(result, "subs"))
             self.assertTrue(hasattr(result, "offset"))
+            self.assertTrue(len(result.subs) > 0)
         finally:
             if os.path.exists(out_path):
                 os.remove(out_path)

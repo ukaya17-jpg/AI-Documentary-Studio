@@ -566,6 +566,81 @@ def populate_legacy_submaker_with_full_text(
     return sub_maker
 
 
+def populate_legacy_submaker_with_character_alignment(
+    sub_maker: SubMaker,
+    text: str,
+    characters: list,
+    character_start_times_seconds: list,
+    character_end_times_seconds: list,
+) -> Union[SubMaker, None]:
+    """Build subs/offset cues from real per-character TTS alignment (e.g.
+    ElevenLabs' `with-timestamps` endpoint) instead of guessing sentence
+    durations from character-count proportions.
+
+    populate_legacy_submaker_with_full_text() assumes a constant character-
+    per-second speaking rate across the whole narration, which ignores real
+    pauses at sentence/clause boundaries -- subtitles built that way drift
+    out of sync with the actual spoken audio (confirmed during a real
+    production run, see PROGRESS.md GÖREV 1b). This function anchors every
+    sentence to the TTS engine's own reported timing instead.
+
+    Returns None (not a partially-correct SubMaker) if `characters` joined
+    together doesn't match `text` character-for-character -- callers must
+    fall back to populate_legacy_submaker_with_full_text() in that case
+    rather than risk silently misaligned subtitles.
+    """
+    normalized_text = (text or "").strip()
+    if not normalized_text or not characters:
+        return None
+
+    aligned_text = "".join(characters)
+    if aligned_text != normalized_text:
+        logger.warning(
+            "elevenlabs alignment text does not match the original script "
+            "text exactly -- falling back to proportional subtitle timing."
+        )
+        return None
+
+    sub_maker = ensure_legacy_submaker_fields(sub_maker)
+    sub_maker.subs = []
+    sub_maker.offset = []
+
+    sentences = utils.split_string_by_punctuations(normalized_text)
+    if not sentences:
+        sentences = [normalized_text]
+
+    cursor = 0
+    last_char_index = len(characters) - 1
+    for sentence in sentences:
+        cleaned_sentence = sentence.strip()
+        if not cleaned_sentence:
+            continue
+
+        start_idx = aligned_text.find(cleaned_sentence, cursor)
+        if start_idx == -1:
+            # Punctuation-splitting can produce a sentence that isn't a
+            # contiguous substring starting at `cursor` (e.g. stripped
+            # whitespace shifted things) -- search from the start as a
+            # last resort rather than dropping the cue entirely.
+            start_idx = aligned_text.find(cleaned_sentence)
+            if start_idx == -1:
+                continue
+        end_idx = min(start_idx + len(cleaned_sentence) - 1, last_char_index)
+        cursor = start_idx + len(cleaned_sentence)
+
+        start_seconds = character_start_times_seconds[start_idx]
+        end_seconds = character_end_times_seconds[end_idx]
+
+        sub_maker.subs.append(cleaned_sentence)
+        sub_maker.offset.append(
+            (int(start_seconds * 10000000), int(end_seconds * 10000000))
+        )
+
+    if not sub_maker.subs:
+        return None
+    return sub_maker
+
+
 def create_edge_tts_communicate(
     text: str, voice_name: str, rate_str: str
 ) -> edge_tts.Communicate:
@@ -1296,7 +1371,17 @@ def elevenlabs_tts(
     if not model_id:
         model_id = config.elevenlabs.get("model_id", "eleven_multilingual_v2")
 
-    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+    # OTONOM KARAR (gece oturumu, GÖREV 1b): the plain /v1/text-to-speech
+    # endpoint returns only raw audio, forcing subtitle timing to be guessed
+    # from character-count proportions (populate_legacy_submaker_with_full_text) --
+    # that guess ignores real pauses at sentence boundaries and was confirmed
+    # (via a real production run) to drift out of sync with the actual
+    # narration. The /with-timestamps endpoint returns the same audio plus
+    # real per-character alignment, so subtitle cues can be anchored to
+    # actual TTS timing instead of an estimate. Falls back to the old
+    # proportional method if the alignment text doesn't match exactly, so
+    # this is a strict improvement, never a regression risk.
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}/with-timestamps"
     headers = {
         "xi-api-key": api_key,
         "Content-Type": "application/json",
@@ -1344,20 +1429,42 @@ def elevenlabs_tts(
                 )
                 continue
 
+            response_data = response.json()
+            audio_b64 = response_data.get("audio_base64", "")
+            if not audio_b64:
+                logger.error("elevenlabs tts response had no audio_base64, retrying")
+                continue
+
             with open(voice_file, "wb") as f:
-                f.write(response.content)
+                f.write(base64.b64decode(audio_b64))
 
             audio_clip = AudioFileClip(voice_file)
             audio_duration = audio_clip.duration
             audio_clip.close()
 
-            sub_maker = ensure_legacy_submaker_fields(SubMaker())
             logger.success(f"elevenlabs tts succeeded: {voice_file}")
-            return populate_legacy_submaker_with_full_text(
-                sub_maker=sub_maker,
-                text=text,
-                audio_duration_seconds=audio_duration,
-            )
+
+            alignment = response_data.get("alignment") or {}
+            sub_maker = None
+            if alignment.get("characters"):
+                sub_maker = populate_legacy_submaker_with_character_alignment(
+                    sub_maker=ensure_legacy_submaker_fields(SubMaker()),
+                    text=text,
+                    characters=alignment.get("characters", []),
+                    character_start_times_seconds=alignment.get(
+                        "character_start_times_seconds", []
+                    ),
+                    character_end_times_seconds=alignment.get(
+                        "character_end_times_seconds", []
+                    ),
+                )
+            if sub_maker is None:
+                sub_maker = populate_legacy_submaker_with_full_text(
+                    sub_maker=ensure_legacy_submaker_fields(SubMaker()),
+                    text=text,
+                    audio_duration_seconds=audio_duration,
+                )
+            return sub_maker
         except Exception as e:
             logger.error(f"elevenlabs tts failed: {str(e)}")
 

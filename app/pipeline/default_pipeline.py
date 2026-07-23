@@ -35,6 +35,20 @@ from app.utils import utils
 
 TOTAL_STAGES = 12
 
+# OTONOM KARAR (gece oturumu, GÖREV 1a): asset download (stage 8) runs before
+# TTS (stage 9), so it has to estimate how much footage it'll need from
+# scene_plan.total_duration (the *target* scene durations) rather than the
+# real rendered narration length. Measured on a real run: script_generator's
+# target was 48 words (4 scenes x 12 words @ _WORDS_PER_SECOND=2.3) but the
+# LLM produced 78 (+62%), and the real TTS audio came out to 40.39s against a
+# 20.0s scene_plan.total_duration estimate (2.02x). When downloaded footage
+# falls short of the real audio length, video.combine_videos() pads the gap
+# by cycling through already-used clips -- this is the repeated-frame bug.
+# Conservative, reversible fix: over-fetch footage against a safety-padded
+# duration estimate instead of the raw (frequently-undershot) scene total.
+# Worst case if this is too generous is a few extra free Pexels downloads.
+_ASSET_DOWNLOAD_DURATION_SAFETY_MULTIPLIER = 2.0
+
 
 def _save_project_snapshot(project: DocumentaryProject) -> None:
     """Persist the current project state to storage/tasks/<id>/project.json.
@@ -155,11 +169,17 @@ def run_pipeline(
         aspect_enum = VideoAspect(video_aspect)
         max_clip_duration = int(PACING_SCENE_SPEC[resolved_pacing]["scene_duration"])
         # TTS hasn't run yet at this point, so the scene duration budget is used as
-        # the audio-duration estimate for how much footage to fetch.
+        # the audio-duration estimate for how much footage to fetch -- padded by
+        # _ASSET_DOWNLOAD_DURATION_SAFETY_MULTIPLIER since real narration audio
+        # commonly runs much longer than this estimate (see the constant's
+        # docstring above for the measured numbers).
+        estimated_footage_duration = (
+            project.scene_plan.total_duration * _ASSET_DOWNLOAD_DURATION_SAFETY_MULTIPLIER
+        )
         project.asset_plan = asset_downloader.download_assets(
             project.asset_plan,
             task_id=project.project_id,
-            audio_duration=project.scene_plan.total_duration,
+            audio_duration=estimated_footage_duration,
             video_source=video_source,
             video_aspect=aspect_enum,
             video_concat_mode=VideoConcatMode.random,

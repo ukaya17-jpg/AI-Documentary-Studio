@@ -236,11 +236,17 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         asset_gen_args, _ = self.started["asset_gen"].call_args
         self.assertIs(asset_gen_args[0], self.storyboard)
 
-        # asset_downloader receives the asset plan and the scene budget as the
-        # audio-duration estimate (TTS hasn't run yet at that point).
+        # asset_downloader receives the asset plan and a safety-padded scene
+        # budget as the audio-duration estimate (TTS hasn't run yet at that
+        # point, and real narration audio commonly runs well past the raw
+        # scene-duration total -- see _ASSET_DOWNLOAD_DURATION_SAFETY_MULTIPLIER).
         _, asset_dl_kwargs = self.started["asset_dl"].call_args
         self.assertIs(asset_dl_kwargs.get("asset_plan") or self.started["asset_dl"].call_args[0][0], self.asset_plan)
-        self.assertEqual(asset_dl_kwargs["audio_duration"], self.scene_plan.total_duration)
+        self.assertEqual(
+            asset_dl_kwargs["audio_duration"],
+            self.scene_plan.total_duration
+            * default_pipeline._ASSET_DOWNLOAD_DURATION_SAFETY_MULTIPLIER,
+        )
         self.assertEqual(asset_dl_kwargs["task_id"], "proj-1")
 
         # timeline_builder receives the downloaded asset plan and the narration track.

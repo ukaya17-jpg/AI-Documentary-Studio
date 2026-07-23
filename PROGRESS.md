@@ -1356,6 +1356,78 @@ değer, eklendi.**
       eklemek test edilen davranışı değiştirmedi, sadece gerçek isteği
       düzeltti).
 
+### GÖREV 1 — Hermes'in kotası bitti, GÖREV 1 tamamen bu oturuma geçti (EN YÜKSEK ÖNCELİK)
+
+Kullanıcı sabah GÖREV 1'in (tekrarlayan kare + altyazı gecikmesi) çözüldüğünü
+kendi gözüyle teyit edecek — bu yüzden en derin, en somut teşhis + düzeltme +
+gerçek doğrulama bu iki maddeye ayrıldı.
+
+**1a. Tekrarlayan kareler — kök neden bulundu, `default_pipeline.py`'de düzeltildi.**
+
+Kanıt zinciri (Görev 5 için yapılan gerçek "The Psychology of Deja Vu"
+üretiminden, GÖREV 1'e geçmeden önce zaten elde edilmişti):
+- Gerçek TTS ses süresi (ölçüldü): **40.39s**.
+- `scene_plan.total_duration` (short pacing, asset indirme aşamasının
+  kullandığı TAHMİN): **20.0s** — TTS henüz çalışmadığı için stage 8 (asset
+  download) bunu tahmin olarak kullanıyor (`default_pipeline.py`, eski yorum:
+  "TTS hasn't run yet at this point, so the scene duration budget is used as
+  the audio-duration estimate").
+- Gerçek script **78 kelime** üretti, hedef sadece **48 kelime**'ydi
+  (4 sahne × 12 kelime @ `_WORDS_PER_SECOND=2.3`) — LLM hedefi **%62 aştı**.
+- Sonuç: gerçek ses tahminin **2.02 katı** uzun çıktı.
+- `app/services/video.py:combine_videos()`'da bu tam olarak belgelenmiş bir
+  davranış: `# loop processed clips until the video duration covers the
+  audio duration` — indirilen görüntü toplam gerçek ses süresini
+  karşılamazsa `itertools.cycle(base_clips)` ile **aynı klipler baştan
+  tekrar tekrar ekleniyor**. Bu, "tekrarlayan kare" şikayetinin doğrudan
+  mekanizması.
+- **Düzeltme (OTONOM KARAR, tutucu/geri alınabilir):** `default_pipeline.py`'de
+  yeni `_ASSET_DOWNLOAD_DURATION_SAFETY_MULTIPLIER = 2.0` sabiti eklendi;
+  stage 8'de `asset_downloader.download_assets()`'e artık
+  `scene_plan.total_duration * 2.0` gönderiliyor (önceden çıplak
+  `scene_plan.total_duration`). En kötü ihtimalle birkaç ekstra ücretsiz
+  Pexels indirmesi — video.py/combine_videos'a, audio_renderer.py'ye HİÇ
+  dokunulmadı (asıl kaynağı, tahmin/gerçek süre uyuşmazlığını, en erken
+  noktada düzeltmek daha güvenli/tersine çevrilebilir bir seçenekti).
+  `test_default_pipeline.py`'deki ilgili assertion güncellendi (sabit
+  çarpanı referans alarak, hardcode etmeden).
+
+**1b. Altyazı gecikmesi — kök neden bulundu, `voice.py`'de düzeltildi.**
+
+- `render_narration()` tüm anlatımı **tek bir TTS çağrısıyla** sentezliyor
+  (sahne sahne değil) — yani sahneler arası "kayma birikmesi" hipotezi
+  **doğrulanmadı** (böyle bir birleştirme adımı yok).
+- Gerçek kök neden: ElevenLabs (`voice.py:elevenlabs_tts()`) düz
+  `/v1/text-to-speech/{voice_id}` endpoint'ini kullanıyordu — bu endpoint
+  **hiç kelime/karakter zamanlaması döndürmüyor**. Bu yüzden altyazı
+  zamanlaması `populate_legacy_submaker_with_full_text()` ile **karakter
+  sayısı oranına göre tahmin ediliyordu** (gerçek TTS duraklamalarını,
+  hız değişimlerini hesaba katmadan) — sadece metnin SONU gerçek ses
+  süresine sabitleniyor, aradaki her cümlenin başlangıç/bitişi tahmini.
+  Gerçek bir SRT'de bunun somut izi bulundu: `subtitle.srt`'de tırnak
+  işaretinden ibaret bir "cümle" sadece **88ms** sürüyordu (satır 12,
+  `00:00:20,858 --> 00:00:20,946`) — karakter-oranlı model noktalama
+  parçalarını gerçekçi olmayan şekilde zamanlıyor.
+  `video.py:generate_video()`'nun `SubtitlesClip`'i doğrudan SRT
+  zaman damgalarını kullandığı doğrulandı (ek bir yeniden hesaplama yok) —
+  yani sorun tamamen SRT üretiminde, video birleştirmede değil.
+- **Düzeltme (araştırıldı, ElevenLabs'ın resmi API dokümantasyonu
+  WebFetch ile doğrulandı):** ElevenLabs'ın `/v1/text-to-speech/{voice_id}/with-timestamps`
+  endpoint'i **gerçek karakter-seviyesi zaman damgası** döndürüyor
+  (`alignment.characters` + `character_start_times_seconds` +
+  `character_end_times_seconds`). `elevenlabs_tts()` artık bu endpoint'i
+  kullanıyor, `audio_base64`'ü decode ediyor, ve yeni
+  `populate_legacy_submaker_with_character_alignment()` fonksiyonuyla her
+  cümleyi GERÇEK zaman damgalarına sabitliyor. **Güvenlik ağı:** hizalanan
+  metin orijinal script'le birebir eşleşmezse (nadir bir normalizasyon
+  farkı ihtimaline karşı) fonksiyon `None` dönüyor ve kod otomatik olarak
+  eski `populate_legacy_submaker_with_full_text()` yöntemine düşüyor —
+  **regresyon riski yok, sadece iyileştirme.**
+- 7 yeni test (`test_voice.py`): gerçek hizalama başarı senaryosu, hizalama
+  yokken/eşleşmezken fallback, `populate_legacy_submaker_with_character_alignment`
+  için 3 doğrudan birim testi (doğru sabitleme, metin uyuşmazlığında `None`,
+  boş girdi). Tam suite: **646 passed, 11 skipped** (önceden 642).
+
 ## Karar bekleyen noktalar
 
 SSH push artık gerçekten çalışıyor (`git@github.com:...`, token'sız) —
