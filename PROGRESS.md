@@ -1584,6 +1584,59 @@ gerekmedi (mevcut `Documentary SEO Chapters Help` metni yeniden kullanıldı).
 - [x] Tam suite (8a+8b+8d sonrası): **652 passed, 11 skipped** (8c hiç kod
       içermediği için sayıyı etkilemedi).
 
+## GECE OTURUMU SONU — özet (sabah okumanız için)
+
+**Tüm görevler tamamlandı, GÖREV 1 dahil.** Sırayla: 1 → 3 → 4 → 5 → 6 → 7 → 8
+(8c hariç, bilinçli olarak ertelendi, aşağıda ve "Bilinen teknik sınırlar"
+listesinde gerekçesiyle not düşüldü).
+
+**GÖREV 1 (en kritik, sizin sabah gözünüzle doğrulayacağınız):**
+- Tekrarlayan kareler → kök neden: asset indirme, TTS'ten önce çalıştığı
+  için gerçek ses süresini değil tahmini süreyi (genelde ~2x daha kısa)
+  kullanıyordu. Düzeltme: `_ASSET_DOWNLOAD_DURATION_SAFETY_MULTIPLIER = 2.0`
+  (`default_pipeline.py`). Gerçek üretimde doğrulandı: 5 farklı kaynaktan
+  hiç tekrarsız, "looping clips" uyarısı hiç tetiklenmedi.
+- Altyazı gecikmesi → kök neden: ElevenLabs'ın zaman damgası döndürmeyen
+  endpoint'i kullanılıyordu, altyazılar karakter-sayısı oranına göre tahmin
+  ediliyordu. Düzeltme: `/with-timestamps` endpoint'ine geçildi, gerçek
+  karakter-seviyesi hizalama kullanılıyor artık. Gerçek üretimde doğrulandı:
+  cümleler arası gerçek duraklamalar var, yapay mikro-parçalar yok.
+- **Önemli operasyonel adım:** `ai-documentary-studio-webui.service`
+  (systemd) gece boyunca yapılan TÜM kod değişikliklerinden ÖNCE başlatılmış
+  haldeydi (20:55'ten beri çalışıyordu) — Python süreçleri disk üzerindeki
+  değişiklikleri otomatik yüklemez. Oturum sonunda **servis yeniden
+  başlatıldı** (`systemctl restart`), health check `ok` döndü — 8501'de
+  şu an gece boyunca yazılan tüm kod çalışıyor, eski/stale kod değil.
+
+**GÖREV 3, 4, 6, 7, 8a/8b/8d:** Tamamlandı, her biri ayrı commit + push,
+yukarıda ayrıntılı yazılı. **GÖREV 5:** İki bağımsız gerçek üretimle
+kontrol edildi, yeni bir sistemik sorun bulunmadı (sadece short pacing'in
+bilinen içerik-yoğunluğu ödünleşimi), kod değişikliği yapılmadı. **GÖREV
+8c:** Bilinçli olarak ertelendi (paylaşılan legacy koda regresyon riski).
+
+**Hermes/çakışma durumu:** Gece boyunca birkaç kez kontrol edildi — Hermes
+(tmux `work` oturumu) aylık Codex kotası dolduğu için tüm gece rate-limit
+döngüsünde takılı kaldı, GÖREV 1'e **hiç dokunmadı** (dosya sisteminde
+hiçbir uncommitted değişiklik bırakmadı). Bu yüzden GÖREV 1'i ben üstlendim
+— hiçbir çakışma/duplicate iş yaşanmadı. `video.py`/`audio_renderer.py`'ye
+GÖREV 1 kapsamında dokunuldu (kullanıcının açık izniyle, "artık tamamen
+sana ait" onayı üzerine).
+
+**Gerçek API bütçesi:** İzin verilen 10 tam üretimden **2'si** kullanıldı
+(Deja Vu — GÖREV 5, Octopus — GÖREV 1 doğrulama + GÖREV 7 için yeniden
+kullanıldı, yeni maliyet yok). Wikipedia/DuckDuckGo çağrıları ücretsiz/
+key'siz olduğu için bu bütçeye dahil edilmedi.
+
+**Test durumu:** Tam suite gece başında 631 passed idi, şu an **652 passed,
+11 skipped** — kırmızı test hiç yaşanmadı, hiçbir noktada durmak gerekmedi.
+
+**Git durumu:** `overnight/claude-tasks-3to8` dalından `origin/main`'e her
+görev sonrası ayrı ayrı push edildi (SSH ile, token'sız — gerçekten
+çalıştığı doğrulandı). Orijinal `/root/MoneyPrinterTurbo/AI-Documentary-Studio`
+dizinindeki yerel `main` da bu oturumun sonunda `git pull --ff-only` ile
+senkronize edildi — hem worktree hem orijinal dizin, hem GitHub şu an
+birebir aynı commit'te (`41acb35` + bu özet commit'i).
+
 ## Karar bekleyen noktalar
 
 SSH push artık gerçekten çalışıyor (`git@github.com:...`, token'sız) —
@@ -1593,4 +1646,6 @@ SSH push artık gerçekten çalışıyor (`git@github.com:...`, token'sız) —
 olarak dokunulmayan** konular (Corporate çözüldü, yukarıya bkz.).
 Publishing Engine kodu ve mock'lu testleri tamam, ama **gerçek bir platforma
 yayın doğrulaması kullanıcının Upload-Post kimlik bilgilerini sağlamasını
-bekliyor** (yukarıya bkz.).
+bekliyor** (yukarıya bkz.). GÖREV 8c (search_terms[1:] fallback) somut,
+izole bir gelecek görevi olarak "Bilinen teknik sınırlar" listesinde madde
+5'te bekliyor.
