@@ -1428,6 +1428,36 @@ Kanıt zinciri (Görev 5 için yapılan gerçek "The Psychology of Deja Vu"
   için 3 doğrudan birim testi (doğru sabitleme, metin uyuşmazlığında `None`,
   boş girdi). Tam suite: **646 passed, 11 skipped** (önceden 642).
 
+**GERÇEK UÇTAN-UCA DOĞRULAMA (her iki düzeltme, tek üretimde, "How Octopuses
+Change Color", en, short pacing, gerçek OpenAI + Pexels + ElevenLabs):**
+
+- **1a kanıtı:** Log'da `"total duration of downloaded videos: 45.0
+  seconds"` — eski davranışta bu ~20-25s olurdu (2x güvenlik çarpanı
+  öncesi). Gerçek ses süresi 22.6s çıktı, gereken video süresi 22.70s.
+  `combine_videos()` **5 FARKLI kaynak dosyadan** (`vid-3d6b7cd7...`,
+  `vid-d5ad01b9...`, `vid-f25d220e...`, `vid-5daa11cd...`, `vid-c8fac2d9...`)
+  tam olarak 5 klip kullanarak ihtiyacı karşıladı — **hiçbiri tekrar
+  değil**, ve log'da `"looping clips to match audio length"` uyarısı **hiç
+  görünmedi** (önceden bu, indirilen görüntü kısa kalırsa devreye giren
+  tekrar mekanizmasının tetiklendiğinin işaretiydi).
+- **1b kanıtı:** Üretilen `subtitle.srt`'de artık cümleler arasında **gerçek,
+  küçük boşluklar** var (ör. satır 1 `00:00:01,800`'de bitiyor, satır 2
+  `00:00:01,892`'de başlıyor — 92ms'lik gerçek bir duraklama) — eski
+  karakter-oranlı modelde cümleler arası SIFIR boşluk olurdu (yapay olarak
+  bitişik). Hiçbir cümle artık önceki çalıştırmadaki gibi (88ms'lik yalnız
+  tırnak işareti) yapay bir mikro-parçaya düşmedi; en kısa segment bile
+  (~500ms, tek kelimelik "remember"/"pause") makul.
+- Tam suite bu doğrulama sonrası da yeşil kaldı (kod değişmedi, sadece
+  gerçek bir üretim çalıştırıldı).
+
+**GÖREV 5'e çapraz-doğrulama faydası:** Bu ikinci gerçek üretimin
+`quality_verdict.issues`'ı, GÖREV 5 için yapılan "Deja Vu" üretimindeki
+sorunlarla **aynı desende** — "narration sıkıştırılmış/outline'ı atlıyor",
+"ani geçiş", "mecazi ifade netlik istiyor". İki farklı konuda aynı desenin
+tekrarlanması, GÖREV 5 bölümündeki sonucu güçlendiriyor: bunlar short
+pacing'in **doğal, tasarım gereği** içerik-yoğunluğu ödünleşimleri, yeni bir
+sistemik kod hatası değil.
+
 ## Karar bekleyen noktalar
 
 SSH push artık gerçekten çalışıyor (`git@github.com:...`, token'sız) —
