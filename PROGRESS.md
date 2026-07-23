@@ -845,7 +845,58 @@ diğeri storyboard çağrısına `topic`/`key_facts` ekleyen satırlar).
       → storyboard grounding düzeltmesi → Visual Engine), hiçbir madde
       silinmedi.
 
+## Tone'u bağımsız bir boyut haline getirmek (kullanıcı talebiyle, Format genişlemesinin önkoşulu)
+
+Önce plan istendi: `PROFILE_PROMPTS`'ta tonun `TopicCategory`'ye sabit
+gömülü olduğu (travel=cinematic, history=credibility, space=epic,
+psychology=scientific) ve — beklenmedik bulgu — bunu sadece `outline_generator`
+ile `research_planner`'ın gerçekten okuduğu, `script_generator`'ın (asıl
+seslendirme metnini yazan yer) hiç ton sinyali almadığı, `storyboard_generator`'ın
+ise tamamen ayrı bir görsel-rehber sistemi (`SHOT_GUIDANCE`) kullandığı
+tespit edildi. Kullanıcı planı onayladı ve **script_generator'ı da kapsama
+almamı** istedi (ADIM 0: özelliğin en önemli tüketicisini dışarıda
+bırakmamak için); storyboard'a bilinçli olarak dokunulmadı.
+
+- [x] `profile_dimensions.py`: `Tone` enum'ı + `DEFAULT_TONE_BY_CATEGORY`
+      (eski 1:1 eşleme, birebir) + `resolve_tone(topic_category, override)`
+      (`resolve_pacing` ile aynı desen: override kazanır, geçersiz override
+      kategori varsayılanına düşer).
+- [x] `templates/__init__.py`: `PROFILE_PROMPTS` anahtarları `TopicCategory`
+      → `Tone` olarak yeniden adlandırıldı, **metin içeriği birebir aynı**.
+- [x] `outline_generator.py` / `research_planner.py`: `topic_category`
+      parametresi `tone` ile değiştirildi.
+- [x] `script_generator.py`: yeni opsiyonel `tone` parametresi +
+      `TONE_VOICE_GUIDANCE` — tone verildiğinde prompt'a "Voice: ..." satırı
+      ekleniyor (tone verilmezse eskisiyle birebir aynı, çünkü bu servis
+      zaten daha önce hiç ton bilmiyordu).
+- [x] `DocumentaryProject.tone`, `default_pipeline.py`'de intent'ten hemen
+      sonra çözülüyor (`resolve_tone` `topic_category`'ye bağımlı olduğu
+      için `resolved_pacing` gibi en baştan değil, stage 1'den sonra).
+- [x] **Regresyon testleri (kritik onay şartıydı):** `outline_generator` ve
+      `research_planner`'ın 4 kategori için ürettiği prompt'lar, refactor
+      öncesi koddan yakalanan **birebir string'lerle** karşılaştırıldı —
+      tam eşleşme. `script_generator`'da tone verilmezse "Voice:" satırının
+      hiç eklenmediği ayrıca doğrulandı. Tam suite: **608 passed, 11
+      skipped** (önceden 593).
+- [x] **Gerçek doğrulama (ucuz — sadece metin aşamaları, video/ses/asset
+      atlandı):** "The Grand Canyon" (travel kategorisi) konusu iki kez
+      gerçek API ile üretildi — biri varsayılan tonla (cinematic), biri
+      `tone=scientific` override'ıyla. Sonuç sadece anlatım sesini değil,
+      **belgeselin tüm açısını** değiştirdi:
+      - Varsayılan (cinematic): "At sunrise on the South Rim, the canyon
+        surfaces slowly from blue shadow... the Colorado stops being an
+        idea; warm air carries its voice."
+      - Override (scientific): outline başlığı "The Grand Canyon: Rim,
+        River, and Deep Time"'dan "The Grand Canyon: What Awe Does to the
+        Mind"'e döndü; script: "Imagine the rim test: 277 miles, 18 wide,
+        mile deep—your brain stumbles... awe doesn't erase worries; it puts
+        them in proportion."
+      İki script `!=` doğrulandı (birebir farklı). `tone` `research_planner`
+      ve `outline_generator`'ı da etkilediği için override sadece sesi değil
+      araştırma/outline açısını da gerçekten değiştiriyor — beklenenden
+      daha güçlü, dürüstçe not düşülen bir sonuç.
+
 ## Karar bekleyen noktalar
 
-Bu merge commit'i dahil yerel `main`, `origin/main`'den ileride — push
-manuel yapılmayı bekliyor (bu ortamda GitHub credential'ı yok).
+Bu commit dahil yerel `main`, `origin/main`'den ileride — push manuel
+yapılmayı bekliyor (bu ortamda GitHub credential'ı yok).
