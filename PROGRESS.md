@@ -739,8 +739,37 @@ remote'u bu klonda mevcut değil). Kural 4 gereği atlandı — token/şifre
 `origin/main`'in 1 commit ilerisinde.** Push için manuel kimlik doğrulama
 gerekiyor.
 
-## Karar bekleyen noktalar
+## Visual Engine — storyboard prompt'una görsel-stil rehberliği (kullanıcı talebiyle, gündüz)
 
-`746d274` commit'i yerelde, `origin/main`'e push edilmeyi bekliyor (manuel
-kimlik doğrulama gerekiyor — bu ortamda GitHub credential'ı yok). Bunun
-dışında açık bir görev yok.
+Önce plan istendi: kullanıcının önerdiği 10 sinematografi kavramından
+(Lens/Camera Movement/Lighting/Composition/Color Palette/Mood/Time/Weather/
+Transition/Aspect Ratio/Visual Style) hangilerinin gerçek bir tüketicisi
+olacağı (Pexels/Pixabay'in tek gerçek girdisi serbest metin `search_term` —
+yapısal filtre yok) analiz edildi. Aspect Ratio ve Transition'ın zaten
+`VideoAspect`/`VideoTransitionMode` (video-geneli, `app/models/schema.py`)
+olarak var olduğu, Lens/Composition/Mood'un stok kütüphanelerde gerçek bir
+arama sinyali taşımadığı (dolayısıyla eklenirse "süs alan" veya sorgu
+kirliliği olacağı) tespit edildi. Kullanıcı **Camera Movement, Lighting,
+Weather, Color Palette, Visual Style**'ı onayladı — **yeni model/şema alanı
+olmadan**, mevcut `search_terms` string'lerinin içine dokunacak şekilde.
+
+- [x] `storyboard_generator.py` → `build_storyboard_prompt()`: mevcut
+      özgüllük talimatının hemen ardına, bu 5 kategoriden **en fazla bir**
+      modifiyeri her terime eklemesini isteyen bir cümle eklendi ("aerial
+      Gallipoli coastline" gibi). Açıkça "do not stack more than one such
+      modifier" uyarısı var — birden fazla modifiyer üst üste binerse sorgu
+      aşırı daralıp 0 sonuç riski doğurabileceği için.
+- [x] 1 yeni test (`test_includes_visual_style_guidance_with_one_modifier_cap`).
+      Şema/model değişikliği yok, yeni LLM çağrısı yok (aynı tek storyboard
+      çağrısına eklenen birkaç cümle).
+- [x] **`shot_type` bulgusu — bilinçli olarak dokunulmadı:** Kullanıcı
+      `shot_type`'ın hiçbir yerde okunmadığını (`asset_generator.py:16`
+      sadece `search_terms[0]`'ı kullanıyor) doğrulattı ve karar bana
+      bırakıldı. **Tutucu seçenek seçildi: dokunulmadı.** Gerekçe: bu commit
+      zaten `search_terms`'e kamera hareketi/açı kavramını (aerial/drone/pan)
+      doğrudan prompt üzerinden gömüyor — `shot_type`'ı da aynı anda
+      `search_terms`'e bağlamak aynı kavramı iki ayrı, senkronize edilmesi
+      gereken mekanizmadan üretmek anlamına gelir ve tek commit'te iki
+      değişkeni birden gerçek API'ye sürer (bir regresyon olursa hangisinin
+      sebep olduğu belirsizleşir). `shot_type` hâlâ tüketicisiz — **ayrı,
+      izole bir görev olarak bırakıldı**, istenirse ileride ele alınabilir.

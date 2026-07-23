@@ -43,6 +43,21 @@ class TestBuildStoryboardPrompt(unittest.TestCase):
         prompt = storyboard_generator.build_storyboard_prompt(_scene_plan(), _script(), TopicCategory.history)
         self.assertIn("avoid single generic nouns", prompt.lower())
 
+    def test_includes_visual_style_guidance_with_one_modifier_cap(self):
+        # Camera movement / lighting / weather / color / visual style are
+        # real Pexels/Pixabay search signals (unlike lens or composition),
+        # but stacking several onto one term over-narrows the query and can
+        # return zero results -- so the prompt must cap it at one modifier.
+        prompt = storyboard_generator.build_storyboard_prompt(_scene_plan(), _script(), TopicCategory.history)
+        # Normalize whitespace: the prompt is a wrapped triple-quoted string,
+        # so a phrase can legitimately contain a line break mid-sentence.
+        prompt_flat = " ".join(prompt.lower().split())
+        self.assertIn("aerial, drone, pan, time-lapse", prompt_flat)
+        self.assertIn("golden hour, backlit, overcast", prompt_flat)
+        self.assertIn("storm, fog, clear sky", prompt_flat)
+        self.assertIn("archival, cinematic, documentary", prompt_flat)
+        self.assertIn("do not stack more than one such modifier", prompt_flat)
+
     def test_omits_context_block_when_topic_and_facts_are_empty(self):
         prompt = storyboard_generator.build_storyboard_prompt(_scene_plan(), _script(), TopicCategory.history)
         self.assertNotIn("Documentary topic:", prompt)

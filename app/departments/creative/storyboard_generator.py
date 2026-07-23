@@ -47,6 +47,13 @@ terms (short, concrete, in English, suitable for searching Pexels/Pixabay).
 Avoid single generic nouns (e.g. plain "map", "ship", "statue"); anchor each
 term in this topic's specific era, place, or proper nouns (e.g. "Ottoman-era
 map", "WWI battleship", "Gallipoli coastline", "Turkish war memorial").
+Where it fits the shot, weave in ONE visual-style modifier per term from
+these categories -- camera movement (aerial, drone, pan, time-lapse),
+lighting (golden hour, backlit, overcast), weather (storm, fog, clear sky),
+color (blue, amber, grey), or visual style (archival, cinematic,
+documentary) -- e.g. "aerial Gallipoli coastline" or "archival Ottoman-era
+map". Do not stack more than one such modifier onto the same term: stacking
+multiple modifiers narrows the search too far and can return zero results.
 
 Respond with a single JSON object with exactly this shape:
 {{"shots": [{{"scene_index": 0, "description": "...", "shot_type": "wide|close-up|aerial|...", "search_terms": ["..."]}}]}}
