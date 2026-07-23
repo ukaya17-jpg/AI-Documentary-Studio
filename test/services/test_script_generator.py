@@ -142,6 +142,36 @@ class TestBuildScriptPromptFormat(unittest.TestCase):
         self.assertIn(script_generator.TONE_VOICE_GUIDANCE[Tone.epic], prompt)
         self.assertIn(script_generator.FORMAT_GUIDANCE[Format.educational], prompt)
 
+    def test_corporate_format_adds_a_format_line_with_matching_guidance(self):
+        prompt = script_generator.build_script_prompt(
+            _scene_plan(), "Topic", format=Format.corporate
+        )
+        self.assertIn("Format:", prompt)
+        self.assertIn(script_generator.FORMAT_GUIDANCE[Format.corporate], prompt)
+
+    def test_corporate_format_and_tone_coexist(self):
+        # Same contract as educational+tone: Corporate is a Format, so it
+        # must be able to sit alongside any Tone without either line
+        # crowding out the other.
+        prompt = script_generator.build_script_prompt(
+            _scene_plan(), "Topic", tone=Tone.credibility, format=Format.corporate
+        )
+        self.assertIn("Voice:", prompt)
+        self.assertIn("Format:", prompt)
+        self.assertIn(script_generator.TONE_VOICE_GUIDANCE[Tone.credibility], prompt)
+        self.assertIn(script_generator.FORMAT_GUIDANCE[Format.corporate], prompt)
+
+    def test_educational_and_corporate_produce_different_format_text(self):
+        educational_prompt = script_generator.build_script_prompt(
+            _scene_plan(), "Topic", format=Format.educational
+        )
+        corporate_prompt = script_generator.build_script_prompt(
+            _scene_plan(), "Topic", format=Format.corporate
+        )
+        self.assertNotEqual(educational_prompt, corporate_prompt)
+        self.assertNotIn(script_generator.FORMAT_GUIDANCE[Format.corporate], educational_prompt)
+        self.assertNotIn(script_generator.FORMAT_GUIDANCE[Format.educational], corporate_prompt)
+
     def test_all_formats_have_guidance(self):
         for fmt in Format:
             self.assertIn(fmt, script_generator.FORMAT_GUIDANCE)
@@ -195,6 +225,15 @@ class TestGenerateScript(unittest.TestCase):
 
         prompt_arg = mock_generate_json.call_args[0][0]
         self.assertIn(script_generator.FORMAT_GUIDANCE[Format.educational], prompt_arg)
+
+    @patch("app.departments.creative.script_generator.generate_json")
+    def test_passes_corporate_format_through_to_the_prompt(self, mock_generate_json):
+        mock_generate_json.return_value = {"lines": []}
+
+        script_generator.generate_script(_scene_plan(), "Topic", format=Format.corporate)
+
+        prompt_arg = mock_generate_json.call_args[0][0]
+        self.assertIn(script_generator.FORMAT_GUIDANCE[Format.corporate], prompt_arg)
 
     def test_empty_scene_plan_short_circuits_without_llm_call(self):
         with patch("app.departments.creative.script_generator.generate_json") as mock_generate_json:

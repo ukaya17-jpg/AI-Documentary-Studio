@@ -33,14 +33,20 @@ TONE_VOICE_GUIDANCE = {
 
 # Format is orthogonal to Tone: Tone shapes how the narration sounds (voice),
 # Format shapes what job it does for the viewer (structure/purpose) -- an
-# epic-toned space documentary can still be educational. Only `educational`
-# is implemented; podcast/kids/corporate are deliberately not modeled yet
+# epic-toned space documentary can still be educational. `educational` and
+# `corporate` are implemented; podcast/kids are deliberately not modeled yet
 # (see PROGRESS.md for why each needs its own separate decision).
 FORMAT_GUIDANCE = {
     Format.educational: (
         "structure this as an educational explainer -- briefly define any "
         "technical term the first time it appears, and end each scene with "
         "a one-sentence takeaway or mini-recap of what was just explained"
+    ),
+    Format.corporate: (
+        "structure this as a corporate/institutional narrative -- avoid "
+        "promotional or salesy language, use a neutral third-person voice "
+        "instead of direct address, and ground claims in concrete data, "
+        "figures, or verifiable facts rather than vague claims of excellence"
     ),
 }
 

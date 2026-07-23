@@ -32,12 +32,13 @@ DEFAULT_TONE_BY_CATEGORY = {
 
 class Format(str, Enum):
     """What kind of content this is (independent of Tone, which is how it
-    sounds, and Pacing, which is how long/fast it is). Only `educational` is
-    implemented -- podcast/kids/corporate are deliberately not modeled here
-    yet; see PROGRESS.md for why each needs its own separate decision.
+    sounds, and Pacing, which is how long/fast it is). `educational` and
+    `corporate` are implemented -- podcast/kids are deliberately not modeled
+    here yet; see PROGRESS.md for why each needs its own separate decision.
     """
 
     educational = "educational"
+    corporate = "corporate"
 
 
 class Pacing(str, Enum):

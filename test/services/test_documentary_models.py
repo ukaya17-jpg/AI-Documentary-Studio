@@ -78,6 +78,9 @@ class TestProfileDimensions(unittest.TestCase):
         self.assertEqual(resolve_format("educational"), Format.educational)
         self.assertEqual(resolve_format("EDUCATIONAL"), Format.educational)
         self.assertEqual(resolve_format(Format.educational), Format.educational)
+        self.assertEqual(resolve_format("corporate"), Format.corporate)
+        self.assertEqual(resolve_format("CORPORATE"), Format.corporate)
+        self.assertEqual(resolve_format(Format.corporate), Format.corporate)
         self.assertIsNone(resolve_format(None))
         self.assertIsNone(resolve_format(""))
         self.assertIsNone(resolve_format("podcast"))  # not implemented yet
