@@ -759,6 +759,19 @@ olmadan**, mevcut `search_terms` string'lerinin içine dokunacak şekilde.
       Gallipoli coastline" gibi). Açıkça "do not stack more than one such
       modifier" uyarısı var — birden fazla modifiyer üst üste binerse sorgu
       aşırı daralıp 0 sonuç riski doğurabileceği için.
+- [x] **Gerçek doğrulama (3. tam üretim, gerçek API bütçesinden düşüldü):**
+      Aynı "Çanakkale Savaşı" ile tekrar üretildi. Terimler tam olarak tek
+      modifiyerle geldi (`archival Dardanelles map`, `archival Nusret
+      minelayer`, `aerial Anzac Cove`, `backlit Atatürk statue Gallipoli`),
+      hiçbiri 0 sonuç döndürmedi (16-20 sonuç/terim). Kareler: **2/4 mükemmel**
+      (`aerial Anzac Cove` → gerçek drone çekimi çakıllı Gelibolu kıyısı;
+      `backlit Atatürk statue Gallipoli` → gün batımında Atatürk heykeli,
+      iki Türk bayrağıyla — kişi + ışık talimatı ikisi de tuttu), **1/4 kısmi**
+      (`archival Nusret minelayer` → doğru ülke/tema ama modern tekne, WWI
+      mayın gemisi değil), **1/4 değişmedi** (`archival Dardanelles map` →
+      üç turdur aynı Pexels videosu, Japonya/Nepal temalı kitap-harita
+      dokusu — artık doğrulanmış bir stok-kütüphane kapsam sınırı, prompt
+      sorunu değil).
 - [x] 1 yeni test (`test_includes_visual_style_guidance_with_one_modifier_cap`).
       Şema/model değişikliği yok, yeni LLM çağrısı yok (aynı tek storyboard
       çağrısına eklenen birkaç cümle).
