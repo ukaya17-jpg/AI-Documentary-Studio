@@ -952,11 +952,54 @@ kararlar gerektirdiği tespit edildi ve kullanıcı bunu onayladı:
   eklemek çocuk güvenliği GARANTİSİ vermez, LLM'in kendi güvenlik katmanına
   güvenmek anlamına gelir. `quality_critic` da yaş uygunluğu skorlamıyor.
   **Sıfırdan bir güvenlik tasarımı gerekiyor, script talimatından ibaret değil.**
-- **Corporate — Tone/Format sınırı netleşmedi:** "Resmi dil" ihtiyacı
-  `Tone.credibility`'ye ("measured, authoritative, and precise") yakın ama
-  içerik rehberliği tarihsel-belgesel odaklı, kurumsal dille örtüşmüyor.
-  Yeni bir Format değeri mi, yoksa Tone'a yeni bir üye mi eklenmeli — bu
-  küçük ama net bir karar gerektiriyor, otomatik varsayılmadı.
+- ~~**Corporate — Tone/Format sınırı netleşmedi.**~~ Çözüldü, bkz. aşağıdaki
+  "Corporate format eklendi" bölümü.
+
+## Corporate format eklendi (kullanıcı talebiyle) — Educational ile birebir aynı desen
+
+Önce Tone/Format sınırı sorusu netleştirildi (plan onayı istendi, sonra
+uygulandı): "resmi dil" ihtiyacı `Tone.credibility`'ye ("measured,
+authoritative, and precise -- like a trusted history documentary narrator")
+yakın görünüyordu ama o metin kasıtlı olarak history kategorisine demirlenmiş
+bir *ses* tanımı, Corporate'in ihtiyacı ise ses değil **yapısal davranış**
+(pazarlama dilinden kaçınma, üçüncü şahıs anlatım, veri/istatistik vurgusu) —
+yani Educational'ın "terimleri tanımla" kuralıyla aynı kategoride bir Format
+kuralı, yeni bir Tone üyesi değil. Ayrıca orthogonality testi de bunu
+doğruladı: Educational nasıl her Tone ile birleşebiliyorsa (epic-toned
+educational documentary), Corporate da öyle olmalı.
+
+- [x] `profile_dimensions.py`: `Format` enum'ına `corporate = "corporate"`
+      eklendi, docstring güncellendi (artık educational + corporate
+      implemented, podcast/kids hâlâ ertelendi).
+- [x] `script_generator.py`: `FORMAT_GUIDANCE[Format.corporate]` — "structure
+      this as a corporate/institutional narrative -- avoid promotional or
+      salesy language, use a neutral third-person voice instead of direct
+      address, and ground claims in concrete data, figures, or verifiable
+      facts rather than vague claims of excellence".
+- [x] Webui: değişiklik gerekmedi — `format_options = ["standard"] + [f.value
+      for f in Format]` enum'ı iterate ettiği için yeni değer dropdown'a
+      otomatik düştü.
+- [x] Regresyon: `format=None` ve `format=educational` davranışları hiç
+      değişmedi (`test_all_formats_have_guidance` gibi mevcut testler yeni
+      enum üyesini otomatik kapsıyor). 4 yeni Corporate testi eklendi. Tam
+      suite: **620 passed, 11 skipped** (önceden 616).
+- [x] **Gerçek doğrulama (ucuz — gerçek OpenAI API, sadece script aşaması,
+      video/ses/scene-plan üretimi atlandı):** "Acme Corporation's New
+      Manufacturing Facility" konusu (3 sahne) iki kez `generate_script()`
+      ile üretildi. `format=None`: pazarlama diliyle dolu ve dolaylı ikinci
+      şahıs hissi veren cümleler — "built for a future that's already
+      arriving", "the real test starts right now", "the promise is new
+      opportunity, and a community watching what Acme builds next" (somut
+      rakam yok, "the promise"/"the real test" gibi belirsiz iddialar).
+      `format=corporate` (aynı konu, aynı sahne planı): "Acme Corporation
+      opened its **240,000-square-foot** manufacturing facility today,
+      beginning a **phased startup**...", "**six automated lines** are
+      designed for **1.2 million units annually**, with sensor data shaping
+      the next expansion decision", "adds **320 full-time roles** and
+      supplier contracts, as county officials track training outcomes" —
+      pazarlama dili yok, üçüncü şahıs/nötr anlatım, her cümlede somut
+      rakam/veri. Talep edilen üç kural da (pazarlama dilinden kaçınma,
+      üçüncü şahıs, veri vurgusu) gerçek üretimde doğrulandı.
 
 ## Webui'ye Tone/Format seçicileri (kullanıcı talebiyle)
 
@@ -999,5 +1042,5 @@ kwargs'ı zaten önceki iki adımda eklenmişti).
 
 Bu commit dahil yerel `main`, `origin/main`'den ileride — push manuel
 yapılmayı bekliyor (bu ortamda GitHub credential'ı yok). Ayrıca: Podcast
-(mimari), Kids (güvenlik tasarımı), Corporate (Tone/Format sınırı) — üçü de
-kullanıcıdan ayrı onay bekleyen, bu oturumda kapsam dışı bırakılan konular.
+(mimari), Kids (güvenlik tasarımı) — ikisi de kullanıcıdan ayrı onay bekleyen,
+bu oturumda kapsam dışı bırakılan konular (Corporate çözüldü, yukarıya bkz.).
