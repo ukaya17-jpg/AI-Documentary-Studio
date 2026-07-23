@@ -896,7 +896,71 @@ bırakmamak için); storyboard'a bilinçli olarak dokunulmadı.
       araştırma/outline açısını da gerçekten değiştiriyor — beklenenden
       daha güçlü, dürüstçe not düşülen bir sonuç.
 
+## Format boyutu (kullanıcı talebiyle) — SADECE Educational, gerisi bilinçli olarak ertelendi
+
+Önce plan istendi: Format'ın Pacing'den ("ne kadar uzun/hızlı") ve Tone'dan
+("nasıl söyleniyor") bağımsız, üçüncü bir eksen ("ne tür içerik") olduğu
+netleştirildi. Dört aday formattan (Podcast/Educational/Kids/Corporate)
+sadece **Educational**'ın bu fazda düşük riskli olduğu, diğer üçünün ayrı
+kararlar gerektirdiği tespit edildi ve kullanıcı bunu onayladı:
+
+- [x] `profile_dimensions.py`: `Format` enum'ı — **bilinçli olarak sadece
+      `educational` değeri var**, podcast/kids/corporate için yer tutucu
+      eklenmedi (ADIM 0: arkasında gerçek davranış olmayan enum değeri
+      eklemek de bir tür süs alan). `resolve_format()` — Tone'un aksine
+      kategoriye bağlı bir varsayılanı yok, `None` = "format uygulanmadı".
+- [x] `script_generator.py`: opsiyonel `format` parametresi + `FORMAT_GUIDANCE`
+      — "teknik terimi ilk geçtiği yerde tanımla, her sahneyi tek cümlelik
+      bir çıkarım/mini-özetle kapat" talimatı. Tone'un "Voice:" satırıyla
+      birlikte var olabiliyor (birbirini ezmiyor).
+- [x] `DocumentaryProject.format` + `default_pipeline.py`: pacing gibi en
+      baştan çözülüyor (tone'un aksine topic_category'ye bağımlı değil),
+      **sadece script aşamasına** geçiliyor — research/outline'a bilinçli
+      olarak dokunulmadı.
+- [x] Regresyon: `format=None` iken (tone olsun olmasın) prompt'ta hiç
+      "Format:" satırı yok — eskisiyle birebir aynı. Tam suite: **616
+      passed, 11 skipped** (önceden 608).
+- [x] **Gerçek doğrulama (ucuz — sadece metin aşamaları, video/ses atlandı):**
+      "How Black Holes Form" (space/epic) konusu iki kez üretildi. Varsayılan:
+      "Crush the Sun to six kilometers, and it becomes a black hole—nature
+      does this when giant stars die." (terim tanımı yok, 4 kısa satır).
+      `format=educational` (aynı epic tonla): her teknik terim satır içinde
+      tanımlanıyor — "event horizon, the boundary where escape velocity, the
+      speed needed to break free, outruns light itself", "fusion, energy
+      made by merging atoms", "gravitational waves, ripples in spacetime, the
+      fabric of space and time" — ve kapanışta açık bir özet paragrafı var
+      ("Black holes form when gravity compresses matter past the universe's
+      ultimate escape limit..."). Epic ton korunmuş, pedagojik yapı (tanım +
+      özet) eklenmiş — Tone ve Format'ın gerçekten bağımsız çalıştığının
+      kanıtı.
+
+**Backlog'a bilinçli olarak ertelenenler (dokunulmadı):**
+- **Podcast (audio-only) — mimari kırılma noktaları:** Pipeline 12 aşamayı
+  koşulsuz sırayla çalıştırıyor, hiçbir aşama atlanabilir yazılmamış.
+  `default_pipeline.py`'deki thumbnail çağrısı `project.timeline.combined_video_path`'e
+  None-check'siz erişiyor (`project.timeline` yoksa **AttributeError ile
+  çöker**). `video_renderer.render_final_video()` `timeline: Timeline`'ı
+  zorunlu alıyor. `DocumentaryProject.final_video_path` tek "bitiş çizgisi",
+  ayrı bir `final_audio_path` kavramı yok — model tamamen video-merkezli.
+  `seo_generator`'ın docstring'i açıkça "primary output is short vertical
+  video" diyor. Çözüm "birkaç if/else" değil — ayrı bir `run_audio_pipeline()`
+  veya modelde opsiyonel video alanları + her aşamaya None-guard gerektirir.
+  **Ayrı, büyük bir plan/onay turu gerekiyor.**
+- **Kids — moderasyon eksikliği:** Kod tabanında `moderation`/`age_appropriate`/
+  `content_filter`/`nsfw`/`profanity` gibi HİÇBİR güvenlik mekanizması yok
+  (tüm `app/` taraması sıfır sonuç verdi). "Basitleştirilmiş dil" talimatı
+  eklemek çocuk güvenliği GARANTİSİ vermez, LLM'in kendi güvenlik katmanına
+  güvenmek anlamına gelir. `quality_critic` da yaş uygunluğu skorlamıyor.
+  **Sıfırdan bir güvenlik tasarımı gerekiyor, script talimatından ibaret değil.**
+- **Corporate — Tone/Format sınırı netleşmedi:** "Resmi dil" ihtiyacı
+  `Tone.credibility`'ye ("measured, authoritative, and precise") yakın ama
+  içerik rehberliği tarihsel-belgesel odaklı, kurumsal dille örtüşmüyor.
+  Yeni bir Format değeri mi, yoksa Tone'a yeni bir üye mi eklenmeli — bu
+  küçük ama net bir karar gerektiriyor, otomatik varsayılmadı.
+
 ## Karar bekleyen noktalar
 
 Bu commit dahil yerel `main`, `origin/main`'den ileride — push manuel
-yapılmayı bekliyor (bu ortamda GitHub credential'ı yok).
+yapılmayı bekliyor (bu ortamda GitHub credential'ı yok). Ayrıca: Podcast
+(mimari), Kids (güvenlik tasarımı), Corporate (Tone/Format sınırı) — üçü de
+kullanıcıdan ayrı onay bekleyen, bu oturumda kapsam dışı bırakılan konular.
