@@ -36,6 +36,37 @@ class TestBuildStoryboardPrompt(unittest.TestCase):
         self.assertIn("How it all began.", prompt)
         self.assertIn("archival", prompt.lower())
 
+    def test_always_includes_specificity_instruction(self):
+        # Without this, the model tends to echo the generic nouns straight
+        # out of the category guidance (e.g. "old map", "statue") regardless
+        # of what the documentary is actually about.
+        prompt = storyboard_generator.build_storyboard_prompt(_scene_plan(), _script(), TopicCategory.history)
+        self.assertIn("avoid single generic nouns", prompt.lower())
+
+    def test_omits_context_block_when_topic_and_facts_are_empty(self):
+        prompt = storyboard_generator.build_storyboard_prompt(_scene_plan(), _script(), TopicCategory.history)
+        self.assertNotIn("Documentary topic:", prompt)
+        self.assertNotIn("Context facts:", prompt)
+
+    def test_includes_topic_and_key_facts_when_provided(self):
+        prompt = storyboard_generator.build_storyboard_prompt(
+            _scene_plan(),
+            _script(),
+            TopicCategory.history,
+            topic="The Fall of Rome",
+            key_facts=["Odoacer deposed Romulus Augustulus in 476 CE.", "The Senate still met in name only."],
+        )
+        self.assertIn("Documentary topic: The Fall of Rome", prompt)
+        self.assertIn("Context facts:", prompt)
+        self.assertIn("Odoacer deposed Romulus Augustulus in 476 CE.", prompt)
+        self.assertIn("The Senate still met in name only.", prompt)
+
+    def test_ignores_blank_key_facts(self):
+        prompt = storyboard_generator.build_storyboard_prompt(
+            _scene_plan(), _script(), TopicCategory.history, topic="", key_facts=["", "  ", None]
+        )
+        self.assertNotIn("Context facts:", prompt)
+
 
 class TestGenerateStoryboard(unittest.TestCase):
     @patch("app.departments.creative.storyboard_generator.generate_json")

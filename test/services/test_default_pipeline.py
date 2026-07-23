@@ -29,7 +29,15 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
     """
 
     def setUp(self):
-        research_plan = ResearchPlan(topic="The Fall of Rome")
+        research_plan = ResearchPlan(
+            topic="The Fall of Rome",
+            key_facts=[
+                "Rome was founded in 753 BC.",
+                "The Senate governed the Republic.",
+                "The empire split into east and west in 395 CE.",
+                "This fourth fact should be dropped by the [:3] slice.",
+            ],
+        )
         outline = Outline(
             title="The Fall of Rome",
             sections=[
@@ -185,10 +193,22 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         self.assertIs(script_args[0], self.scene_plan)
         self.assertIs(script_kwargs["outline"], self.outline)
 
-        # storyboard_generator receives both scene plan and script.
-        storyboard_args, _ = self.started["storyboard"].call_args
+        # storyboard_generator receives both scene plan and script, plus the
+        # topic and a bounded slice of research key_facts -- these anchor the
+        # LLM's search terms in the actual topic instead of falling back to
+        # the generic nouns in the category guidance (e.g. "old map").
+        storyboard_args, storyboard_kwargs = self.started["storyboard"].call_args
         self.assertIs(storyboard_args[0], self.scene_plan)
         self.assertIs(storyboard_args[1], self.script)
+        self.assertEqual(storyboard_kwargs["topic"], "The Fall of Rome")
+        self.assertEqual(
+            storyboard_kwargs["key_facts"],
+            [
+                "Rome was founded in 753 BC.",
+                "The Senate governed the Republic.",
+                "The empire split into east and west in 395 CE.",
+            ],
+        )
 
         # asset_generator receives the storyboard.
         asset_gen_args, _ = self.started["asset_gen"].call_args

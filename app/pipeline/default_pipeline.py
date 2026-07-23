@@ -85,7 +85,11 @@ def run_pipeline(
 
     stage(6, "storyboard")
     project.storyboard = storyboard_generator.generate_storyboard(
-        project.scene_plan, project.script, topic_category=project.topic_category
+        project.scene_plan,
+        project.script,
+        topic_category=project.topic_category,
+        topic=project.topic,
+        key_facts=project.research_plan.key_facts[:3],
     )
 
     stage(7, "asset")
