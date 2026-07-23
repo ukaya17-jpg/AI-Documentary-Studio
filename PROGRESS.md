@@ -1038,9 +1038,72 @@ kwargs'ı zaten önceki iki adımda eklenmişti).
       hatası yok (`console --errors` boş). Test sunucusu ve tüm
       Playwright/Chromium süreçleri iş bitince temizlendi.
 
+## Publishing Engine — manuel tetikleme, mevcut upload_post.py sarmalandı (kullanıcı talebiyle)
+
+Önce plan istendi ve onaylandı. Araştırma: `app/services/upload_post.py`
+gerçek, test edilmiş bir entegrasyon (Upload-Post.com'a sarmalayıcı; TikTok/
+Instagram/YouTube Shorts) ama sadece legacy `task.py` tekil-video akışına
+bağlıydı — yeni `default_pipeline.py`'ye hiç bağlı değildi.
+`app/departments/growth/__init__.py`'nin boş olması ve `PROGRESS.md`'de
+zaten "Growth Dept: seo_generator (+ ileride: yayınlama/analytics)" diye not
+düşülmüş olması, yeni bir modülün tam olarak burada yaşaması gerektiğini
+gösteriyordu.
+
+**Kritik tasarım kararı (kullanıcıya soruldu):** yayınlama gerçek hesaplara
+gerçekten, geri alınamaz şekilde içerik gönderdiği için — Corporate/Format
+gibi saf metin değişikliklerinden farklı bir risk sınıfı — otomatik mi yoksa
+manuel onaylı mı tetiklenmeli? **Kullanıcı manuel onayı seçti.** Bu yüzden:
+
+- [x] `app/departments/growth/publisher.py`: `publish_project(project,
+      platforms=None, youtube_privacy_status=None)` — `upload_post.
+      cross_post_video()`'yu sarmalıyor, `project.final_video_path` +
+      `project.seo.title/description/hashtags` kullanıyor.
+      `is_configured()=False` veya `final_video_path` boşsa erken döner,
+      ağ çağrısı yapmaz. `youtube_privacy_status` parametre olarak geçiliyor
+      (paylaşılan `upload_post_service` singleton'ına **yazılmıyor** —
+      aksi halde webui'deki tek seferlik bir seçim, legacy `task.py`'nin
+      otomatik cross-post davranışını da kalıcı olarak değiştirirdi).
+      `project`'i **mutate etmiyor**, `PublishResult` döndürüyor — kararı
+      çağıran (webui) veriyor.
+- [x] `app/models/publish.py`: `PublishResult` (success/request_id/error/
+      platforms/published_at). `DocumentaryProject.publish_result:
+      PublishResult | None = None` — hiçbir zaman otomatik set edilmiyor,
+      sadece kullanıcı elle "Yayınla"ya tıklarsa dolduruluyor.
+- [x] `webui/Main.py`: `_render_publish_section()` — `default_pipeline.
+      run_pipeline()`'a **hiç dokunulmadı** (publish, pipeline'ın bir
+      parçası değil, ayrı bir fonksiyon). Video/thumbnail/SEO gösterildikten
+      sonra: platform çoklu-seçim kutusu (varsayılan: config'teki
+      `upload_post_platforms`), "youtube" seçiliyse gizlilik dropdown'u
+      (varsayılan: config'teki `upload_post_youtube_privacy_status`),
+      "Yayınla" butonu (platform seçilmeden tıklanamaz), sonuç mesajı,
+      ve "zaten yayınlandı: {zaman} → {platformlar}" uyarısı (session state
+      üzerinden, engellemeden — tekrar yayınlamaya izin veriyor).
+      `upload_post_service.is_configured()=False` ise buton yerine
+      yapılandırma uyarısı gösteriliyor.
+- [x] i18n: 10 yeni key (`Documentary Publish*`) **9 dilin hepsine baştan**
+      eklendi, `test_webui_i18n.py` ilk denemede yeşil.
+- [x] Regresyon: `default_pipeline.py` ve legacy `task.py`/`upload_post.py`
+      hiç değişmedi. Yeni `test/services/test_publisher.py` (11 test):
+      unconfigured/missing-video erken dönüş, project mutate edilmiyor,
+      platform varsayılanı, SEO alanlarının doğru eşlenmesi, YouTube-extra
+      sadece "youtube" platformdayken ekleniyor, `youtube_privacy_status`
+      parametresinin config varsayılanını ezmesi, başarı/başarısızlık
+      sonuç şekli. Tam suite: **631 passed, 11 skipped** (önceden 620).
+- [ ] **Gerçek doğrulama yapılamadı:** bu ortamda `upload_post_enabled=false`,
+      `upload_post_api_key=""` — yani gerçek bir Upload-Post hesabı/API key'i
+      yok. Gerçek bir platforma post atmak geri alınamaz bir eylem olduğu
+      için mock'suz bir doğrulama **bilerek yapılmadı**. Doğrulama sadece
+      mock'lu testlerle ve `is_configured()=False` durumunun webui'de doğru
+      davrandığının (butonun yerine uyarı çıkması) manuel gözlemiyle
+      yapıldı. Gerçek bir yayın testi için kullanıcının kendi Upload-Post
+      API key'ini sağlayıp açıkça istemesi gerekiyor.
+
 ## Karar bekleyen noktalar
 
 Bu commit dahil yerel `main`, `origin/main`'den ileride — push manuel
 yapılmayı bekliyor (bu ortamda GitHub credential'ı yok). Ayrıca: Podcast
 (mimari), Kids (güvenlik tasarımı) — ikisi de kullanıcıdan ayrı onay bekleyen,
 bu oturumda kapsam dışı bırakılan konular (Corporate çözüldü, yukarıya bkz.).
+Publishing Engine kodu ve mock'lu testleri tamam, ama **gerçek bir platforma
+yayın doğrulaması kullanıcının Upload-Post kimlik bilgilerini sağlamasını
+bekliyor** (yukarıya bkz.).
