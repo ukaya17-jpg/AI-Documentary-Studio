@@ -1458,6 +1458,46 @@ tekrarlanması, GÖREV 5 bölümündeki sonucu güçlendiriyor: bunlar short
 pacing'in **doğal, tasarım gereği** içerik-yoğunluğu ödünleşimleri, yeni bir
 sistemik kod hatası değil.
 
+### GÖREV 5 — quality_critic yeni/çözülmemiş bir sorun buluyor mu? SONUÇ: Hayır, kod değişikliği yapılmadı
+
+İki bağımsız gerçek üretimle kontrol edildi: "The Psychology of Deja Vu"
+(psychology, short) ve "How Octopuses Change Color" (space/nature, short).
+İkisi de `passed=True` (3.0-3.33/5) ile geçti, ama `quality_critic` her
+ikisinde de **aynı üç desende** sorun buldu:
+1. Narration outline'ı sıkıştırıyor/atlıyor (kısa pacing'in doğal sonucu —
+   4 sahne × ~12 kelime hedefi, zengin bir outline'ın hepsini kapsayamaz).
+2. Bir geçiş ani/az açıklanmış hissediyor (konuya özgü anlatım nüansı).
+3. Mecazi bir ifade netlik istiyor (konuya özgü, LLM'in yaratıcı dil tercihi).
+
+**Karar (OTONOM KARAR, tutucu):** Bu üç desen, önceden düzeltilmiş **Hook/
+Retention/Callback eksikliği** (script_generator hiç outline görmüyordu —
+gerçek bir yapısal kod eksikliğiydi) gibi **yapısal bir kod kusuru değil** —
+short pacing'in kelime bütçesiyle zengin bir outline arasındaki **kaçınılmaz
+bir ödünleşim** + konuya özgü içerik nüansı. Zorla "daha fazla ayrıntı sığdır"
+gibi bir düzeltme yapmak (ör. `_WORDS_PER_SECOND`'u artırmak) GÖREV 1a'nın
+düzelttiği sorunu büyütür (daha uzun narration = daha fazla gerçek ses süresi
+= daha fazla görüntü ihtiyacı). Bu yüzden **hiçbir kod değişikliği
+yapılmadı** — `quality_critic` tam olarak tasarlandığı gibi çalışıyor
+(bilgilendirici, pipeline'ı hiç engellemiyor). Kullanıcı daha ayrıntılı
+belgeseller isterse zaten `pacing="long"` seçeneği mevcut.
+
+### GÖREV 6 — Sistematik TopicCategory × Pacing × Tone × Format test matrisi eklendi
+
+Yeni `test/services/test_pipeline_dimension_matrix.py`: `run_pipeline()`'ın
+her aşaması mock'lanıyor (gerçek LLM/medya çağrısı yok), ve **5 TopicCategory
+(4 + None) × 2 Pacing × 6 Tone (5 + None) × 3 Format (2 + None) = 180
+kombinasyonun hepsi** tek bir testte `subTest` ile ayrı ayrı raporlanarak
+çalıştırılıyor. Her kombinasyon için: pipeline hatasız tamamlanıyor mu,
+`final_video_path` doluyor mu, `tone` her zaman çözülüyor mu (asla `None`
+kalmıyor), `format` doğru yansıyor mu (None ise None, değilse verilen
+değer) kontrol ediliyor. `resolve_tone()`/`resolve_format()` gerçek
+(mock'lanmamış) kodla çalıştığı için, bu matris gerçekten kategori/tone/
+format eşleme mantığını da (sadece plumbing'i değil) sınıyor.
+
+- [x] Tam suite: **647 passed, 11 skipped** (180 yeni subtest dahil, önceden
+      646/4704 subtest → 647/4884 subtest). Çalışma süresi: ~1.5 saniye
+      (tamamı mock, gerçek API maliyeti sıfır).
+
 ## Karar bekleyen noktalar
 
 SSH push artık gerçekten çalışıyor (`git@github.com:...`, token'sız) —
