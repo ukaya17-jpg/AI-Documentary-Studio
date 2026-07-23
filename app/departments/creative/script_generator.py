@@ -6,7 +6,7 @@ build_script_prompt() never saw the outline at all, which is why
 quality_critic found real generations missing the hook/closing entirely.
 """
 
-from app.config.profile_dimensions import Tone
+from app.config.profile_dimensions import Format, Tone
 from app.models.outline import Outline
 from app.models.scene import ScenePlan
 from app.models.script import Script, ScriptLine
@@ -29,6 +29,19 @@ TONE_VOICE_GUIDANCE = {
     Tone.epic: "awe-struck and grand in scale, while staying clear and grounded",
     Tone.scientific: "clear, evidence-minded, and approachable -- like explaining research to a curious friend",
     Tone.neutral: "clear and neutral",
+}
+
+# Format is orthogonal to Tone: Tone shapes how the narration sounds (voice),
+# Format shapes what job it does for the viewer (structure/purpose) -- an
+# epic-toned space documentary can still be educational. Only `educational`
+# is implemented; podcast/kids/corporate are deliberately not modeled yet
+# (see PROGRESS.md for why each needs its own separate decision).
+FORMAT_GUIDANCE = {
+    Format.educational: (
+        "structure this as an educational explainer -- briefly define any "
+        "technical term the first time it appears, and end each scene with "
+        "a one-sentence takeaway or mini-recap of what was just explained"
+    ),
 }
 
 
@@ -63,6 +76,7 @@ def build_script_prompt(
     custom_system_prompt: str = "",
     outline: Outline | None = None,
     tone: Tone | None = None,
+    format: Format | None = None,
 ) -> str:
     scene_lines = []
     for scene in scene_plan.scenes:
@@ -84,6 +98,10 @@ closely as possible so the timing lines up with the scene's on-screen duration:
     if tone is not None:
         voice = TONE_VOICE_GUIDANCE.get(tone, TONE_VOICE_GUIDANCE[Tone.neutral])
         prompt += f"\n\nVoice: {voice}."
+    if format is not None:
+        format_guidance = FORMAT_GUIDANCE.get(format)
+        if format_guidance:
+            prompt += f"\n\nFormat: {format_guidance}."
     prompt += _story_craft_instructions(scene_plan, outline)
     if language and language != "auto":
         prompt += f"\n\nRespond in language: {language}"
@@ -118,12 +136,19 @@ def generate_script(
     custom_system_prompt: str = "",
     outline: Outline | None = None,
     tone: Tone | None = None,
+    format: Format | None = None,
 ) -> Script:
     if not scene_plan.scenes:
         return Script(full_text="", lines=[], language=language)
 
     prompt = build_script_prompt(
-        scene_plan, topic, language, custom_system_prompt, outline=outline, tone=tone
+        scene_plan,
+        topic,
+        language,
+        custom_system_prompt,
+        outline=outline,
+        tone=tone,
+        format=format,
     )
     data = generate_json(prompt)
     lines_by_index = _parse_lines(data.get("lines", []))

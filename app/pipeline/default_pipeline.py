@@ -10,9 +10,11 @@ from loguru import logger
 
 from app.config.profile_dimensions import (
     PACING_SCENE_SPEC,
+    Format,
     Pacing,
     Tone,
     TopicCategory,
+    resolve_format,
     resolve_pacing,
     resolve_tone,
 )
@@ -59,6 +61,7 @@ def run_pipeline(
     language: str = "auto",
     topic_category_override: TopicCategory | str | None = None,
     tone: Tone | str | None = None,
+    format: Format | str | None = None,
     pacing: Pacing | str = Pacing.short,
     voice_name: str = "",
     voice_rate: float = 1.0,
@@ -70,10 +73,14 @@ def run_pipeline(
     bgm_volume: float = 0.2,
 ) -> DocumentaryProject:
     resolved_pacing = resolve_pacing(pacing)
+    # Unlike tone, format doesn't depend on topic_category -- it can be
+    # resolved up front alongside pacing, no need to wait for stage 1.
+    resolved_format = resolve_format(format)
     project = DocumentaryProject(
         project_id=project_id,
         topic=topic,
         language=language,
+        format=resolved_format,
         pacing=resolved_pacing,
         voice_name=voice_name,
         voice_rate=voice_rate,
@@ -126,6 +133,7 @@ def run_pipeline(
             language=project.language,
             outline=project.outline,
             tone=resolved_tone,
+            format=resolved_format,
         )
         _save_project_snapshot(project)
 

@@ -7,9 +7,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from app.config.profile_dimensions import (
     DEFAULT_TONE_BY_CATEGORY,
     PACING_SCENE_SPEC,
+    Format,
     Pacing,
     Tone,
     TopicCategory,
+    resolve_format,
     resolve_pacing,
     resolve_tone,
     resolve_topic_category,
@@ -70,6 +72,17 @@ class TestProfileDimensions(unittest.TestCase):
         self.assertEqual(resolve_tone(None, None), Tone.neutral)
         self.assertEqual(resolve_tone("not-a-category", None), Tone.neutral)
 
+    def test_resolve_format_valid_and_invalid(self):
+        # Unlike resolve_tone, there's no category-based default to fall
+        # back to -- None means "no format applied", not "unresolved".
+        self.assertEqual(resolve_format("educational"), Format.educational)
+        self.assertEqual(resolve_format("EDUCATIONAL"), Format.educational)
+        self.assertEqual(resolve_format(Format.educational), Format.educational)
+        self.assertIsNone(resolve_format(None))
+        self.assertIsNone(resolve_format(""))
+        self.assertIsNone(resolve_format("podcast"))  # not implemented yet
+        self.assertIsNone(resolve_format("not-a-format"))
+
 
 class TestTemplates(unittest.TestCase):
     def test_all_tones_have_a_template(self):
@@ -105,6 +118,7 @@ class TestModels(unittest.TestCase):
         self.assertEqual(project.pacing, Pacing.short)
         self.assertIsNone(project.topic_category)
         self.assertIsNone(project.tone)
+        self.assertIsNone(project.format)
         self.assertIsNone(project.outline)
 
     def test_documentary_project_full_construction(self):

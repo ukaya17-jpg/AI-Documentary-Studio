@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from app.config.profile_dimensions import Pacing, Tone, TopicCategory
+from app.config.profile_dimensions import Format, Pacing, Tone, TopicCategory
 from app.models.asset import AssetPlan
 from app.models.audio import AudioPlan
 from app.models.outline import Outline
@@ -21,6 +21,9 @@ class DocumentaryProject(BaseModel):
     # Resolved once topic_category is known (see resolve_tone in
     # default_pipeline.run_pipeline); None only before stage 1 completes.
     tone: Tone | None = None
+    # Unlike tone, format has no category-based default -- None means "no
+    # format applied", not "not yet resolved" (see resolve_format).
+    format: Format | None = None
     pacing: Pacing = Pacing.short
 
     voice_name: str = ""

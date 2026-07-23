@@ -30,6 +30,16 @@ DEFAULT_TONE_BY_CATEGORY = {
 }
 
 
+class Format(str, Enum):
+    """What kind of content this is (independent of Tone, which is how it
+    sounds, and Pacing, which is how long/fast it is). Only `educational` is
+    implemented -- podcast/kids/corporate are deliberately not modeled here
+    yet; see PROGRESS.md for why each needs its own separate decision.
+    """
+
+    educational = "educational"
+
+
 class Pacing(str, Enum):
     short = "short"
     long = "long"
@@ -72,6 +82,17 @@ def resolve_tone(
             pass  # invalid override string -- fall through to the category default
     category = resolve_topic_category(topic_category)
     return DEFAULT_TONE_BY_CATEGORY.get(category, Tone.neutral)
+
+
+def resolve_format(value: str | Format | None) -> Format | None:
+    if value is None or value == "":
+        return None
+    if isinstance(value, Format):
+        return value
+    try:
+        return Format(str(value).strip().lower())
+    except ValueError:
+        return None
 
 
 def resolve_pacing(value: str | Pacing | None, default: Pacing = Pacing.short) -> Pacing:

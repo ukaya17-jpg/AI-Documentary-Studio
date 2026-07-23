@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from app.config.profile_dimensions import Pacing, Tone, TopicCategory
+from app.config.profile_dimensions import Format, Pacing, Tone, TopicCategory
 from app.models.asset import AssetCandidate, AssetPlan
 from app.models.audio import AudioPlan, AudioTrack
 from app.models.outline import Outline, OutlineSection
@@ -177,6 +177,8 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         # No tone override passed -- resolves to history's default tone,
         # reproducing the category's old hard-locked behavior.
         self.assertEqual(project.tone, Tone.credibility)
+        # No format passed -- must stay None, exactly as before Format existed.
+        self.assertIsNone(project.format)
         self.assertIs(project.research_plan, self.research_plan)
         self.assertIs(project.outline, self.outline)
         self.assertIs(project.scene_plan, self.scene_plan)
@@ -211,6 +213,7 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         self.assertIs(script_args[0], self.scene_plan)
         self.assertIs(script_kwargs["outline"], self.outline)
         self.assertEqual(script_kwargs["tone"], Tone.credibility)
+        self.assertIsNone(script_kwargs["format"])
 
         # storyboard_generator receives both scene plan and script, plus the
         # topic and a bounded slice of research key_facts -- these anchor the
@@ -290,6 +293,24 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         self.assertEqual(self.started["research"].call_args[1]["tone"], Tone.scientific)
         self.assertEqual(self.started["outline"].call_args[1]["tone"], Tone.scientific)
         self.assertEqual(self.started["script"].call_args[1]["tone"], Tone.scientific)
+
+    def test_format_flows_only_to_script_not_research_or_outline(self):
+        # Format has no category-based default (unlike tone) and only
+        # script_generator was wired to receive it this phase -- research/
+        # outline are untouched by design (see PROGRESS.md).
+        project = default_pipeline.run_pipeline(
+            project_id="proj-1",
+            topic="The Fall of Rome",
+            language="auto",
+            pacing=Pacing.short,
+            voice_name="en-US-JennyNeural",
+            format=Format.educational,
+        )
+
+        self.assertEqual(project.format, Format.educational)
+        self.assertEqual(self.started["script"].call_args[1]["format"], Format.educational)
+        self.assertNotIn("format", self.started["research"].call_args[1])
+        self.assertNotIn("format", self.started["outline"].call_args[1])
 
     def test_final_video_path_is_set_even_when_quality_review_is_unavailable(self):
         self.started["quality"].return_value = None

@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from app.config.profile_dimensions import Tone
+from app.config.profile_dimensions import Format, Tone
 from app.models.outline import Outline
 from app.models.scene import Scene, ScenePlan
 from app.departments.creative import script_generator
@@ -109,6 +109,44 @@ class TestBuildScriptPromptTone(unittest.TestCase):
             self.assertIn(tone, script_generator.TONE_VOICE_GUIDANCE)
 
 
+class TestBuildScriptPromptFormat(unittest.TestCase):
+    """Format is new wiring too (like tone was), independent of it: a Format
+    line and a Voice line can both be present, and omitting format must
+    leave the prompt exactly as it was before Format existed -- including
+    with a tone set, since the two are orthogonal.
+    """
+
+    def test_omitting_format_adds_no_format_line(self):
+        prompt = script_generator.build_script_prompt(_scene_plan(), "Topic")
+        self.assertNotIn("Format:", prompt)
+
+    def test_omitting_format_adds_no_format_line_even_with_tone_set(self):
+        prompt = script_generator.build_script_prompt(_scene_plan(), "Topic", tone=Tone.epic)
+        self.assertNotIn("Format:", prompt)
+
+    def test_educational_format_adds_a_format_line_with_matching_guidance(self):
+        prompt = script_generator.build_script_prompt(
+            _scene_plan(), "Topic", format=Format.educational
+        )
+        self.assertIn("Format:", prompt)
+        self.assertIn(script_generator.FORMAT_GUIDANCE[Format.educational], prompt)
+
+    def test_educational_format_and_tone_coexist(self):
+        # Tone shapes voice, Format shapes structure -- both lines should be
+        # present together, neither one crowding out the other.
+        prompt = script_generator.build_script_prompt(
+            _scene_plan(), "Topic", tone=Tone.epic, format=Format.educational
+        )
+        self.assertIn("Voice:", prompt)
+        self.assertIn("Format:", prompt)
+        self.assertIn(script_generator.TONE_VOICE_GUIDANCE[Tone.epic], prompt)
+        self.assertIn(script_generator.FORMAT_GUIDANCE[Format.educational], prompt)
+
+    def test_all_formats_have_guidance(self):
+        for fmt in Format:
+            self.assertIn(fmt, script_generator.FORMAT_GUIDANCE)
+
+
 class TestGenerateScript(unittest.TestCase):
     @patch("app.departments.creative.script_generator.generate_json")
     def test_parses_lines_in_scene_order(self, mock_generate_json):
@@ -148,6 +186,15 @@ class TestGenerateScript(unittest.TestCase):
 
         prompt_arg = mock_generate_json.call_args[0][0]
         self.assertIn(script_generator.TONE_VOICE_GUIDANCE[Tone.scientific], prompt_arg)
+
+    @patch("app.departments.creative.script_generator.generate_json")
+    def test_passes_format_through_to_the_prompt(self, mock_generate_json):
+        mock_generate_json.return_value = {"lines": []}
+
+        script_generator.generate_script(_scene_plan(), "Topic", format=Format.educational)
+
+        prompt_arg = mock_generate_json.call_args[0][0]
+        self.assertIn(script_generator.FORMAT_GUIDANCE[Format.educational], prompt_arg)
 
     def test_empty_scene_plan_short_circuits_without_llm_call(self):
         with patch("app.departments.creative.script_generator.generate_json") as mock_generate_json:
