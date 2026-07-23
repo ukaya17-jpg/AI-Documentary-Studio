@@ -958,6 +958,43 @@ kararlar gerektirdiği tespit edildi ve kullanıcı bunu onayladı:
   Yeni bir Format değeri mi, yoksa Tone'a yeni bir üye mi eklenmeli — bu
   küçük ama net bir karar gerektiriyor, otomatik varsayılmadı.
 
+## Webui'ye Tone/Format seçicileri (kullanıcı talebiyle)
+
+Mevcut `Dil`/`Konu Kategorisi`/`Temp` satırının (col1-col3) hemen altına
+ikinci bir satır (col4/col5): `Ton` (`auto` + 5 Tone değeri) ve `Format`
+(`standard` + `educational`) — `Konu Kategorisi`nin "auto" deseniyle birebir
+aynı. Backend'de değişiklik gerekmedi (`run_pipeline()` `tone`/`format`
+kwargs'ı zaten önceki iki adımda eklenmişti).
+
+- [x] `webui/Main.py`: yeni seçiciler + `run_pipeline()` çağrısına
+      `tone=(None if tone=="auto" else tone)`, `format=(None if
+      format_choice=="standard" else format_choice)`.
+- [x] Format yardım metninde kullanıcının istediği netleştirme: "standard"
+      Tone'un "auto"su gibi kategori varsayılanına düşmüyor, hiçbir ek
+      rehberlik uygulamıyor (Format'ın kategori-bazlı varsayılanı yok).
+- [x] i18n: 4 yeni key (`Documentary Tone`/`Tone Help`/`Format`/`Format
+      Help`) **9 dilin hepsine baştan** eklendi — `test_webui_i18n.py`'nin
+      AST tabanlı parite testi ilk denemede yeşil (geçen seferki "sona
+      bırakma" dersinden ders çıkarıldı). Tam suite: **616 passed** (test
+      sayısı değişmedi, i18n subtest'leri 4508→4564).
+- [x] **Gerçek tarayıcı testi (gerçek API, mock yok):** `.venv` içinden
+      Streamlit ayrı bir portta (8590, mevcut 8501'e dokunulmadı) başlatıldı,
+      Node/Playwright (npx cache'inden, `chromium-cli` bu ortamda yok) ile
+      headless Chromium üzerinden sürüldü. Onboarding tur overlay'i
+      kapatıldı, "AI Documentary Studio (Beta)" açıldı, konu "How Rainbows
+      Form" + Dil "en" + **Ton "scientific"** + **Format "educational"**
+      seçildi, "Belgesel Oluştur"a tıklandı. 12 aşama da gerçek OpenAI +
+      Pexels + ElevenLabs TTS ile hatasız tamamlandı (~6 dakika), "Belgesel
+      başarıyla oluşturuldu" göründü. `project.json` doğrulaması:
+      `topic_category: "space"` (varsayılan tonu "epic" olurdu) ama
+      `tone: "scientific"` — **override kategori varsayılanını gerçekten
+      ezdi**. Üretilen script hem bilimsel sesi hem pedagojik yapıyı
+      gösteriyor: "each raindrop **refracts, or bends**, sunlight...",
+      "**wavelengths, different kinds of visible light** our eyes read as
+      color" (terim tanımları) ve kapanışta net bir özet cümlesi. Konsol
+      hatası yok (`console --errors` boş). Test sunucusu ve tüm
+      Playwright/Chromium süreçleri iş bitince temizlendi.
+
 ## Karar bekleyen noktalar
 
 Bu commit dahil yerel `main`, `origin/main`'den ileride — push manuel
