@@ -309,6 +309,8 @@
     "Documentary Thumbnail": "Küçük Resim (Thumbnail)",
     "Documentary Thumbnail Variant A": "Küçük Resim (Seçenek A)",
     "Documentary Thumbnail Variant B": "Küçük Resim (Seçenek B)",
+    "Documentary Research Grounded": "Bu belgeselin araştırması gerçek bir web kaynağıyla (DuckDuckGo/Wikipedia) doğrulandı.",
+    "Documentary Research Not Grounded": "Bu konu için doğrulanmış bir web kaynağı bulunamadı -- araştırma AI'ın kendi bilgisine dayanıyor, dış bir kaynakla doğrulanmadı.",
     "Documentary SEO Extras": "SEO Ekstraları (danışman niteliğinde, uzun format/manuel kullanım için)",
     "Documentary SEO Chapters": "Bölümler",
     "Documentary SEO Chapters Help": "Sadece uzun format YouTube yüklemelerinde işlevseldir -- Shorts bölümleri desteklemez.",

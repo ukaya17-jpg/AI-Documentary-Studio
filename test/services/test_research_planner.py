@@ -104,6 +104,7 @@ class TestGenerateResearchPlan(unittest.TestCase):
         self.assertEqual(plan.angles, ["Decline as a slow process, not a single event."])
         self.assertEqual(plan.source_snippet, "")
         self.assertEqual(plan.source_url, "")
+        self.assertFalse(plan.grounded)
 
     @patch("app.departments.research.research_planner.web_search.search_web", return_value=None)
     @patch("app.departments.research.research_planner.generate_json")
@@ -148,6 +149,7 @@ class TestGenerateResearchPlan(unittest.TestCase):
             "The Roman Empire was the post-Republican period of ancient Rome.",
         )
         self.assertEqual(plan.source_url, "https://en.wikipedia.org/wiki/Roman_Empire")
+        self.assertTrue(plan.grounded)
         # The prompt actually sent to the LLM must carry the grounding text.
         prompt_arg = mock_generate_json.call_args[0][0]
         self.assertIn("Verified web source", prompt_arg)

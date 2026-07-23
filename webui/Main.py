@@ -98,7 +98,15 @@ VOICE_MODE_NONE = "none"
 DEFAULT_VIDEO_CODEC_OPTION = "__default__"
 DEFAULT_SUBTITLE_SETTINGS = {
     "subtitle_enabled": True,
-    "font_name": "MicrosoftYaHeiBold.ttc",
+    # OTONOM KARAR (gece oturumu, GÖREV 8a): was "MicrosoftYaHeiBold.ttc"
+    # (CJK-weighted, left over from this project's very first session) --
+    # every other default in this codebase (thumbnail_generator, legacy
+    # video_renderer's own _DEFAULT_SUBTITLE_SETTINGS) already standardized
+    # on BeVietnamPro-Bold.ttf. A fresh install with no explicit
+    # config.toml [ui].font_name would silently render a different font
+    # than what the UI's own fallback implied -- see PROGRESS.md's known-
+    # limitations list. Aligning both defaults removes that divergence.
+    "font_name": "BeVietnamPro-Bold.ttf",
     "subtitle_position": "bottom",
     "custom_position": 70.0,
     "text_fore_color": "#FFFFFF",
@@ -4166,6 +4174,12 @@ def _render_documentary_studio_section():
                         )
                 else:
                     st.image(thumbnail_path, caption=tr("Documentary Thumbnail"), width=240)
+
+            research_plan = (last_project or {}).get("research_plan") or {}
+            if research_plan.get("grounded"):
+                st.caption(f"✅ {tr('Documentary Research Grounded')}")
+            else:
+                st.caption(f"ℹ️ {tr('Documentary Research Not Grounded')}")
 
             seo = (last_project or {}).get("seo") or {}
             if seo.get("title"):

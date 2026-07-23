@@ -309,6 +309,8 @@
     "Documentary Thumbnail": "Ảnh thu nhỏ",
     "Documentary Thumbnail Variant A": "Ảnh thu nhỏ (Lựa chọn A)",
     "Documentary Thumbnail Variant B": "Ảnh thu nhỏ (Lựa chọn B)",
+    "Documentary Research Grounded": "Nghiên cứu của phim tài liệu này được xác thực bằng một nguồn web thực (DuckDuckGo/Wikipedia).",
+    "Documentary Research Not Grounded": "Không tìm thấy nguồn web đã xác minh cho chủ đề này -- nghiên cứu dựa trên kiến thức riêng của AI, chưa được kiểm chứng với nguồn bên ngoài.",
     "Documentary SEO Extras": "SEO bổ sung (mang tính tư vấn, dùng cho định dạng dài/thủ công)",
     "Documentary SEO Chapters": "Chương",
     "Documentary SEO Chapters Help": "Chỉ hoạt động với video YouTube định dạng dài -- Shorts không hỗ trợ chương.",

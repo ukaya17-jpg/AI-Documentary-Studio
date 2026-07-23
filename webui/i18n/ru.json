@@ -309,6 +309,8 @@
     "Documentary Thumbnail": "Миниатюра",
     "Documentary Thumbnail Variant A": "Миниатюра (вариант A)",
     "Documentary Thumbnail Variant B": "Миниатюра (вариант B)",
+    "Documentary Research Grounded": "Исследование для этого видео было подтверждено реальным веб-источником (DuckDuckGo/Wikipedia).",
+    "Documentary Research Not Grounded": "Для этой темы не найден проверенный веб-источник -- исследование основано на собственных знаниях ИИ и не проверено по внешнему источнику.",
     "Documentary SEO Extras": "Дополнительно по SEO (рекомендательно, для длинного формата/ручного использования)",
     "Documentary SEO Chapters": "Главы",
     "Documentary SEO Chapters Help": "Работает только для видео в длинном формате на YouTube -- Shorts не поддерживают главы.",

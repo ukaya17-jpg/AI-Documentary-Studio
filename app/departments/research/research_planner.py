@@ -81,4 +81,5 @@ def generate_research_plan(
         angles=[str(a).strip() for a in data.get("angles", []) if str(a).strip()],
         source_snippet=search_result.abstract if search_result else "",
         source_url=search_result.source_url if search_result else "",
+        grounded=search_result is not None,
     )

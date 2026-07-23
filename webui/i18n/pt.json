@@ -309,6 +309,8 @@
     "Documentary Thumbnail": "Miniatura",
     "Documentary Thumbnail Variant A": "Miniatura (Opção A)",
     "Documentary Thumbnail Variant B": "Miniatura (Opção B)",
+    "Documentary Research Grounded": "A pesquisa deste documentário foi fundamentada em uma fonte real da web (DuckDuckGo/Wikipedia).",
+    "Documentary Research Not Grounded": "Nenhuma fonte da web verificada foi encontrada para este tema -- a pesquisa é baseada no conhecimento próprio da IA, sem verificação com uma fonte externa.",
     "Documentary SEO Extras": "Extras de SEO (consultivo, para uso em formato longo/manual)",
     "Documentary SEO Chapters": "Capítulos",
     "Documentary SEO Chapters Help": "Só funciona em uploads do YouTube em formato longo -- os Shorts não suportam capítulos.",

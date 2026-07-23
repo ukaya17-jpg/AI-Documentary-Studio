@@ -16,11 +16,11 @@ from app.models.timeline import Timeline
 from app.services import video
 from app.utils import utils
 
-# Mirrors webui/Main.py's DEFAULT_SUBTITLE_SETTINGS, except font_name: this
-# pipeline defaults to a plain sans-serif (BeVietnamPro-Bold.ttf) instead of
-# a CJK-weighted font. Duplicated here (rather than imported) because
-# webui/Main.py runs `_render_application()` at import time and isn't safe
-# to import from a non-Streamlit process.
+# Mirrors webui/Main.py's DEFAULT_SUBTITLE_SETTINGS (both now default
+# font_name to the same plain sans-serif, BeVietnamPro-Bold.ttf -- see
+# GÖREV 8a in PROGRESS.md for why the two used to diverge). Duplicated here
+# (rather than imported) because webui/Main.py runs `_render_application()`
+# at import time and isn't safe to import from a non-Streamlit process.
 _DEFAULT_SUBTITLE_SETTINGS = {
     "font_name": "BeVietnamPro-Bold.ttf",
     "subtitle_position": "bottom",

@@ -309,6 +309,8 @@
     "Documentary Thumbnail": "Thumbnail",
     "Documentary Thumbnail Variant A": "Thumbnail (Opsi A)",
     "Documentary Thumbnail Variant B": "Thumbnail (Opsi B)",
+    "Documentary Research Grounded": "Riset dokumenter ini didasarkan pada sumber web nyata (DuckDuckGo/Wikipedia).",
+    "Documentary Research Not Grounded": "Tidak ditemukan sumber web terverifikasi untuk topik ini -- riset ini didasarkan pada pengetahuan AI sendiri, tidak diperiksa faktanya terhadap sumber eksternal.",
     "Documentary SEO Extras": "Ekstra SEO (saran, untuk penggunaan format panjang/manual)",
     "Documentary SEO Chapters": "Bab",
     "Documentary SEO Chapters Help": "Hanya berfungsi pada unggahan YouTube format panjang -- Shorts tidak mendukung bab.",

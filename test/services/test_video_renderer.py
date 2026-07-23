@@ -1,3 +1,4 @@
+import ast
 import shutil
 import sys
 import unittest
@@ -12,6 +13,47 @@ from app.models.schema import VideoParams
 from app.models.timeline import Timeline
 from app.departments.production import video_renderer
 from app.utils import utils
+
+ROOT_DIR = Path(__file__).parent.parent.parent
+WEBUI_MAIN = ROOT_DIR / "webui" / "Main.py"
+
+
+def _webui_default_subtitle_settings() -> dict:
+    """Read webui/Main.py's DEFAULT_SUBTITLE_SETTINGS via AST, without
+    importing/running Main.py (it executes _render_application() at import
+    time and isn't safe to import from a non-Streamlit process)."""
+    tree = ast.parse(WEBUI_MAIN.read_text(encoding="utf-8"))
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Assign):
+            continue
+        if any(
+            isinstance(target, ast.Name) and target.id == "DEFAULT_SUBTITLE_SETTINGS"
+            for target in node.targets
+        ):
+            return ast.literal_eval(node.value)
+    raise AssertionError(f"no DEFAULT_SUBTITLE_SETTINGS assignment found in {WEBUI_MAIN}")
+
+
+class TestDefaultSubtitleFontStaysInSync(unittest.TestCase):
+    """GÖREV 8a (gece oturumu): webui's DEFAULT_SUBTITLE_SETTINGS and
+    video_renderer's _DEFAULT_SUBTITLE_SETTINGS used to disagree on
+    font_name (MicrosoftYaHeiBold.ttc vs BeVietnamPro-Bold.ttf) -- on a
+    fresh install with no explicit config.toml [ui].font_name, the UI's
+    implied default and the actually-rendered font would silently differ.
+    Both now default to the same font; this locks that in.
+    """
+
+    def test_webui_and_video_renderer_font_defaults_match(self):
+        webui_default = _webui_default_subtitle_settings()["font_name"]
+        self.assertEqual(webui_default, video_renderer._DEFAULT_SUBTITLE_SETTINGS["font_name"])
+
+    def test_default_font_is_the_project_standard_sans_serif(self):
+        # Pin the actual value too, not just "the two agree" -- a
+        # regression where both drift back to the CJK font together
+        # wouldn't be caught by the equality check above.
+        self.assertEqual(
+            video_renderer._DEFAULT_SUBTITLE_SETTINGS["font_name"], "BeVietnamPro-Bold.ttf"
+        )
 
 
 class TestRenderFinalVideo(unittest.TestCase):

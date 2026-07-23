@@ -309,6 +309,8 @@
     "Documentary Thumbnail": "Vorschaubild",
     "Documentary Thumbnail Variant A": "Vorschaubild (Option A)",
     "Documentary Thumbnail Variant B": "Vorschaubild (Option B)",
+    "Documentary Research Grounded": "Die Recherche für dieses Video wurde durch eine echte Webquelle (DuckDuckGo/Wikipedia) untermauert.",
+    "Documentary Research Not Grounded": "Für dieses Thema wurde keine verifizierte Webquelle gefunden -- die Recherche basiert auf dem eigenen Wissen der KI und wurde nicht anhand einer externen Quelle geprüft.",
     "Documentary SEO Extras": "SEO-Extras (beratend, für Langform/manuelle Nutzung)",
     "Documentary SEO Chapters": "Kapitel",
     "Documentary SEO Chapters Help": "Funktioniert nur bei Langform-YouTube-Uploads -- Shorts unterstützen keine Kapitel.",

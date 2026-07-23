@@ -336,6 +336,8 @@
     "Documentary Thumbnail": "缩略图",
     "Documentary Thumbnail Variant A": "缩略图（选项 A）",
     "Documentary Thumbnail Variant B": "缩略图（选项 B）",
+    "Documentary Research Grounded": "本纪录片的研究基于真实的网络来源（DuckDuckGo/维基百科）进行了核实。",
+    "Documentary Research Not Grounded": "未找到该主题的可验证网络来源——本研究基于 AI 自身的知识，未与外部来源进行事实核查。",
     "Documentary SEO Extras": "SEO 附加建议（仅供参考，适用于长视频/手动使用）",
     "Documentary SEO Chapters": "章节",
     "Documentary SEO Chapters Help": "仅在长视频 YouTube 上传中有效——Shorts 不支持章节。",
