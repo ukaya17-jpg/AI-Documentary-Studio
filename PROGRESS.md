@@ -1246,12 +1246,79 @@ düzeltmesi" bölümü) bilinçli olarak bu listeye alınmadı.
   olurdu. **Öncelik:** En düşük — sadece envanterde eksiksizlik için not
   düşülüyor, aksiyon önerilmiyor.
 
+## GECE OTURUMU (genişletilmiş) — Görev 1 başka bir ajanda (Hermes/Codex, tmux `work`), Görev 3-8 burada
+
+Kullanıcı, GÖREV 1'in (tekrarlayan kare + altyazı gecikmesi düzeltmesi) aynı
+makinede ayrı bir tmux oturumunda çalışan başka bir AI ajanı (Hermes,
+OpenAI Codex/gpt-5.5 tabanlı) tarafından ele alındığını netleştirdi. Bu
+oturum GÖREV 1'e **hiç dokunmuyor** — özellikle `app/services/video.py`
+(`combine_videos`), `audio_renderer.py`, ve altyazı birleştirme (`_merge_subtitle_files`)
+ile ilgili hiçbir koda dokunulmadı/dokunulmayacak.
+
+**Çakışma riskini azaltma (kodlamadan önce):**
+- [x] `git branch -a` + `git status`: tek bir clone var
+      (`/root/MoneyPrinterTurbo/AI-Documentary-Studio`), Hermes de aynı
+      dizini paylaşıyor (ayrı bir clone yok, `find / -iname AI-Documentary-Studio`
+      tek sonuç verdi). `git status` sadece benim önceki commit'lenmemiş
+      `PROGRESS.md` değişikliğimi gösteriyordu — Hermes henüz dosya
+      düzeyinde bir değişiklik yapmamış (muhtemelen aylık Codex kotası
+      dolduğu için rate-limit döngüsünde takılı, `tmux capture-pane`
+      ile doğrulandı).
+- [x] Paylaşılan checkout'ta `git checkout -b` yapmak yerine (bu, Hermes'in
+      dizinini de etkileyebilirdi — aynı `.git`, aynı working tree),
+      **tamamen izole bir `git worktree`** oluşturuldu:
+      `/root/MoneyPrinterTurbo/ai-documentary-studio-claude-tasks`,
+      dal adı `overnight/claude-tasks-3to8` (isim çakışması yoktu, önerilen
+      isim kullanıldı). `.venv`, `config.toml` orijinal dizine symlink'lendi
+      (aynı bağımlılıklar/API key'ler); `storage/` **symlink yapılmadı** —
+      ilk denemede symlink edilince `os.path.realpath` bazlı testler
+      (`test_local_material_filename_resolved_to_absolute_path`,
+      `test_task_query_returns_relative_url_without_mutating_state`) iki
+      dizin adı farklı olduğu için başarısız oldu; gerçek, bağımsız boş bir
+      `storage/` dizini oluşturulunca tam suite tekrar **631 passed, 11
+      skipped** oldu (regresyon değil, saf worktree-path artefaktıydı).
+- [x] Push stratejisi: worktree'den `git push origin overnight/claude-tasks-3to8:main`
+      (uzak `main`'i fast-forward ediyor, orijinal dizindeki checked-out
+      `main` dalına dokunmuyor — iki worktree aynı `.git`'i paylaştığı için
+      yerel `refs/heads/main`'i değiştirmek riskliydi, bu yüzden sadece
+      remote ref güncelleniyor). Her görev öncesi `git fetch origin` ile
+      Hermes'in bir şey push'layıp push'lamadığı kontrol ediliyor.
+- [x] SSH push doğrulandı: `git@github.com:ukaya17-jpg/AI-Documentary-Studio.git`
+      üzerinden token'sız push gerçekten çalıştı (bu bölümden önceki
+      commit `2fd6fa0` ile test edildi).
+
+### GÖREV 3 — Instagram yayınlama desteği
+
+**Bulgu: altyapı zaten tamdı, kod değişikliği gerekmedi.**
+- `webui/Main.py:3936` `known_platforms = ["tiktok", "instagram", "youtube"]`
+  — Instagram **zaten** seçilebilir bir checkbox olarak multiselect'te
+  duruyordu (kullanıcının "belki UI'a yansımamıştır" endişesi doğrulanmadı).
+- `app/departments/growth/publisher.py` zaten tam platform-agnostik:
+  `youtube_extra` sadece `"youtube"` platformlar listesindeyse dolduruluyor
+  (`publisher.py:58-59`), Instagram (tek başına veya TikTok/YouTube ile
+  birlikte) hiçbir özel dala girmeden generic `title`/`cross_post_video()`
+  akışından geçiyor.
+- [x] 3 yeni test eklendi: `test_instagram_only_publish_succeeds_with_no_youtube_extra`,
+      `test_instagram_combined_with_youtube_still_gets_youtube_extra`
+      (`test_publisher.py`) + `test_known_platforms_include_instagram_tiktok_and_youtube`
+      (yeni `test_webui_publish_platforms.py`, `test_webui_i18n.py`'deki AST
+      tabanlı desenle aynı — Streamlit'i gerçekten çalıştırmadan
+      `known_platforms` listesini koddan doğruluyor).
+- [x] Gerçek yayın denemesi **yapılmadı** (kullanıcı talebi: geri alınamaz/
+      herkese açık eylem, sadece mock'lu test). Tam suite: **634 passed, 11
+      skipped** (önceden 631).
+- [x] `config.toml`'daki `upload_post_platforms` **bilinçli olarak
+      değiştirilmedi** — kullanıcının kendi Upload-Post hesap tercihi,
+      webui'deki multiselect zaten config varsayılanından bağımsız olarak
+      Instagram'ı seçilebilir kılıyor.
+
 ## Karar bekleyen noktalar
 
-Bu commit dahil yerel `main`, `origin/main`'den ileride — push manuel
-yapılmayı bekliyor (bu ortamda GitHub credential'ı yok). Ayrıca: Podcast
-(mimari), Kids (güvenlik tasarımı) — ikisi de kullanıcıdan ayrı onay bekleyen,
-bu oturumda kapsam dışı bırakılan konular (Corporate çözüldü, yukarıya bkz.).
+SSH push artık gerçekten çalışıyor (`git@github.com:...`, token'sız) —
+önceki "manuel push bekliyor" notu artık geçersiz. Podcast (mimari), Kids
+(güvenlik tasarımı), Analytics/Learning Layer (gerçek yayın verisi yok) —
+üçü de kullanıcıdan ayrı onay bekleyen, bu gece oturumunda da **bilinçli
+olarak dokunulmayan** konular (Corporate çözüldü, yukarıya bkz.).
 Publishing Engine kodu ve mock'lu testleri tamam, ama **gerçek bir platforma
 yayın doğrulaması kullanıcının Upload-Post kimlik bilgilerini sağlamasını
 bekliyor** (yukarıya bkz.).

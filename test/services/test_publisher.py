@@ -95,6 +95,37 @@ class TestPublishProjectPayload(unittest.TestCase):
         self.assertIsNone(mock_cross_post.call_args.kwargs["youtube_extra"])
 
     @patch("app.departments.growth.publisher.upload_post.upload_post_service.is_configured", return_value=True)
+    @patch("app.departments.growth.publisher.upload_post.cross_post_video")
+    def test_instagram_only_publish_succeeds_with_no_youtube_extra(self, mock_cross_post, _configured):
+        # Instagram-only requests should behave exactly like tiktok-only ones:
+        # generic title, no youtube_extra, platforms passed through as-is.
+        mock_cross_post.return_value = {"success": True, "request_id": "ig-req-1"}
+
+        result = publisher.publish_project(_project(), platforms=["instagram"])
+
+        kwargs = mock_cross_post.call_args.kwargs
+        self.assertEqual(kwargs["platforms"], ["instagram"])
+        self.assertEqual(kwargs["title"], "Rainbow Science")
+        self.assertIsNone(kwargs["youtube_extra"])
+        self.assertTrue(result.success)
+        self.assertEqual(result.request_id, "ig-req-1")
+        self.assertEqual(result.platforms, ["instagram"])
+
+    @patch("app.departments.growth.publisher.upload_post.upload_post_service.is_configured", return_value=True)
+    @patch("app.departments.growth.publisher.upload_post.cross_post_video")
+    def test_instagram_combined_with_youtube_still_gets_youtube_extra(self, mock_cross_post, _configured):
+        # Mixed platform lists (instagram + youtube) must still populate
+        # youtube_extra -- instagram itself never blocks or alters it.
+        mock_cross_post.return_value = {"success": True, "request_id": "mixed-req-1"}
+
+        publisher.publish_project(_project(), platforms=["instagram", "youtube"])
+
+        kwargs = mock_cross_post.call_args.kwargs
+        self.assertEqual(kwargs["platforms"], ["instagram", "youtube"])
+        self.assertIsNotNone(kwargs["youtube_extra"])
+        self.assertEqual(kwargs["youtube_extra"]["youtube_title"], "Rainbow Science")
+
+    @patch("app.departments.growth.publisher.upload_post.upload_post_service.is_configured", return_value=True)
     @patch(
         "app.departments.growth.publisher.upload_post.upload_post_service.youtube_privacy_status",
         "public",
