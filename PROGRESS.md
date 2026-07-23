@@ -692,6 +692,41 @@ kullanıcı **A: dinamik font küçültme + "..." son çare** seçeneğini onayl
       başlık da (son çare yolunu test etmek için) düzgünce "..." ile
       kesiliyor, çökme yok. İki gerçek görsel de kullanıcıya gösterildi.
 
+**Güncelleme:** `overnight/thumbnail-and-backlog` dalı kullanıcı tarafından
+`main`'e fast-forward merge edildi (`6579afd`), main üzerinde tam suite
+tekrar doğrulandı (583 passed, 11 skipped). `git push fork main` bu ortamda
+kimlik bilgisi olmadığı için başarısız oldu (`fork/main` hâlâ eski
+`09df0cd`'de) — kullanıcı kendi makinesinden push edecek.
+
+## project.json kalıcılığı (kullanıcı talebiyle)
+
+**Sebep:** Kullanıcı gerçek bir Çanakkale (Gallipoli) projesinin
+`StoryboardGenerator` çıktısını (`search_terms`, hangi asset indirildi,
+timeline'da hangi klip hangi sahneye denk geliyor) sorduğunda, bu bilginin
+**hiçbir yerde kalıcı olarak durmadığını** keşfettik — `DocumentaryProject`
+sadece Streamlit'in bellek-içi `session_state`'inde tutuluyordu, diske hiç
+yazılmıyordu. O projenin verisi geri kurtarılamadı (kullanıcı bunu kabul
+etti, gerekirse yeniden üretilecek).
+
+- [x] `default_pipeline.py`: `_save_project_snapshot(project)` — düz
+      `project.model_dump_json(indent=2)`, yeni şema yok. Her aşamadan
+      sonra artımlı çağrılıyor + `finally` bloğunda garantili son çağrı
+      (başarılı/başarısız fark etmeksizin, bir aşama exception fırlatsa
+      bile o ana kadarki durum diskte kalıyor). Asla exception fırlatmıyor.
+      Çıktı: `storage/tasks/<id>/project.json`.
+- [x] 7 yeni/güncellenmiş test: izole `_save_project_snapshot` testleri
+      (geçerli JSON, yazma hatasında bile exception fırlatmıyor) + pipeline
+      wiring testleri (gerçek storyboard/asset verisiyle dosyanın
+      oluştuğu, bir aşama patlarsa bile önceki aşamaların diskte kaldığı).
+      Tam suite: **587 passed, 11 skipped.**
+- [x] **Gerçek doğrulama:** Yeni, ucuz gerçek bir üretim (mock yok,
+      pacing=short, konu "Why Octopuses Are So Intelligent") çalıştırıldı.
+      `storage/tasks/project-json-snapshot-check/project.json` oluştu,
+      içinde her sahnenin gerçek `search_terms`'i, hangi indirilen asset
+      dosyasının (içerik hash'i) kullanıldığı, ve timeline'daki sahne↔klip
+      eşlemesi eksiksiz görünüyor — tam olarak Çanakkale projesinde
+      kurtaramadığımız bilgi türü artık her üretimde kalıcı.
+
 ## Storyboard arama terimi kalitesi düzeltmesi (kullanıcı talebiyle, gündüz)
 
 Gerçek bir Çanakkale Savaşı üretiminde `search_terms`/asset kareleri manuel
@@ -786,3 +821,31 @@ olmadan**, mevcut `search_terms` string'lerinin içine dokunacak şekilde.
       değişkeni birden gerçek API'ye sürer (bir regresyon olursa hangisinin
       sebep olduğu belirsizleşir). `shot_type` hâlâ tüketicisiz — **ayrı,
       izole bir görev olarak bırakıldı**, istenirse ileride ele alınabilir.
+
+## Merge: project.json kalıcılığı + Visual Engine (kullanıcı talebiyle)
+
+`main` origin'den 2 commit ileri gitmişti (`e9b4fee` project.json kalıcılığı
++ `8c87360` progress notu) ve yerel dal 4 commit ilerideydi (`746d274`,
+`ec4cdd5`, `3e30f44`, `0e9f088` — storyboard grounding + Visual Engine).
+`git merge origin/main` çakıştı: `PROGRESS.md` (bu bölüm) ve
+`default_pipeline.py` (aynı fonksiyonun iki farklı genişlemesi — biri her
+aşamadan sonra `_save_project_snapshot()` çağıran `try/finally` sarmalayıcı,
+diğeri storyboard çağrısına `topic`/`key_facts` ekleyen satırlar).
+
+- [x] `default_pipeline.py`: origin'in `try/finally` + her-aşama-sonrası
+      `_save_project_snapshot()` iskeleti korunarak, stage 6 (storyboard)
+      çağrısına yerel dalın `topic=project.topic`,
+      `key_facts=project.research_plan.key_facts[:3]` argümanları eklendi.
+      İki özellik de aynı fonksiyonda bir arada — biri diğerini ezmedi.
+- [x] `test/services/test_default_pipeline.py`: git otomatik birleştirdi
+      (çakışma çıkmadı), hem `_save_project_snapshot` testleri hem
+      storyboard `topic`/`key_facts` kwargs assertion'ı bir arada duruyor.
+- [x] `PROGRESS.md`: iki dalın notları kronolojik sırayla art arda kondu
+      (thumbnail fix → 6579afd fast-forward merge → project.json kalıcılığı
+      → storyboard grounding düzeltmesi → Visual Engine), hiçbir madde
+      silinmedi.
+
+## Karar bekleyen noktalar
+
+Bu merge commit'i dahil yerel `main`, `origin/main`'den ileride — push
+manuel yapılmayı bekliyor (bu ortamda GitHub credential'ı yok).
