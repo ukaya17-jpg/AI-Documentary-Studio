@@ -352,6 +352,8 @@
     "Documentary Publishing": "Publishing...",
     "Documentary Publish Success": "Published successfully",
     "Documentary Publish Failed": "Publish failed",
-    "Documentary Publish Already Done": "Already published"
+    "Documentary Publish Already Done": "Already published",
+    "Nav Create": "Create",
+    "Nav Classic Mode": "Classic Mode"
   }
 }

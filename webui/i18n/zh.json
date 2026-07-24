@@ -352,6 +352,8 @@
     "Documentary Publishing": "发布中……",
     "Documentary Publish Success": "发布成功",
     "Documentary Publish Failed": "发布失败",
-    "Documentary Publish Already Done": "已发布"
+    "Documentary Publish Already Done": "已发布",
+    "Nav Create": "创建",
+    "Nav Classic Mode": "经典模式"
   }
 }

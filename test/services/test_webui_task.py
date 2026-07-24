@@ -187,6 +187,11 @@ def test_generation_submit_skips_duplicate_config_save():
     后台任务会在完整生成期间持有 runtime_config_lock。如果 Streamlit 主脚本
     提交任务后再次调用 save_config，就可能阻塞到任务结束，使定时 Fragment
     无法刷新日志。生成分支已经提前保存配置，页面末尾只处理普通交互。
+
+    Webui yeniden yapılandırması (st.navigation) sonrası bu mantık artık
+    _render_application (global chrome + navigasyon) içinde değil, legacy
+    formun kendi sayfa fonksiyonu olan _render_legacy_page içinde -- aynı
+    davranış, sadece taşındığı fonksiyon adı değişti.
     """
     tree = ast.parse(WEBUI_MAIN.read_text(encoding="utf-8"))
     controls = next(
@@ -195,10 +200,10 @@ def test_generation_submit_skips_duplicate_config_save():
         if isinstance(node, ast.FunctionDef)
         and node.name == "_render_generation_controls"
     )
-    application = next(
+    legacy_page = next(
         node
         for node in tree.body
-        if isinstance(node, ast.FunctionDef) and node.name == "_render_application"
+        if isinstance(node, ast.FunctionDef) and node.name == "_render_legacy_page"
     )
 
     assert isinstance(controls.body[-1], ast.Return)
@@ -206,7 +211,7 @@ def test_generation_submit_skips_duplicate_config_save():
 
     submitted_assignment = next(
         node
-        for node in application.body
+        for node in legacy_page.body
         if isinstance(node, ast.Assign)
         and any(
             isinstance(target, ast.Name)
@@ -221,7 +226,7 @@ def test_generation_submit_skips_duplicate_config_save():
 
     guarded_save = next(
         node
-        for node in application.body
+        for node in legacy_page.body
         if isinstance(node, ast.If)
         and ast.unparse(node.test) == "not generation_submitted"
     )

@@ -4006,7 +4006,7 @@ def _render_publish_section(last_project: dict):
                 st.error(f"{tr('Documentary Publish Failed')}: {result.error}")
 
 
-def _render_documentary_studio_section():
+def _render_documentary_studio_page():
     """
     AI Documentary Studio (Beta): Intent -> Research -> Outline -> Scene ->
     Script -> Storyboard -> Asset -> AssetDownload -> Audio -> Timeline ->
@@ -4016,269 +4016,261 @@ def _render_documentary_studio_section():
     log fragment'ları) bağımsız tutuldu: pipeline senkron çalışır, sonuç
     doğrudan bu script çalışması içinde gösterilir.
     """
-    with st.expander(tr("AI Documentary Studio (Beta)"), expanded=False):
-        # Streamlit forbids writing to a widget's own session_state key after
-        # that widget has been instantiated in the same script run. So
-        # "Accept Suggestion" below stores the chosen topic under a separate
-        # key and reruns; this applies it here, before documentary_topic's
-        # text_input is created in the fresh run.
-        pending_topic_override = st.session_state.pop("documentary_topic_override", None)
-        if pending_topic_override is not None:
-            st.session_state["documentary_topic"] = pending_topic_override
+    st.header(tr("AI Documentary Studio (Beta)"))
 
-        topic_col, refine_col = st.columns([0.85, 0.15])
-        with topic_col:
-            topic = st.text_input(
-                tr("Documentary Topic"),
-                key="documentary_topic",
-                placeholder=tr("Documentary Topic Placeholder"),
-            )
-        with refine_col:
-            st.markdown("<div style='height: 1.85em'></div>", unsafe_allow_html=True)
-            refine_clicked = st.button(
-                tr("Refine Topic"),
-                key="documentary_refine_topic_button",
-                icon=":material/auto_awesome:",
-                use_container_width=True,
-            )
+    # Streamlit forbids writing to a widget's own session_state key after
+    # that widget has been instantiated in the same script run. So
+    # "Accept Suggestion" below stores the chosen topic under a separate
+    # key and reruns; this applies it here, before documentary_topic's
+    # text_input is created in the fresh run.
+    pending_topic_override = st.session_state.pop("documentary_topic_override", None)
+    if pending_topic_override is not None:
+        st.session_state["documentary_topic"] = pending_topic_override
 
-        if refine_clicked:
-            if not topic.strip():
-                st.warning(tr("Documentary Topic Required"))
-            else:
-                with st.spinner(tr("Refining Topic")):
-                    try:
-                        idea = idea_generator.generate_idea(topic.strip())
-                        st.session_state["documentary_idea_suggestion"] = idea.model_dump()
-                    except Exception:
-                        logger.exception(
-                            f"documentary studio: idea refinement failed for topic={topic!r}"
-                        )
-                        st.error(tr("Documentary Topic Refinement Failed"))
-
-        suggestion = st.session_state.get("documentary_idea_suggestion")
-        if suggestion:
-            if suggestion["topic"].strip() == topic.strip():
-                st.caption(tr("Documentary Topic Already Clear"))
-                st.session_state.pop("documentary_idea_suggestion", None)
-            else:
-                st.info(f"**{suggestion['topic']}**\n\n{suggestion['angle']}")
-                accept_col, reject_col = st.columns(2)
-                with accept_col:
-                    if st.button(
-                        tr("Accept Suggestion"),
-                        key="documentary_accept_suggestion",
-                        use_container_width=True,
-                    ):
-                        st.session_state["documentary_topic_override"] = suggestion["topic"]
-                        st.session_state.pop("documentary_idea_suggestion", None)
-                        st.rerun()
-                with reject_col:
-                    if st.button(
-                        tr("Reject Suggestion"),
-                        key="documentary_reject_suggestion",
-                        use_container_width=True,
-                    ):
-                        st.session_state.pop("documentary_idea_suggestion", None)
-                        st.rerun()
-
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            language = st.selectbox(
-                tr("Documentary Language"),
-                options=["auto", "tr", "en"],
-                index=0,
-                key="documentary_language",
-            )
-        with col2:
-            category_options = ["auto"] + [c.value for c in TopicCategory]
-            topic_category = st.selectbox(
-                tr("Documentary Topic Category"),
-                options=category_options,
-                index=0,
-                key="documentary_topic_category",
-                help=tr("Documentary Topic Category Help"),
-            )
-        with col3:
-            pacing = st.selectbox(
-                tr("Documentary Pacing"),
-                options=[p.value for p in Pacing],
-                index=0,
-                key="documentary_pacing",
-            )
-
-        col4, col5 = st.columns(2)
-        with col4:
-            tone_options = ["auto"] + [t.value for t in Tone]
-            tone = st.selectbox(
-                tr("Documentary Tone"),
-                options=tone_options,
-                index=0,
-                key="documentary_tone",
-                help=tr("Documentary Tone Help"),
-            )
-        with col5:
-            format_options = ["standard"] + [f.value for f in Format]
-            format_choice = st.selectbox(
-                tr("Documentary Format"),
-                options=format_options,
-                index=0,
-                key="documentary_format",
-                help=tr("Documentary Format Help"),
-            )
-
-        voice_name = st.text_input(
-            tr("Documentary Voice Name"),
-            value=config.ui.get("voice_name", "") or "en-US-JennyNeural",
-            key="documentary_voice_name",
-            help=tr("Documentary Voice Name Help"),
+    topic_col, refine_col = st.columns([0.85, 0.15])
+    with topic_col:
+        topic = st.text_input(
+            tr("Documentary Topic"),
+            key="documentary_topic",
+            placeholder=tr("Documentary Topic Placeholder"),
         )
-
-        generate_clicked = st.button(
-            tr("Generate Documentary"),
-            key="documentary_generate_button",
-            type="primary",
+    with refine_col:
+        st.markdown("<div style='height: 1.85em'></div>", unsafe_allow_html=True)
+        refine_clicked = st.button(
+            tr("Refine Topic"),
+            key="documentary_refine_topic_button",
+            icon=":material/auto_awesome:",
             use_container_width=True,
         )
 
-        if generate_clicked:
-            if not topic.strip():
-                st.error(tr("Documentary Topic Required"))
-                st.stop()
-
-            project_id = str(uuid4())
-            try:
-                with st.spinner(tr("Generating Documentary")):
-                    project = default_pipeline.run_pipeline(
-                        project_id=project_id,
-                        topic=topic.strip(),
-                        language=language,
-                        topic_category_override=(
-                            None if topic_category == "auto" else topic_category
-                        ),
-                        tone=(None if tone == "auto" else tone),
-                        format=(None if format_choice == "standard" else format_choice),
-                        pacing=pacing,
-                        voice_name=voice_name.strip(),
+    if refine_clicked:
+        if not topic.strip():
+            st.warning(tr("Documentary Topic Required"))
+        else:
+            with st.spinner(tr("Refining Topic")):
+                try:
+                    idea = idea_generator.generate_idea(topic.strip())
+                    st.session_state["documentary_idea_suggestion"] = idea.model_dump()
+                except Exception:
+                    logger.exception(
+                        f"documentary studio: idea refinement failed for topic={topic!r}"
                     )
-            except Exception as exc:
-                logger.exception(
-                    f"documentary studio: pipeline failed for topic={topic!r}"
+                    st.error(tr("Documentary Topic Refinement Failed"))
+
+    suggestion = st.session_state.get("documentary_idea_suggestion")
+    if suggestion:
+        if suggestion["topic"].strip() == topic.strip():
+            st.caption(tr("Documentary Topic Already Clear"))
+            st.session_state.pop("documentary_idea_suggestion", None)
+        else:
+            st.info(f"**{suggestion['topic']}**\n\n{suggestion['angle']}")
+            accept_col, reject_col = st.columns(2)
+            with accept_col:
+                if st.button(
+                    tr("Accept Suggestion"),
+                    key="documentary_accept_suggestion",
+                    use_container_width=True,
+                ):
+                    st.session_state["documentary_topic_override"] = suggestion["topic"]
+                    st.session_state.pop("documentary_idea_suggestion", None)
+                    st.rerun()
+            with reject_col:
+                if st.button(
+                    tr("Reject Suggestion"),
+                    key="documentary_reject_suggestion",
+                    use_container_width=True,
+                ):
+                    st.session_state.pop("documentary_idea_suggestion", None)
+                    st.rerun()
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        language = st.selectbox(
+            tr("Documentary Language"),
+            options=["auto", "tr", "en"],
+            index=0,
+            key="documentary_language",
+        )
+    with col2:
+        category_options = ["auto"] + [c.value for c in TopicCategory]
+        topic_category = st.selectbox(
+            tr("Documentary Topic Category"),
+            options=category_options,
+            index=0,
+            key="documentary_topic_category",
+            help=tr("Documentary Topic Category Help"),
+        )
+    with col3:
+        pacing = st.selectbox(
+            tr("Documentary Pacing"),
+            options=[p.value for p in Pacing],
+            index=0,
+            key="documentary_pacing",
+        )
+
+    col4, col5 = st.columns(2)
+    with col4:
+        tone_options = ["auto"] + [t.value for t in Tone]
+        tone = st.selectbox(
+            tr("Documentary Tone"),
+            options=tone_options,
+            index=0,
+            key="documentary_tone",
+            help=tr("Documentary Tone Help"),
+        )
+    with col5:
+        format_options = ["standard"] + [f.value for f in Format]
+        format_choice = st.selectbox(
+            tr("Documentary Format"),
+            options=format_options,
+            index=0,
+            key="documentary_format",
+            help=tr("Documentary Format Help"),
+        )
+
+    voice_name = st.text_input(
+        tr("Documentary Voice Name"),
+        value=config.ui.get("voice_name", "") or "en-US-JennyNeural",
+        key="documentary_voice_name",
+        help=tr("Documentary Voice Name Help"),
+    )
+
+    generate_clicked = st.button(
+        tr("Generate Documentary"),
+        key="documentary_generate_button",
+        type="primary",
+        use_container_width=True,
+    )
+
+    if generate_clicked:
+        if not topic.strip():
+            st.error(tr("Documentary Topic Required"))
+            st.stop()
+
+        project_id = str(uuid4())
+        try:
+            with st.spinner(tr("Generating Documentary")):
+                project = default_pipeline.run_pipeline(
+                    project_id=project_id,
+                    topic=topic.strip(),
+                    language=language,
+                    topic_category_override=(
+                        None if topic_category == "auto" else topic_category
+                    ),
+                    tone=(None if tone == "auto" else tone),
+                    format=(None if format_choice == "standard" else format_choice),
+                    pacing=pacing,
+                    voice_name=voice_name.strip(),
                 )
-                st.error(f"{tr('Documentary Generation Failed')}: {exc}")
-                st.stop()
+        except Exception as exc:
+            logger.exception(
+                f"documentary studio: pipeline failed for topic={topic!r}"
+            )
+            st.error(f"{tr('Documentary Generation Failed')}: {exc}")
+            st.stop()
 
-            st.session_state["documentary_last_project"] = project.model_dump(mode="json")
-            st.success(tr("Documentary Generated"))
+        st.session_state["documentary_last_project"] = project.model_dump(mode="json")
+        st.success(tr("Documentary Generated"))
 
-        last_project = st.session_state.get("documentary_last_project")
-        final_video_path = (last_project or {}).get("final_video_path", "")
-        if final_video_path and os.path.exists(final_video_path):
-            st.video(final_video_path)
+    last_project = st.session_state.get("documentary_last_project")
+    final_video_path = (last_project or {}).get("final_video_path", "")
+    if final_video_path and os.path.exists(final_video_path):
+        st.video(final_video_path)
 
-            thumbnail_path = (last_project or {}).get("thumbnail_path", "")
-            thumbnail_variant_b_path = (last_project or {}).get("thumbnail_variant_b_path", "")
-            if thumbnail_path and os.path.exists(thumbnail_path):
-                if thumbnail_variant_b_path and os.path.exists(thumbnail_variant_b_path):
-                    thumb_col_a, thumb_col_b = st.columns(2)
-                    with thumb_col_a:
-                        st.image(
-                            thumbnail_path, caption=tr("Documentary Thumbnail Variant A"), width=240
-                        )
-                    with thumb_col_b:
-                        st.image(
-                            thumbnail_variant_b_path,
-                            caption=tr("Documentary Thumbnail Variant B"),
-                            width=240,
-                        )
-                else:
-                    st.image(thumbnail_path, caption=tr("Documentary Thumbnail"), width=240)
-
-            research_plan = (last_project or {}).get("research_plan") or {}
-            if research_plan.get("grounded"):
-                st.caption(f"✅ {tr('Documentary Research Grounded')}")
+        thumbnail_path = (last_project or {}).get("thumbnail_path", "")
+        thumbnail_variant_b_path = (last_project or {}).get("thumbnail_variant_b_path", "")
+        if thumbnail_path and os.path.exists(thumbnail_path):
+            if thumbnail_variant_b_path and os.path.exists(thumbnail_variant_b_path):
+                thumb_col_a, thumb_col_b = st.columns(2)
+                with thumb_col_a:
+                    st.image(
+                        thumbnail_path, caption=tr("Documentary Thumbnail Variant A"), width=240
+                    )
+                with thumb_col_b:
+                    st.image(
+                        thumbnail_variant_b_path,
+                        caption=tr("Documentary Thumbnail Variant B"),
+                        width=240,
+                    )
             else:
-                st.caption(f"ℹ️ {tr('Documentary Research Not Grounded')}")
+                st.image(thumbnail_path, caption=tr("Documentary Thumbnail"), width=240)
 
-            seo = (last_project or {}).get("seo") or {}
-            if seo.get("title"):
-                st.text_input(
-                    tr("Documentary SEO Title"), value=seo["title"], disabled=True
-                )
-            if seo.get("description"):
-                st.text_area(
-                    tr("Documentary SEO Description"),
-                    value=seo["description"],
-                    disabled=True,
-                )
-            if seo.get("hashtags"):
-                st.text_input(
-                    tr("Documentary SEO Hashtags"),
-                    value=" ".join(seo["hashtags"]),
-                    disabled=True,
-                )
-            if seo.get("chapters") or seo.get("end_screen_suggestion") or seo.get("pinned_comment"):
+        research_plan = (last_project or {}).get("research_plan") or {}
+        if research_plan.get("grounded"):
+            st.caption(f"✅ {tr('Documentary Research Grounded')}")
+        else:
+            st.caption(f"ℹ️ {tr('Documentary Research Not Grounded')}")
+
+        seo = (last_project or {}).get("seo") or {}
+        if seo.get("title"):
+            st.text_input(
+                tr("Documentary SEO Title"), value=seo["title"], disabled=True
+            )
+        if seo.get("description"):
+            st.text_area(
+                tr("Documentary SEO Description"),
+                value=seo["description"],
+                disabled=True,
+            )
+        if seo.get("hashtags"):
+            st.text_input(
+                tr("Documentary SEO Hashtags"),
+                value=" ".join(seo["hashtags"]),
+                disabled=True,
+            )
+        if seo.get("chapters") or seo.get("end_screen_suggestion") or seo.get("pinned_comment"):
+            if seo.get("chapters"):
+                # Shown outside the (collapsed-by-default) expander below --
+                # a warning only the user sees after clicking to expand is
+                # easy to miss and act on chapters that won't actually work
+                # on the Shorts/TikTok/Reels output this pipeline produces.
+                st.warning(tr("Documentary SEO Chapters Help"))
+            with st.expander(tr("Documentary SEO Extras")):
                 if seo.get("chapters"):
-                    # Shown outside the (collapsed-by-default) expander below --
-                    # a warning only the user sees after clicking to expand is
-                    # easy to miss and act on chapters that won't actually work
-                    # on the Shorts/TikTok/Reels output this pipeline produces.
-                    st.warning(tr("Documentary SEO Chapters Help"))
-                with st.expander(tr("Documentary SEO Extras")):
-                    if seo.get("chapters"):
-                        st.text_area(
-                            tr("Documentary SEO Chapters"),
-                            value="\n".join(seo["chapters"]),
-                            disabled=True,
-                        )
-                    if seo.get("end_screen_suggestion"):
-                        st.text_input(
-                            tr("Documentary SEO End Screen"),
-                            value=seo["end_screen_suggestion"],
-                            disabled=True,
-                        )
-                    if seo.get("pinned_comment"):
-                        st.text_input(
-                            tr("Documentary SEO Pinned Comment"),
-                            value=seo["pinned_comment"],
-                            disabled=True,
-                        )
+                    st.text_area(
+                        tr("Documentary SEO Chapters"),
+                        value="\n".join(seo["chapters"]),
+                        disabled=True,
+                    )
+                if seo.get("end_screen_suggestion"):
+                    st.text_input(
+                        tr("Documentary SEO End Screen"),
+                        value=seo["end_screen_suggestion"],
+                        disabled=True,
+                    )
+                if seo.get("pinned_comment"):
+                    st.text_input(
+                        tr("Documentary SEO Pinned Comment"),
+                        value=seo["pinned_comment"],
+                        disabled=True,
+                    )
 
-            quality_verdict = (last_project or {}).get("quality_verdict")
-            if quality_verdict:
-                status_icon = "✅" if quality_verdict["passed"] else "⚠️"
-                st.markdown(
-                    f"**{tr('Documentary Quality Note')}:** "
-                    f"{quality_verdict['overall_score']}/5 {status_icon}"
-                )
-                st.caption(
-                    f"{tr('Documentary Quality Coherence')}: {quality_verdict['coherence_score']}/5 · "
-                    f"{tr('Documentary Quality Pacing')}: {quality_verdict['pacing_fit_score']}/5 · "
-                    f"{tr('Documentary Quality SEO')}: {quality_verdict['seo_quality_score']}/5"
-                )
-                if quality_verdict["issues"]:
-                    with st.expander(tr("Documentary Quality Issues")):
-                        for issue in quality_verdict["issues"]:
-                            st.write(f"- {issue}")
+        quality_verdict = (last_project or {}).get("quality_verdict")
+        if quality_verdict:
+            status_icon = "✅" if quality_verdict["passed"] else "⚠️"
+            st.markdown(
+                f"**{tr('Documentary Quality Note')}:** "
+                f"{quality_verdict['overall_score']}/5 {status_icon}"
+            )
+            st.caption(
+                f"{tr('Documentary Quality Coherence')}: {quality_verdict['coherence_score']}/5 · "
+                f"{tr('Documentary Quality Pacing')}: {quality_verdict['pacing_fit_score']}/5 · "
+                f"{tr('Documentary Quality SEO')}: {quality_verdict['seo_quality_score']}/5"
+            )
+            if quality_verdict["issues"]:
+                with st.expander(tr("Documentary Quality Issues")):
+                    for issue in quality_verdict["issues"]:
+                        st.write(f"- {issue}")
 
-            _render_publish_section(last_project)
+        _render_publish_section(last_project)
 
 
-def _render_application():
-    """按固定顺序渲染顶部栏、弹窗、生成表单和任务结果。"""
-    _render_top_bar()
+def _render_legacy_page():
+    """遗留 MoneyPrinterTurbo 单视频生成表单：设置面板、生成控件、任务结果。
 
-    if st.session_state.get("settings_dialog_open", False):
-        _render_settings_dialog()
-
-    restore_applied = _apply_pending_task_restore()
-    restore_candidate_id = st.session_state.get("task_restore_candidate_id")
-    if restore_candidate_id:
-        _render_task_restore_dialog(restore_candidate_id)
-    restore_succeeded = st.session_state.pop("task_restore_succeeded", False)
-    if restore_applied or restore_succeeded:
-        st.success(tr("Task Configuration Loaded"))
-
+    原 _render_application() 的主体，逻辑完全不变 -- 仅从顶层渲染函数中
+    提取出来，成为 st.navigation 的一个独立页面。
+    """
     with st.container(key="main_settings_grid"):
         panel = st.columns(4)
     left_panel = panel[0]
@@ -4307,13 +4299,53 @@ def _render_application():
         voice_mode,
     )
 
-    _render_documentary_studio_section()
-
     # 生成分支在启动后台线程前已经保存过配置。这里再次保存既没有收益，还可能
     # 与持有 runtime_config_lock 的长任务竞争，使当前 Streamlit 脚本一直阻塞
     # 到视频完成，进而让日志 Fragment 无法运行。普通页面交互仍保留统一保存。
     if not generation_submitted:
         config.save_config()
+
+
+def _render_application():
+    """Üst bar, dialoglar ve görev geri yükleme onayını (global) render eder,
+    sayfa gövdesini st.navigation'a devreder.
+
+    Görev geri yükleme dialogu üst bardaki Task Manager'dan tetiklenir ve
+    hangi sayfanın seçili olduğundan bağımsızdır -- bu yüzden sayfa
+    navigasyonunun dışında, global bir dialog olarak render edilmeye devam
+    eder. Aksi halde kullanıcı Klasik Mod dışındaki bir sayfadayken
+    "Restore"a tıklarsa hiçbir şey olmamış gibi görünürdü.
+    """
+    _render_top_bar()
+
+    if st.session_state.get("settings_dialog_open", False):
+        _render_settings_dialog()
+
+    restore_applied = _apply_pending_task_restore()
+    restore_candidate_id = st.session_state.get("task_restore_candidate_id")
+    if restore_candidate_id:
+        _render_task_restore_dialog(restore_candidate_id)
+    restore_succeeded = st.session_state.pop("task_restore_succeeded", False)
+    if restore_applied or restore_succeeded:
+        st.success(tr("Task Configuration Loaded"))
+
+    pg = st.navigation(
+        [
+            st.Page(
+                _render_legacy_page,
+                title=tr("Nav Classic Mode"),
+                icon="🔧",
+                default=True,
+            ),
+            st.Page(
+                _render_documentary_studio_page,
+                title=tr("Nav Create"),
+                icon="🎬",
+            ),
+        ],
+        position="sidebar",
+    )
+    pg.run()
 
 
 _render_application()

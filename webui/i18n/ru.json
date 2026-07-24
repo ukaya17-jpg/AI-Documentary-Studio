@@ -325,6 +325,8 @@
     "Documentary Publishing": "Публикация...",
     "Documentary Publish Success": "Успешно опубликовано",
     "Documentary Publish Failed": "Ошибка публикации",
-    "Documentary Publish Already Done": "Уже опубликовано"
+    "Documentary Publish Already Done": "Уже опубликовано",
+    "Nav Create": "Создать",
+    "Nav Classic Mode": "Классический режим"
   }
 }
