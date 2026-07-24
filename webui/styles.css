@@ -116,9 +116,9 @@ div[class*="st-key-voice_mode_control"] [role="radiogroup"] > button p {
     outline-offset: 2px;
 }
 
-/* 项目名称改为产品品牌"AI Documentary Studio"后，底层引擎归属改用这行小字
-   说明，不再依赖标题本身携带这层信息。字号明显小于标题且弱化颜色，保持
-   品牌名的视觉主导地位。 */
+/* 项目名称改为产品品牌"AI Documentary Studio"后，标题不再直接携带项目归属
+   信息，改用这行小字（当前内容为项目所有者署名）承载。字号明显小于标题且
+   弱化颜色，保持品牌名的视觉主导地位。 */
 .mpt-brand__tagline {
     margin: 0.15rem 0 0;
     font-size: 0.8125rem;
