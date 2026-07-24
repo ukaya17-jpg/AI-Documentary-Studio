@@ -4175,94 +4175,110 @@ def _render_documentary_studio_page():
     last_project = st.session_state.get("documentary_last_project")
     final_video_path = (last_project or {}).get("final_video_path", "")
     if final_video_path and os.path.exists(final_video_path):
-        st.video(final_video_path)
+        # A portrait 9:16 preview stretched across the full "wide" layout
+        # would render taller than most screens (~2000px at typical desktop
+        # widths). Keeping the results panel in a fixed-ratio center column
+        # caps it at a sane size regardless of viewport width.
+        _, results_col, _ = st.columns([1, 2, 1])
+        with results_col:
+            st.video(final_video_path)
 
-        thumbnail_path = (last_project or {}).get("thumbnail_path", "")
-        thumbnail_variant_b_path = (last_project or {}).get("thumbnail_variant_b_path", "")
-        if thumbnail_path and os.path.exists(thumbnail_path):
-            if thumbnail_variant_b_path and os.path.exists(thumbnail_variant_b_path):
-                thumb_col_a, thumb_col_b = st.columns(2)
-                with thumb_col_a:
-                    st.image(
-                        thumbnail_path, caption=tr("Documentary Thumbnail Variant A"), width=240
-                    )
-                with thumb_col_b:
-                    st.image(
-                        thumbnail_variant_b_path,
-                        caption=tr("Documentary Thumbnail Variant B"),
-                        width=240,
-                    )
+            thumbnail_path = (last_project or {}).get("thumbnail_path", "")
+            thumbnail_variant_b_path = (last_project or {}).get(
+                "thumbnail_variant_b_path", ""
+            )
+            if thumbnail_path and os.path.exists(thumbnail_path):
+                if thumbnail_variant_b_path and os.path.exists(thumbnail_variant_b_path):
+                    thumb_col_a, thumb_col_b = st.columns(2)
+                    with thumb_col_a:
+                        st.image(
+                            thumbnail_path,
+                            caption=tr("Documentary Thumbnail Variant A"),
+                            width=240,
+                        )
+                    with thumb_col_b:
+                        st.image(
+                            thumbnail_variant_b_path,
+                            caption=tr("Documentary Thumbnail Variant B"),
+                            width=240,
+                        )
+                else:
+                    st.image(thumbnail_path, caption=tr("Documentary Thumbnail"), width=240)
+
+            research_plan = (last_project or {}).get("research_plan") or {}
+            if research_plan.get("grounded"):
+                st.caption(f"✅ {tr('Documentary Research Grounded')}")
             else:
-                st.image(thumbnail_path, caption=tr("Documentary Thumbnail"), width=240)
+                st.caption(f"ℹ️ {tr('Documentary Research Not Grounded')}")
 
-        research_plan = (last_project or {}).get("research_plan") or {}
-        if research_plan.get("grounded"):
-            st.caption(f"✅ {tr('Documentary Research Grounded')}")
-        else:
-            st.caption(f"ℹ️ {tr('Documentary Research Not Grounded')}")
-
-        seo = (last_project or {}).get("seo") or {}
-        if seo.get("title"):
-            st.text_input(
-                tr("Documentary SEO Title"), value=seo["title"], disabled=True
-            )
-        if seo.get("description"):
-            st.text_area(
-                tr("Documentary SEO Description"),
-                value=seo["description"],
-                disabled=True,
-            )
-        if seo.get("hashtags"):
-            st.text_input(
-                tr("Documentary SEO Hashtags"),
-                value=" ".join(seo["hashtags"]),
-                disabled=True,
-            )
-        if seo.get("chapters") or seo.get("end_screen_suggestion") or seo.get("pinned_comment"):
-            if seo.get("chapters"):
-                # Shown outside the (collapsed-by-default) expander below --
-                # a warning only the user sees after clicking to expand is
-                # easy to miss and act on chapters that won't actually work
-                # on the Shorts/TikTok/Reels output this pipeline produces.
-                st.warning(tr("Documentary SEO Chapters Help"))
-            with st.expander(tr("Documentary SEO Extras")):
+            seo = (last_project or {}).get("seo") or {}
+            if seo.get("title"):
+                st.text_input(
+                    tr("Documentary SEO Title"), value=seo["title"], disabled=True
+                )
+            if seo.get("description"):
+                st.text_area(
+                    tr("Documentary SEO Description"),
+                    value=seo["description"],
+                    disabled=True,
+                )
+            if seo.get("hashtags"):
+                st.text_input(
+                    tr("Documentary SEO Hashtags"),
+                    value=" ".join(seo["hashtags"]),
+                    disabled=True,
+                )
+            if (
+                seo.get("chapters")
+                or seo.get("end_screen_suggestion")
+                or seo.get("pinned_comment")
+            ):
                 if seo.get("chapters"):
-                    st.text_area(
-                        tr("Documentary SEO Chapters"),
-                        value="\n".join(seo["chapters"]),
-                        disabled=True,
-                    )
-                if seo.get("end_screen_suggestion"):
-                    st.text_input(
-                        tr("Documentary SEO End Screen"),
-                        value=seo["end_screen_suggestion"],
-                        disabled=True,
-                    )
-                if seo.get("pinned_comment"):
-                    st.text_input(
-                        tr("Documentary SEO Pinned Comment"),
-                        value=seo["pinned_comment"],
-                        disabled=True,
-                    )
+                    # Shown outside the (collapsed-by-default) expander below --
+                    # a warning only the user sees after clicking to expand is
+                    # easy to miss and act on chapters that won't actually work
+                    # on the Shorts/TikTok/Reels output this pipeline produces.
+                    st.warning(tr("Documentary SEO Chapters Help"))
+                with st.expander(tr("Documentary SEO Extras")):
+                    if seo.get("chapters"):
+                        st.text_area(
+                            tr("Documentary SEO Chapters"),
+                            value="\n".join(seo["chapters"]),
+                            disabled=True,
+                        )
+                    if seo.get("end_screen_suggestion"):
+                        st.text_input(
+                            tr("Documentary SEO End Screen"),
+                            value=seo["end_screen_suggestion"],
+                            disabled=True,
+                        )
+                    if seo.get("pinned_comment"):
+                        st.text_input(
+                            tr("Documentary SEO Pinned Comment"),
+                            value=seo["pinned_comment"],
+                            disabled=True,
+                        )
 
-        quality_verdict = (last_project or {}).get("quality_verdict")
-        if quality_verdict:
-            status_icon = "✅" if quality_verdict["passed"] else "⚠️"
-            st.markdown(
-                f"**{tr('Documentary Quality Note')}:** "
-                f"{quality_verdict['overall_score']}/5 {status_icon}"
-            )
-            st.caption(
-                f"{tr('Documentary Quality Coherence')}: {quality_verdict['coherence_score']}/5 · "
-                f"{tr('Documentary Quality Pacing')}: {quality_verdict['pacing_fit_score']}/5 · "
-                f"{tr('Documentary Quality SEO')}: {quality_verdict['seo_quality_score']}/5"
-            )
-            if quality_verdict["issues"]:
-                with st.expander(tr("Documentary Quality Issues")):
-                    for issue in quality_verdict["issues"]:
-                        st.write(f"- {issue}")
+            quality_verdict = (last_project or {}).get("quality_verdict")
+            if quality_verdict:
+                status_icon = "✅" if quality_verdict["passed"] else "⚠️"
+                st.markdown(
+                    f"**{tr('Documentary Quality Note')}:** "
+                    f"{quality_verdict['overall_score']}/5 {status_icon}"
+                )
+                st.caption(
+                    f"{tr('Documentary Quality Coherence')}: "
+                    f"{quality_verdict['coherence_score']}/5 · "
+                    f"{tr('Documentary Quality Pacing')}: "
+                    f"{quality_verdict['pacing_fit_score']}/5 · "
+                    f"{tr('Documentary Quality SEO')}: {quality_verdict['seo_quality_score']}/5"
+                )
+                if quality_verdict["issues"]:
+                    with st.expander(tr("Documentary Quality Issues")):
+                        for issue in quality_verdict["issues"]:
+                            st.write(f"- {issue}")
 
-        _render_publish_section(last_project)
+            _render_publish_section(last_project)
 
 
 def _render_legacy_page():
@@ -4332,15 +4348,22 @@ def _render_application():
     pg = st.navigation(
         [
             st.Page(
-                _render_legacy_page,
-                title=tr("Nav Classic Mode"),
-                icon="🔧",
-                default=True,
-            ),
-            st.Page(
                 _render_documentary_studio_page,
                 title=tr("Nav Create"),
                 icon="🎬",
+                default=True,
+            ),
+            st.Page(
+                _render_legacy_page,
+                title=tr("Nav Classic Mode"),
+                icon="🔧",
+                # Stable, explicit url_path so tests can target this page via
+                # AppTest._page_hash without depending on the render
+                # function's name (AppTest.switch_page() only supports
+                # file-based pages, not the callable pages st.navigation uses
+                # here -- see _LEGACY_PAGE_HASH in test/services/test_webui_bgm.py
+                # and friends).
+                url_path="classic",
             ),
         ],
         position="sidebar",

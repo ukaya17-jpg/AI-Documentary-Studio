@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from loguru import logger
 from streamlit.testing.v1 import AppTest
+from streamlit.util import calc_hash
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
@@ -19,6 +20,14 @@ ROOT_DIR = Path(__file__).parent.parent.parent
 WEBUI_MAIN = ROOT_DIR / "webui" / "Main.py"
 I18N_DIR = ROOT_DIR / "webui" / "i18n"
 TEST_LOCALES = ("en", "zh")
+
+# BGM/TTS 控件都在“Klasik Mod”(webui/Main.py 的 _render_legacy_page，
+# url_path="classic")页面里。Documentary Studio 现在是默认页
+# (st.navigation)，AppTest 不指定页面哈希就只会渲染默认页，下面这些控件根本
+# 不会被创建。AppTest.switch_page() 只支持基于文件的页面，这里用的是基于函数
+# 的 st.navigation，用不了；官方文档说明的做法（见 AppTest docstring）就是
+# 在 run() 之前直接设置目标页面的哈希。
+_LEGACY_PAGE_HASH = calc_hash("classic")
 
 
 def _valid_wav_bytes() -> bytes:
@@ -57,6 +66,7 @@ class TestWebuiBackgroundMusic(unittest.TestCase):
 
     def _open_custom_bgm_panel(self, locale):
         app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+        app._page_hash = _LEGACY_PAGE_HASH
         # CI 没有本机 config.toml 中保存的语言。显式覆盖 session locale，既能
         # 复现 CI 的英文默认值，也能保护开发者常用的中文界面回归。
         app.session_state["ui_language"] = locale
@@ -68,6 +78,7 @@ class TestWebuiBackgroundMusic(unittest.TestCase):
 
     def _open_sonilo_bgm_panel(self, locale):
         app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+        app._page_hash = _LEGACY_PAGE_HASH
         app.session_state["ui_language"] = locale
         app.run()
         source_select = self._widget_by_key(app.selectbox, "bgm_type_select")
@@ -76,6 +87,7 @@ class TestWebuiBackgroundMusic(unittest.TestCase):
 
     def _open_elevenlabs_bgm_panel(self, locale):
         app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+        app._page_hash = _LEGACY_PAGE_HASH
         app.session_state["ui_language"] = locale
         app.run()
         source_select = self._widget_by_key(app.selectbox, "bgm_type_select")
@@ -320,6 +332,7 @@ class TestWebuiBackgroundMusic(unittest.TestCase):
             patch.object(voice, "get_elevenlabs_voices", return_value=[]),
         ):
             app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+            app._page_hash = _LEGACY_PAGE_HASH
             app.session_state["ui_language"] = "en"
             app.run()
             self._widget_by_key(

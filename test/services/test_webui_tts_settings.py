@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from streamlit.testing.v1 import AppTest
+from streamlit.util import calc_hash
 
 from app.config import config
 from app.services import voice
@@ -10,6 +11,13 @@ from app.services import voice
 
 ROOT_DIR = Path(__file__).parent.parent.parent
 WEBUI_MAIN = ROOT_DIR / "webui" / "Main.py"
+
+# TTS Provider 控件在“Klasik Mod”页面（webui/Main.py 的 _render_legacy_page，
+# url_path="classic"）。Documentary Studio 现在是 st.navigation 的默认页，
+# AppTest 不显式指定页面哈希只会渲染默认页。AppTest.switch_page() 只支持
+# 基于文件的页面，这里是基于函数的 st.navigation 用不了，官方做法（见
+# AppTest docstring）是在 run() 之前直接设置目标页面哈希。
+_LEGACY_PAGE_HASH = calc_hash("classic")
 I18N_DIR = ROOT_DIR / "webui" / "i18n"
 LOCALES = ("de", "en", "es", "id", "pt", "ru", "tr", "vi", "zh")
 
@@ -81,6 +89,7 @@ def test_tts_provider_inputs_render_the_standardized_labels():
         patch.object(voice, "get_chatterbox_voices", return_value=[]),
     ):
         app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+        app._page_hash = _LEGACY_PAGE_HASH
         app.session_state["ui_language"] = "zh"
         app.run()
 
