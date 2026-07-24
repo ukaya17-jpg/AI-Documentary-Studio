@@ -328,6 +328,12 @@
     "Documentary Publish Already Done": "Bereits veröffentlicht",
     "Nav Create": "Erstellen",
     "Nav Classic Mode": "Klassischer Modus",
-    "Brand Tagline": "Projektinhaber: Ufuk Kaya"
+    "Brand Tagline": "Projektinhaber: Ufuk Kaya",
+    "Nav History": "Verlauf",
+    "Documentary History Empty": "Noch keine abgeschlossenen Produktionen -- erstellen Sie eine über \"Erstellen\", damit sie hier erscheint.",
+    "Documentary History Reopen": "Erneut ansehen",
+    "Documentary History Close": "Schließen",
+    "Documentary History Download": "Herunterladen",
+    "Documentary History Download Ready": "Download bereit"
   }
 }

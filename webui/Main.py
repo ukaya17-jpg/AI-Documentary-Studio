@@ -4008,6 +4008,124 @@ def _render_publish_section(last_project: dict):
                 st.error(f"{tr('Documentary Publish Failed')}: {result.error}")
 
 
+def _render_project_media_panel(project: dict) -> bool:
+    """Video, thumbnail(lar), research grounding notu, SEO alanları ve kalite
+    notunu render eder -- sonuç panelinin salt-okunur kısmı.
+
+    Documentary Studio (yeni üretim sonrası) ve Geçmiş Üretimler ("Tekrar
+    Görüntüle") sayfalarının ikisi de bu fonksiyonu kullanır, tutarlı bir
+    görünüm için. Publish bölümü kasıtlı olarak burada değil: publish
+    harici platformlara gerçek bir yayın eylemi tetikliyor, Geçmiş
+    Üretimler sayfası ise tamamen salt-okunur kalmalı -- Documentary
+    Studio kendi çağrısında bu fonksiyondan sonra ayrıca
+    _render_publish_section'ı kendi (aynı ortalanmış sütun) bağlamında
+    çağırır.
+
+    Çağıran, sonuç panelinin genişliğini (örn. ortalanmış sabit-oranlı bir
+    sütun) kendi kurar -- bu fonksiyon sadece içeriği render eder.
+
+    final_video_path diskte yoksa hiçbir şey render etmez ve False döner.
+    """
+    final_video_path = (project or {}).get("final_video_path", "")
+    if not final_video_path or not os.path.exists(final_video_path):
+        return False
+
+    st.video(final_video_path)
+
+    thumbnail_path = (project or {}).get("thumbnail_path", "")
+    thumbnail_variant_b_path = (project or {}).get("thumbnail_variant_b_path", "")
+    if thumbnail_path and os.path.exists(thumbnail_path):
+        if thumbnail_variant_b_path and os.path.exists(thumbnail_variant_b_path):
+            thumb_col_a, thumb_col_b = st.columns(2)
+            with thumb_col_a:
+                st.image(
+                    thumbnail_path,
+                    caption=tr("Documentary Thumbnail Variant A"),
+                    width=240,
+                )
+            with thumb_col_b:
+                st.image(
+                    thumbnail_variant_b_path,
+                    caption=tr("Documentary Thumbnail Variant B"),
+                    width=240,
+                )
+        else:
+            st.image(thumbnail_path, caption=tr("Documentary Thumbnail"), width=240)
+
+    research_plan = (project or {}).get("research_plan") or {}
+    if research_plan.get("grounded"):
+        st.caption(f"✅ {tr('Documentary Research Grounded')}")
+    else:
+        st.caption(f"ℹ️ {tr('Documentary Research Not Grounded')}")
+
+    seo = (project or {}).get("seo") or {}
+    if seo.get("title"):
+        st.text_input(tr("Documentary SEO Title"), value=seo["title"], disabled=True)
+    if seo.get("description"):
+        st.text_area(
+            tr("Documentary SEO Description"),
+            value=seo["description"],
+            disabled=True,
+        )
+    if seo.get("hashtags"):
+        st.text_input(
+            tr("Documentary SEO Hashtags"),
+            value=" ".join(seo["hashtags"]),
+            disabled=True,
+        )
+    if (
+        seo.get("chapters")
+        or seo.get("end_screen_suggestion")
+        or seo.get("pinned_comment")
+    ):
+        if seo.get("chapters"):
+            # Shown outside the (collapsed-by-default) expander below -- a
+            # warning only the user sees after clicking to expand is easy to
+            # miss and act on chapters that won't actually work on the
+            # Shorts/TikTok/Reels output this pipeline produces.
+            st.warning(tr("Documentary SEO Chapters Help"))
+        with st.expander(tr("Documentary SEO Extras")):
+            if seo.get("chapters"):
+                st.text_area(
+                    tr("Documentary SEO Chapters"),
+                    value="\n".join(seo["chapters"]),
+                    disabled=True,
+                )
+            if seo.get("end_screen_suggestion"):
+                st.text_input(
+                    tr("Documentary SEO End Screen"),
+                    value=seo["end_screen_suggestion"],
+                    disabled=True,
+                )
+            if seo.get("pinned_comment"):
+                st.text_input(
+                    tr("Documentary SEO Pinned Comment"),
+                    value=seo["pinned_comment"],
+                    disabled=True,
+                )
+
+    quality_verdict = (project or {}).get("quality_verdict")
+    if quality_verdict:
+        status_icon = "✅" if quality_verdict["passed"] else "⚠️"
+        st.markdown(
+            f"**{tr('Documentary Quality Note')}:** "
+            f"{quality_verdict['overall_score']}/5 {status_icon}"
+        )
+        st.caption(
+            f"{tr('Documentary Quality Coherence')}: "
+            f"{quality_verdict['coherence_score']}/5 · "
+            f"{tr('Documentary Quality Pacing')}: "
+            f"{quality_verdict['pacing_fit_score']}/5 · "
+            f"{tr('Documentary Quality SEO')}: {quality_verdict['seo_quality_score']}/5"
+        )
+        if quality_verdict["issues"]:
+            with st.expander(tr("Documentary Quality Issues")):
+                for issue in quality_verdict["issues"]:
+                    st.write(f"- {issue}")
+
+    return True
+
+
 def _render_documentary_studio_page():
     """
     AI Documentary Studio (Beta): Intent -> Research -> Outline -> Scene ->
@@ -4183,104 +4301,220 @@ def _render_documentary_studio_page():
         # caps it at a sane size regardless of viewport width.
         _, results_col, _ = st.columns([1, 2, 1])
         with results_col:
-            st.video(final_video_path)
-
-            thumbnail_path = (last_project or {}).get("thumbnail_path", "")
-            thumbnail_variant_b_path = (last_project or {}).get(
-                "thumbnail_variant_b_path", ""
-            )
-            if thumbnail_path and os.path.exists(thumbnail_path):
-                if thumbnail_variant_b_path and os.path.exists(thumbnail_variant_b_path):
-                    thumb_col_a, thumb_col_b = st.columns(2)
-                    with thumb_col_a:
-                        st.image(
-                            thumbnail_path,
-                            caption=tr("Documentary Thumbnail Variant A"),
-                            width=240,
-                        )
-                    with thumb_col_b:
-                        st.image(
-                            thumbnail_variant_b_path,
-                            caption=tr("Documentary Thumbnail Variant B"),
-                            width=240,
-                        )
-                else:
-                    st.image(thumbnail_path, caption=tr("Documentary Thumbnail"), width=240)
-
-            research_plan = (last_project or {}).get("research_plan") or {}
-            if research_plan.get("grounded"):
-                st.caption(f"✅ {tr('Documentary Research Grounded')}")
-            else:
-                st.caption(f"ℹ️ {tr('Documentary Research Not Grounded')}")
-
-            seo = (last_project or {}).get("seo") or {}
-            if seo.get("title"):
-                st.text_input(
-                    tr("Documentary SEO Title"), value=seo["title"], disabled=True
-                )
-            if seo.get("description"):
-                st.text_area(
-                    tr("Documentary SEO Description"),
-                    value=seo["description"],
-                    disabled=True,
-                )
-            if seo.get("hashtags"):
-                st.text_input(
-                    tr("Documentary SEO Hashtags"),
-                    value=" ".join(seo["hashtags"]),
-                    disabled=True,
-                )
-            if (
-                seo.get("chapters")
-                or seo.get("end_screen_suggestion")
-                or seo.get("pinned_comment")
-            ):
-                if seo.get("chapters"):
-                    # Shown outside the (collapsed-by-default) expander below --
-                    # a warning only the user sees after clicking to expand is
-                    # easy to miss and act on chapters that won't actually work
-                    # on the Shorts/TikTok/Reels output this pipeline produces.
-                    st.warning(tr("Documentary SEO Chapters Help"))
-                with st.expander(tr("Documentary SEO Extras")):
-                    if seo.get("chapters"):
-                        st.text_area(
-                            tr("Documentary SEO Chapters"),
-                            value="\n".join(seo["chapters"]),
-                            disabled=True,
-                        )
-                    if seo.get("end_screen_suggestion"):
-                        st.text_input(
-                            tr("Documentary SEO End Screen"),
-                            value=seo["end_screen_suggestion"],
-                            disabled=True,
-                        )
-                    if seo.get("pinned_comment"):
-                        st.text_input(
-                            tr("Documentary SEO Pinned Comment"),
-                            value=seo["pinned_comment"],
-                            disabled=True,
-                        )
-
-            quality_verdict = (last_project or {}).get("quality_verdict")
-            if quality_verdict:
-                status_icon = "✅" if quality_verdict["passed"] else "⚠️"
-                st.markdown(
-                    f"**{tr('Documentary Quality Note')}:** "
-                    f"{quality_verdict['overall_score']}/5 {status_icon}"
-                )
-                st.caption(
-                    f"{tr('Documentary Quality Coherence')}: "
-                    f"{quality_verdict['coherence_score']}/5 · "
-                    f"{tr('Documentary Quality Pacing')}: "
-                    f"{quality_verdict['pacing_fit_score']}/5 · "
-                    f"{tr('Documentary Quality SEO')}: {quality_verdict['seo_quality_score']}/5"
-                )
-                if quality_verdict["issues"]:
-                    with st.expander(tr("Documentary Quality Issues")):
-                        for issue in quality_verdict["issues"]:
-                            st.write(f"- {issue}")
-
+            _render_project_media_panel(last_project)
             _render_publish_section(last_project)
+
+
+# -----------------------------------------------------------------------------
+# Geçmiş Üretimler: tamamlanmış Documentary Studio projelerinin salt-okunur
+# galerisi
+# -----------------------------------------------------------------------------
+
+
+_HISTORY_PROJECTS_LIMIT = 30
+_HISTORY_CARDS_PER_ROW = 3
+
+
+def _safe_load_project_snapshot(task_path: str) -> dict:
+    snapshot_file = os.path.join(task_path, "project.json")
+    if not os.path.isfile(snapshot_file):
+        return {}
+
+    try:
+        with open(snapshot_file, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        logger.warning(f"failed to read project snapshot: {snapshot_file}, {e}")
+        return {}
+
+
+def _scan_history_projects(limit=_HISTORY_PROJECTS_LIMIT):
+    """Documentary Studio pipeline'ından çıkan, tamamlanmış (final_video_path
+    diskte hâlâ var olan) projeleri en yeniden en eskiye tarar.
+
+    _scan_history_tasks ile aynı iki-aşamalı desen: önce tüm görev
+    klasörlerinin ucuz os.scandir metadata'sı (mtime) okunup en yeni
+    `limit` tanesi kesiliyor, sadece o alt küme için project.json parse
+    ediliyor -- geçmiş görev sayısı büyüdükçe her sayfa yüklemesinde tüm
+    klasörlerin JSON'ını okumaktan kaçınmak için. Bu yüzden kesilen
+    pencere içinde tamamlanmamış/silinmiş video içeren projeler basitçe
+    atlanır (daha eski tamamlanmış bir proje yerine aranmaz) -- aynı
+    limitasyon _scan_history_tasks'ta da var.
+    """
+    tasks_root = utils.task_dir()
+    if not os.path.isdir(tasks_root):
+        return []
+
+    task_entries = []
+    try:
+        with os.scandir(tasks_root) as entries:
+            for entry in entries:
+                try:
+                    if entry.name.startswith(".") or not entry.is_dir(
+                        follow_symlinks=False
+                    ):
+                        continue
+                    task_entries.append(
+                        (
+                            entry.stat(follow_symlinks=False).st_mtime,
+                            entry.name,
+                            entry.path,
+                        )
+                    )
+                except OSError as e:
+                    logger.debug(f"skip unavailable task directory: {entry.path}, {e}")
+    except OSError as e:
+        logger.warning(f"failed to scan task directory: {tasks_root}, {e}")
+        return []
+
+    task_entries.sort(key=lambda item: item[0], reverse=True)
+
+    projects = []
+    for mtime, name, task_path in task_entries[:limit]:
+        project = _safe_load_project_snapshot(task_path)
+        final_video_path = project.get("final_video_path", "")
+        if not final_video_path or not os.path.exists(final_video_path):
+            continue
+        projects.append(
+            {
+                "task_id": name,
+                "task_path": task_path,
+                "mtime": mtime,
+                "project": project,
+            }
+        )
+
+    return projects
+
+
+def _history_card_title(project: dict) -> str:
+    seo = project.get("seo") or {}
+    title = (seo.get("title") or "").strip()
+    return title or project.get("topic") or "-"
+
+
+def _render_history_download_button(entry):
+    """İki adımlı indirme: ilk tık sadece bu görevi 'hazırlanıyor' olarak
+    işaretleyip rerun tetikler, video byte'ları sadece o zaman (ve sadece bu
+    tek görev için) diske okunur. st.download_button'ın `data`'sı her script
+    çalışmasında hazır olmak zorunda olduğundan, tüm kartların videosunu
+    galeri her yüklendiğinde belleğe okumamak için bu iki adım gerekiyor.
+    """
+    task_id = entry["task_id"]
+    final_video_path = (entry["project"] or {}).get("final_video_path", "")
+
+    if st.session_state.get("history_download_ready_id") == task_id:
+        try:
+            with open(final_video_path, "rb") as f:
+                video_bytes = f.read()
+        except OSError as e:
+            logger.warning(f"failed to read video for download: {final_video_path}, {e}")
+            st.session_state.pop("history_download_ready_id", None)
+        else:
+            st.download_button(
+                tr("Documentary History Download Ready"),
+                data=video_bytes,
+                file_name=os.path.basename(final_video_path),
+                mime=mimetypes.guess_type(final_video_path)[0] or "video/mp4",
+                key=f"history_download_confirm_{task_id}",
+                use_container_width=True,
+            )
+            return
+
+    if st.button(
+        tr("Documentary History Download"),
+        key=f"history_download_prepare_{task_id}",
+        use_container_width=True,
+    ):
+        st.session_state["history_download_ready_id"] = task_id
+        st.rerun()
+
+
+def _render_history_card(entry, expanded: bool):
+    project = entry["project"]
+    task_id = entry["task_id"]
+
+    thumbnail_path = project.get("thumbnail_path", "")
+    if thumbnail_path and os.path.exists(thumbnail_path):
+        st.image(thumbnail_path, use_container_width=True)
+    else:
+        st.markdown(
+            "<div style='display:flex;align-items:center;justify-content:center;"
+            "aspect-ratio:9/16;background:rgba(128,128,128,0.15);border-radius:0.5rem;"
+            "font-size:2.5em;'>🎬</div>",
+            unsafe_allow_html=True,
+        )
+
+    st.markdown(f"**{_format_task_subject(_history_card_title(project), max_length=60)}**")
+    st.caption(_format_task_time(entry["mtime"]))
+
+    badges = " ".join(
+        f":gray-badge[{value}]"
+        for value in (
+            project.get("topic_category"),
+            project.get("tone"),
+            project.get("format"),
+        )
+        if value
+    )
+    if badges:
+        st.markdown(badges)
+
+    action_col, download_col = st.columns(2)
+    with action_col:
+        reopen_label = (
+            tr("Documentary History Close") if expanded else tr("Documentary History Reopen")
+        )
+        if st.button(
+            reopen_label,
+            key=f"history_reopen_{task_id}",
+            use_container_width=True,
+        ):
+            if expanded:
+                st.session_state.pop("history_expanded_task_id", None)
+            else:
+                st.session_state["history_expanded_task_id"] = task_id
+            st.rerun()
+    with download_col:
+        _render_history_download_button(entry)
+
+
+def _render_history_page():
+    """Geçmiş Üretimler: storage/tasks/ altındaki tamamlanmış Documentary
+    Studio projelerini salt-okunur bir galeri olarak listeler.
+
+    Kasıtlı olarak tamamen salt-okunur: sadece diskteki mevcut project.json/
+    video/thumbnail dosyalarını okur, ne yeni bir pipeline çalıştırır ne de
+    (Documentary Studio sonuç panelinin aksine) Publish bölümünü içerir --
+    publish harici platformlara gerçek bir yayın eylemi tetiklediği için bu
+    sayfanın kapsamı dışında bırakıldı.
+    """
+    st.header(tr("Nav History"))
+
+    projects = _scan_history_projects()
+    if not projects:
+        st.info(tr("Documentary History Empty"))
+        return
+
+    selected_task_id = st.session_state.get("history_expanded_task_id")
+
+    for row_start in range(0, len(projects), _HISTORY_CARDS_PER_ROW):
+        row = projects[row_start : row_start + _HISTORY_CARDS_PER_ROW]
+        cols = st.columns(_HISTORY_CARDS_PER_ROW)
+        for col, entry in zip(cols, row):
+            with col:
+                _render_history_card(entry, expanded=entry["task_id"] == selected_task_id)
+
+        if selected_task_id and any(entry["task_id"] == selected_task_id for entry in row):
+            selected_entry = next(
+                entry for entry in row if entry["task_id"] == selected_task_id
+            )
+            st.divider()
+            _, results_col, _ = st.columns([1, 2, 1])
+            with results_col:
+                st.subheader(_history_card_title(selected_entry["project"]))
+                _render_project_media_panel(selected_entry["project"])
+            st.divider()
 
 
 def _render_legacy_page():
@@ -4354,6 +4588,12 @@ def _render_application():
                 title=tr("Nav Create"),
                 icon="🎬",
                 default=True,
+            ),
+            st.Page(
+                _render_history_page,
+                title=tr("Nav History"),
+                icon="🗂️",
+                url_path="history",
             ),
             st.Page(
                 _render_legacy_page,

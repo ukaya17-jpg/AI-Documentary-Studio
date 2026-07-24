@@ -355,6 +355,12 @@
     "Documentary Publish Already Done": "已发布",
     "Nav Create": "创建",
     "Nav Classic Mode": "经典模式",
-    "Brand Tagline": "项目所有者：Ufuk Kaya"
+    "Brand Tagline": "项目所有者：Ufuk Kaya",
+    "Nav History": "历史作品",
+    "Documentary History Empty": "还没有已完成的作品 —— 在“创建”页面生成一个后会显示在这里。",
+    "Documentary History Reopen": "再次查看",
+    "Documentary History Close": "收起",
+    "Documentary History Download": "下载",
+    "Documentary History Download Ready": "下载已就绪"
   }
 }

@@ -328,6 +328,12 @@
     "Documentary Publish Already Done": "Zaten yayınlandı",
     "Nav Create": "Oluştur",
     "Nav Classic Mode": "Klasik Mod",
-    "Brand Tagline": "Proje sahibi: Ufuk Kaya"
+    "Brand Tagline": "Proje sahibi: Ufuk Kaya",
+    "Nav History": "Geçmiş Üretimler",
+    "Documentary History Empty": "Henüz tamamlanmış bir üretim yok -- Oluştur sayfasından bir tane üretince burada görünecek.",
+    "Documentary History Reopen": "Tekrar Görüntüle",
+    "Documentary History Close": "Kapat",
+    "Documentary History Download": "İndir",
+    "Documentary History Download Ready": "İndirmeye Hazır"
   }
 }

@@ -328,6 +328,12 @@
     "Documentary Publish Already Done": "Уже опубликовано",
     "Nav Create": "Создать",
     "Nav Classic Mode": "Классический режим",
-    "Brand Tagline": "Владелец проекта: Ufuk Kaya"
+    "Brand Tagline": "Владелец проекта: Ufuk Kaya",
+    "Nav History": "История",
+    "Documentary History Empty": "Пока нет завершённых работ -- создайте одну на странице «Создать», чтобы она появилась здесь.",
+    "Documentary History Reopen": "Просмотреть снова",
+    "Documentary History Close": "Закрыть",
+    "Documentary History Download": "Скачать",
+    "Documentary History Download Ready": "Скачивание готово"
   }
 }

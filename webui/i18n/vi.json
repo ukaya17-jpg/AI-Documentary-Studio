@@ -328,6 +328,12 @@
     "Documentary Publish Already Done": "Đã đăng",
     "Nav Create": "Tạo mới",
     "Nav Classic Mode": "Chế độ cổ điển",
-    "Brand Tagline": "Chủ sở hữu dự án: Ufuk Kaya"
+    "Brand Tagline": "Chủ sở hữu dự án: Ufuk Kaya",
+    "Nav History": "Lịch sử",
+    "Documentary History Empty": "Chưa có sản phẩm nào hoàn thành -- hãy tạo một sản phẩm từ trang \"Tạo mới\" để xem tại đây.",
+    "Documentary History Reopen": "Xem lại",
+    "Documentary History Close": "Đóng",
+    "Documentary History Download": "Tải xuống",
+    "Documentary History Download Ready": "Đã sẵn sàng tải xuống"
   }
 }

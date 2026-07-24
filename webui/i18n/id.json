@@ -328,6 +328,12 @@
     "Documentary Publish Already Done": "Sudah dipublikasikan",
     "Nav Create": "Buat",
     "Nav Classic Mode": "Mode Klasik",
-    "Brand Tagline": "Pemilik proyek: Ufuk Kaya"
+    "Brand Tagline": "Pemilik proyek: Ufuk Kaya",
+    "Nav History": "Riwayat",
+    "Documentary History Empty": "Belum ada produksi yang selesai -- buat satu dari halaman \"Buat\" agar muncul di sini.",
+    "Documentary History Reopen": "Lihat Lagi",
+    "Documentary History Close": "Tutup",
+    "Documentary History Download": "Unduh",
+    "Documentary History Download Ready": "Unduhan Siap"
   }
 }
