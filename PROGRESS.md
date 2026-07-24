@@ -1649,3 +1649,169 @@ yayın doğrulaması kullanıcının Upload-Post kimlik bilgilerini sağlamasın
 bekliyor** (yukarıya bkz.). GÖREV 8c (search_terms[1:] fallback) somut,
 izole bir gelecek görevi olarak "Bilinen teknik sınırlar" listesinde madde
 5'te bekliyor.
+
+## GECE OTURUMU 3 — Yayına Hazırlık ve Sağlamlaştırma (dal: `overnight/launch-readiness`)
+
+Önceki gece GÖREV 1 (kritik bug'lar) çözülmüş ve kullanıcı tarafından gözle
+doğrulanmıştı. Bu oturumun odağı yeni özellik değil, **sağlamlaştırma**:
+GÖREV A (yayına hazırlık doğrulaması, en yüksek öncelik) → B (hata yönetimi
+denetimi) → C (config.example.toml) → D (Podcast/Kids tasarım notu, kod yok)
+→ E (kullanıcı dokümantasyonu).
+
+**Ortam:** `ai-documentary-studio-claude-tasks` worktree'si yeniden
+kullanıldı (önceki oturumdan zaten kurulu, symlink'ler doğrulandı — biri
+[`config.toml`] bir noktada gerçek dosyaya dönüşmüş bulundu, yeniden
+symlink'lendi), üzerinde yeni `overnight/launch-readiness` dalı açıldı.
+Hermes (tmux `work`) tekrar kontrol edildi — hâlâ tamamen hareketsiz (aylık
+kota hâlâ dolu), sıfır çakışma riski.
+
+### GÖREV A — Yayına Hazırlık Doğrulaması (EN YÜKSEK ÖNCELİK)
+
+4 farklı TopicCategory × Tone × Format kombinasyonuyla gerçek uçtan-uca
+üretim yapıldı (hepsi short pacing, İngilizce):
+
+| # | Konu | Kategori | Ton | Format | Sonuç |
+|---|---|---|---|---|---|
+| 1 | The Fall of the Berlin Wall | history | credibility (auto) | standard | ✅ Başarılı |
+| 2 | The Search for Alien Life | space | epic | educational | ✅ Başarılı (bkz. bulgu aşağıda) |
+| 3 | Why We Procrastinate | psychology | scientific | corporate | ✅ Başarılı |
+| 4 | The Hidden Culture of Kyoto | travel | cinematic | standard | ✅ Başarılı (2. denemede, bkz. aşağıda) |
+
+**Her 4 kombinasyon için de doğrulanan:** Tekrarlayan kare **yok** (log'da
+`"looping clips"` uyarısı 4/4'ünde de hiç görünmedi — dünkü GÖREV 1a
+düzeltmesi tek bir senaryoda değil, kategori/ton/format'tan bağımsız olarak
+genel olarak sağlam), altyazılar gerçek zamanlamayla üretildi, ses dosyası
+var, her ikisi de (thumbnail A/B) üretildi, `grounded: true` (4/4'ünde de
+DuckDuckGo/Wikipedia'dan gerçek bir kaynak bulundu — Knowledge Engine'in
+kapsamı iyi durumda).
+
+**Bulunan ve DÜZELTİLEN yeni sorun (küçük/tutucu):** Kombinasyon #2'de
+(`Format.educational`), `quality_critic` şunu buldu: *"The repeated explicit
+'Takeaway' phrasing makes the script feel more like an outline..."* — gerçek
+script'e bakıldığında, LLM'in her sahnenin sonuna **kelimesi kelimesine**
+`"Takeaway: ..."` etiketi eklediği görüldü (`script_generator.py`'deki eski
+talimat metni "a one-sentence takeaway or mini-recap" derken, LLM
+"takeaway" kelimesini bir ETİKET olarak yorumlamış). Bir anlatıcının gerçekte
+asla söylemeyeceği bu etiket, seslendirmede çok yapay dururdu.
+**Düzeltme:** `FORMAT_GUIDANCE[Format.educational]` metni yeniden yazıldı —
+artık açıkça "never write a literal label like 'Takeaway:'" diyor. Ucuz,
+tek başlı bir gerçek LLM çağrısıyla (tam pipeline değil, sadece
+`script_generator.generate_script()`) doğrulandı: yeni çıktıda "Takeaway"
+kelimesi hiç geçmiyor. 2 yeni test (mevcut format testi + yeni "asla etiket
+yazma" talimatının varlığını kilitleyen test).
+
+**Bulunan ama KOD DEĞİŞİKLİĞİ YAPILMAYAN operasyonel gözlem:** Kombinasyon
+#4'ün ilk denemesi (#3 ile **eşzamanlı** çalıştırıldığında) `OSError: [Errno
+32] Broken pipe` ile çöktü — ffmpeg'e yazarken video encoding sürecinin
+beklenmedik şekilde kesilmesi. **Kök neden analizi:** aynı anda 2 ağır
+ffmpeg render işlemi çalıştırıyordum (kendi test metodolojimin sonucu, gerçek
+kullanıcı senaryosu değil). Konu #4'ü **tek başına** (eşzamanlı hiçbir şey
+olmadan) tekrar çalıştırdığımda **sorunsuz tamamlandı** — bu, sorunun pipeline
+mantığında değil, kaynak çakışmasında (concurrent ffmpeg process'leri)
+olduğunu doğruluyor. **OTONOM KARAR:** Bu bir pipeline kodu hatası değil,
+bir **operasyonel/altyapı** notu — eğer gelecekte eşzamanlı/çoklu belgesel
+üretimi (ör. birden fazla kullanıcı, kuyruk sistemi) desteklenecekse, ffmpeg
+render'ları için bir eşzamanlılık sınırı/kuyruk gerekecek. Şu an webui
+tek seferde tek üretim çalıştırdığı için gerçek kullanıcı bunu YAŞAMAZ —
+kod değişikliği yapılmadı, sadece not düşüldü.
+
+- [x] Gerçek API bütçesi: 5 tam uçtan-uca üretim kullanıldı (4 kombinasyon +
+      1 tekrar deneme) + 1 hafif tek-fonksiyon gerçek çağrı (Takeaway
+      doğrulaması) = izin verilen 10'un 5'i (tam üretim bazında).
+- [x] Tam suite: **655 passed, 11 skipped** (önceden 652, +3: Takeaway testi
+      + zaten var olan format testleri).
+
+### GÖREV B — Hata Yönetimi Denetimi
+
+Pipeline'ın tüm aşamaları (`default_pipeline.py`'deki 12 numaralı aşama +
+quality_critic + 2 thumbnail çağrısı) tek tek incelendi — hangisi bir LLM/
+ağ hatasında **tüm üretimi** çökertebilir, hangisi izole/korumalı.
+
+**Zaten sağlam olduğu doğrulanan (kod değişikliği gerekmedi):**
+- **Aşama 1 (intent):** `intent_analyzer.detect_topic_category()` LLM
+  hatasını zaten yakalayıp heuristic kategori tahminine düşüyor.
+- **Aşama 4 (scene):** Saf mantık, LLM çağrısı yok; boş `outline.sections`
+  ile bile çökmeden boş bir `ScenePlan` üretiyor (doğrulandı, koddan okundu).
+- **Aşama 7-8 (asset/asset download):** Boş `search_terms` durumunu zaten
+  erken dönüşle ele alıyor; her klip indirmesi kendi try/except'i içinde.
+- **Aşama 9 (audio):** TTS tamamen başarısız olursa **bilinçli olarak**
+  `RuntimeError` fırlatıyor — bu doğru davranış (sessiz ses = video
+  yapılamaz, gizlenmemesi gereken gerçek bir dur-noktası).
+- **Aşama 11 (seo):** `llm.generate_social_metadata()` kendi retry +
+  heuristic fallback'ine sahip, **asla fırlatmıyor**; `seo_generator`'ın
+  `generate_engagement_metadata()`'sı da kendi try/except'ine sahip. SEO
+  aşamasının video render'ı hiç etkilemediği de doğrulandı
+  (`video_renderer.build_video_params()`/`render_final_video()` `project.seo`
+  parametresi almıyor).
+- **BGM karıştırma:** Zaten "başarısız olursa sadece anlatımla devam et"
+  deseninde (`video.py`'nin kendi docstring'i).
+- **quality_critic, thumbnail, thumbnail_variant_b:** Zaten "asla fırlatma"
+  desenindeydi (önceki oturumlarda kurulmuş).
+
+**Korumasız bulunan (RAPORLANDI, DOKUNULMADI — mimari değişiklik gerektiriyor):**
+- **Aşama 2 (research), 3 (outline), 5 (script), 6 (storyboard):** Hepsi
+  `documentary_llm_utils.generate_json()`'ı **doğrudan** çağırıyor, sarmalayan
+  bir try/except yok. `generate_json()` 3 denemeden sonra hâlâ başarısızsa
+  **`ValueError` fırlatıyor** (`raise ValueError(f"failed to generate valid
+  JSON after {max_retries} attempts: {last_error}")`) — bu, `default_pipeline.py`
+  içinde hiçbir `except` tarafından yakalanmıyor, tüm `run_pipeline()`'ı
+  çökertiyor (webui'nin dış `except Exception as exc: st.error(...)`'ı
+  çökmeyi engelliyor ama üretimin tamamı boşa gidiyor).
+  **Neden düzeltilmedi:** Bu 4 aşama birbirine sıkı sıkıya bağlı sıralı bir
+  zincir — outline olmadan sahne planlanamaz, sahne olmadan script
+  yazılamaz. "Hatayı yakala ve devam et" burada YANLIŞ olur (boş/bozuk bir
+  video sessizce üretilir, net bir hatadan DAHA KÖTÜ bir sonuç). Doğru
+  düzeltme (retry-with-backoff, kısmi-devam-etme stratejisi, ya da net bir
+  "hangi aşama neden başarısız oldu" mesajı) gerçek bir tasarım kararı
+  gerektiriyor — bu gece sadece "sağlamlaştırma" kapsamında, gözetimsiz
+  yapılacak bir değişiklik değil.
+  **Küçük, düşük riskli bir iyileştirme önerisi (yapılmadı, sadece not):**
+  Bu 4 aşamadan gelen `ValueError`'ı `default_pipeline.py`'de yakalayıp
+  "hangi aşama (research/outline/script/storyboard) ve neden" diyen daha
+  net bir mesajla yeniden fırlatmak — davranışı DEĞİŞTİRMEZ (yine çöker),
+  sadece webui'deki hata mesajını daha anlaşılır yapar. Düşük risk ama
+  bu gece kapsam dışı bırakıldı, istenirse ayrı bir küçük görev olabilir.
+
+**Sonuç:** Denetim, pipeline'ın baştan düşünülenden **daha sağlam** olduğunu
+gösterdi — gerçekten izole/düşük riskli olan her yer zaten korunuyordu.
+Eklenecek gerçek bir "düşük riskli boşluk" bulunamadı; bulunanlar hep
+mimari karar gerektiriyor.
+
+### GÖREV C — config.example.toml tamlık kontrolü
+
+`config.toml` (gerçek, dolu) ile `config.example.toml` arasında TÜM
+section'lar (`[app]`, `[whisper]`, `[proxy]`, `[azure]`, `[siliconflow]`,
+`[elevenlabs]`, `[chatterbox]`, `[ui]`) ve tüm üst-seviye anahtarlar
+programatik olarak (`toml.load()` ile key seti karşılaştırması)
+karşılaştırıldı. **`upload_post_*` anahtarları zaten tamdı** (önceki
+oturumdan). Tek bulunan tutarsızlık: `[ui]` altında yorum-satırı örnek
+`# font_name = "MicrosoftYaHeiBold.ttc"` — dünkü GÖREV 8a'da asıl varsayılan
+`BeVietnamPro-Bold.ttf`'e değiştirilmişti ama bu örnek yorum satırı
+güncellenmemişti. Düzeltildi.
+- [x] `config.example.toml` hâlâ geçerli TOML (doğrulandı).
+
+### GÖREV D — Podcast/Kids tasarım notu (SADECE DOKÜMANTASYON)
+
+Yeni `docs/future-work.md` — önceki oturumlarda bulunan somut mimari kırılma
+noktaları (Podcast: `default_pipeline.py`'nin koşulsuz 12 aşaması,
+`thumbnail_generator`'ın `project.timeline`'a None-check'siz erişimi,
+`final_video_path`'in tek "bitiş çizgisi" olması) ve güvenlik gereksinimleri
+(Kids: kod tabanında sıfır moderasyon mekanizması, "basit dil" ile "güvenli
+içerik"in birbirine karıştırılmaması gerektiği) temel alınarak, iki
+gerçekçi mimari seçenek (Podcast için: ayrı `run_audio_pipeline()` vs.
+`run_pipeline()`'a `output_mode` parametresi), somut adım listeleri, test
+stratejileri ve **açık, kullanıcıya bırakılmış kararlar** içeren ayrıntılı
+bir plan yazıldı. **Hiçbir kod yazılmadı.** Analytics/Learning Layer için de
+kısa bir not eklendi (gerçek yayın verisi birikene kadar ertelenmesi
+gerektiği, PROGRESS.md'nin eski notuyla tutarlı).
+
+### GÖREV E — Kullanıcı dokümantasyonu
+
+`README-en.md`'ye "AI Documentary Studio (Beta)" bölümü eklendi (Features
+ile Gallery arasına) — ne olduğu, webui'de nerede bulunduğu, kontrol
+edilebilen boyutlar (Topic Category/Tone/Format/Pacing/Voice), üretim
+sonrası görülenler (video, A/B thumbnail, SEO, kalite notu, grounding
+bilgisi) ve Publish akışı anlatıldı. `README.md`'ye (Çince) de eşdeğer,
+biraz daha kısa bir bölüm eklendi, İngilizce tam sürüme link verildi. Daha
+önce bu özellik hakkında hiçbir kullanıcı dokümantasyonu yoktu (doğrulandı,
+sıfır sonuç).

@@ -131,6 +131,29 @@
 - [x] 支持 **Kimi / Moonshot AI**、**OpenAI**、**Google Gemini**、**DeepSeek**、**阿里云通义千问**、**Microsoft Azure OpenAI**、**火山引擎方舟**、**xAI Grok**、**MiniMax**、**小米 MiMo** 等主流模型服务，并兼容 **Cloudflare AI Gateway**、**魔搭 ModelScope**、**AIHubMix**、**AIML API**、**EvoLink**、**Ollama**、**OneAPI**、**LiteLLM**、**Groq**、**Pollinations AI** 等统一网关、聚合平台和本地运行环境
 - [x] 支持一键 **跨平台发布**，生成完成后可自动上传至 **TikTok**、**Instagram** 和 **YouTube Shorts**
 
+## AI 纪录片工作室（Beta）🎙️
+
+WebUI 中的第二套独立工作流，专为**叙事型纪录片短片**设计，而非通用短视频。
+给定一个主题，它会依次运行 研究 → 大纲 → 脚本 → 分镜 → 素材匹配 → 配音 →
+字幕 → SEO 元数据 → 缩略图，最终生成一个成片以及两个可供比较的缩略图选项。
+
+**入口：** 在 WebUI 中展开 **"AI Documentary Studio (Beta)"** 面板——这是一个
+独立区域，有自己的主题输入框和"Generate Documentary"按钮，与上方的标准视频
+生成器互不影响。
+
+**可调整的维度：** 主题类别（`auto` 或手动指定 history/space/psychology/travel）、
+语气 Tone（旁白听起来的感觉）、格式 Format（`standard`/`educational`/`corporate`，
+与语气正交，决定内容的结构性用途）、节奏 Pacing（`short` 4 个场景 / `long` 7 个
+场景）、以及配音音色。
+
+生成完成后会显示成片、A/B 两个缩略图选项、SEO 标题/描述/标签、仅供参考的质量
+评分（绝不会阻断或重新生成任何内容），以及本次研究是否基于真实网络来源核实过
+的提示。发布功能与标准生成器共用同一个 Upload-Post 集成（见下方常见问题），
+不会自动发布——需要你手动选择平台并点击发布。
+
+完整英文版说明见 [README-en.md](README-en.md#ai-documentary-studio-beta-)；
+该功能仍在快速迭代中，具体行为的演进历史见本仓库的 `PROGRESS.md`。
+
 ## 作品展示 🎬
 
 以下示例均由 MoneyPrinterTurbo 实际生成。

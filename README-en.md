@@ -132,6 +132,55 @@ Thanks to [Kimi](https://platform.kimi.ai?aff=MoneyPrinterTurbo) for sponsoring 
 - [x] Supports leading model providers including **Kimi / Moonshot AI**, **OpenAI**, **Google Gemini**, **DeepSeek**, **Alibaba Cloud Qwen**, **Microsoft Azure OpenAI**, **ByteDance VolcEngine Ark**, **xAI Grok**, **MiniMax**, and **Xiaomi MiMo**, plus unified gateways, aggregators, and local runtimes such as **Cloudflare AI Gateway**, **Alibaba ModelScope**, **AIHubMix**, **AIML API**, **EvoLink**, **Ollama**, **OneAPI**, **LiteLLM**, **Groq**, and **Pollinations AI**
 - [x] Supports one-click **cross-platform publishing** to **TikTok**, **Instagram**, and **YouTube Shorts** after video generation
 
+## AI Documentary Studio (Beta) 🎙️
+
+A second, separate workflow inside the same WebUI, purpose-built for short
+narrated documentaries rather than general short-form videos. Give it a
+topic and it runs research → outline → script → storyboard → footage
+matching → narration → subtitles → SEO metadata → thumbnail as one pipeline,
+producing a finished vertical video plus two thumbnail options to compare.
+
+**Where to find it:** open the WebUI and expand the **"AI Documentary
+Studio (Beta)"** panel — it's a self-contained section with its own topic
+field and "Generate Documentary" button, independent of the standard video
+generator above it.
+
+**What you can control:**
+- **Topic Category** — `auto` (detected from your topic) or a manual
+  override: `history`, `space`, `psychology`, `travel`. Each category has a
+  matched research/outline style.
+- **Tone** — how the narration *sounds*: `auto` (the category's default,
+  e.g. history defaults to a measured, credible voice; space defaults to
+  epic/awe-struck), or an explicit override (`cinematic`, `credibility`,
+  `epic`, `scientific`, `neutral`).
+- **Format** — what structural job the video does, independent of tone:
+  `standard` (no extra structure), `educational` (defines technical terms
+  on first use, closes each scene with a spoken recap), or `corporate`
+  (neutral third-person voice, avoids promotional language, favors concrete
+  data over vague claims).
+- **Pacing** — `short` (4 scenes, quick) or `long` (7 scenes, more depth).
+- **Voice Name** — any TTS voice your configured provider supports (see
+  [Voice Synthesis](#voice-synthesis-) below).
+
+**After generation**, you'll see the finished video, two thumbnail options
+(A/B — different frames, same title, pick whichever reads better), the
+generated SEO title/description/hashtags, an informational quality note
+(coherence/pacing/SEO scored 1–5, purely advisory — it never blocks or
+regenerates anything), and a note on whether the research was grounded in a
+real web source or is the AI's own unverified knowledge.
+
+**Publishing:** once a video is ready, an optional **Publish** section lets
+you post it to TikTok, Instagram, and/or YouTube via the same Upload-Post
+integration used by the standard generator (see the "How do I publish to
+TikTok, Instagram, or YouTube Shorts?" entry under
+[Common Questions](#common-questions-) for setup) — nothing is posted
+automatically; you choose the platforms and click Publish yourself.
+
+This feature is newer and evolving faster than the rest of the project —
+expect it to change between releases. See `PROGRESS.md` in this repo for
+the full development history if you're curious how a specific behavior came
+to be.
+
 ## Gallery 🎬
 
 All examples below were generated with MoneyPrinterTurbo.
