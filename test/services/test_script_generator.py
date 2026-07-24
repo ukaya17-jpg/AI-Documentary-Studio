@@ -131,6 +131,14 @@ class TestBuildScriptPromptFormat(unittest.TestCase):
         self.assertIn("Format:", prompt)
         self.assertIn(script_generator.FORMAT_GUIDANCE[Format.educational], prompt)
 
+    def test_educational_format_guidance_forbids_a_literal_takeaway_label(self):
+        # OTONOM KARAR (gece oturumu, GÖREV A): a real production run showed
+        # the LLM taking the word "takeaway" in the old instruction literally,
+        # prefixing every scene with "Takeaway:" as spoken narration -- this
+        # locks in the reworded instruction that explicitly forbids that.
+        guidance = script_generator.FORMAT_GUIDANCE[Format.educational]
+        self.assertIn("never write a literal label", guidance)
+
     def test_educational_format_and_tone_coexist(self):
         # Tone shapes voice, Format shapes structure -- both lines should be
         # present together, neither one crowding out the other.

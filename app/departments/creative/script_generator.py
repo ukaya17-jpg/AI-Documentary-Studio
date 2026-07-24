@@ -39,8 +39,10 @@ TONE_VOICE_GUIDANCE = {
 FORMAT_GUIDANCE = {
     Format.educational: (
         "structure this as an educational explainer -- briefly define any "
-        "technical term the first time it appears, and end each scene with "
-        "a one-sentence takeaway or mini-recap of what was just explained"
+        "technical term the first time it appears, and close each scene "
+        "with one natural spoken sentence that recaps what was just "
+        "explained, spoken as part of the narration itself -- never write "
+        "a literal label like 'Takeaway:' before it"
     ),
     Format.corporate: (
         "structure this as a corporate/institutional narrative -- avoid "
