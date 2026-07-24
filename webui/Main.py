@@ -56,8 +56,8 @@ from app.utils.logging_utils import configure_terminal_logger
 from app.utils import utils
 
 st.set_page_config(
-    page_title="MoneyPrinterTurbo",
-    page_icon="🤖",
+    page_title="AI Documentary Studio",
+    page_icon="🎬",
     layout="wide",
     initial_sidebar_state="auto",
     menu_items={
@@ -1081,10 +1081,11 @@ def _render_brand(available_update: str | None = None):
             f'aria-label="{update_label}" title="{update_label}">'
             f"{update_label}</a>"
         )
+    tagline = html.escape(tr("Brand Tagline"))
     st.markdown(
         f"""
         <h1 class="mpt-brand">
-            <span class="mpt-brand__name">MoneyPrinterTurbo</span>
+            <span class="mpt-brand__name">AI Documentary Studio</span>
             <a class="mpt-brand__version"
                href="https://github.com/harry0703/MoneyPrinterTurbo"
                target="_blank"
@@ -1093,6 +1094,7 @@ def _render_brand(available_update: str | None = None):
                title="Open project on GitHub">v{html.escape(str(config.project_version))}</a>
             {update_link}
         </h1>
+        <div class="mpt-brand__tagline">{tagline}</div>
         """,
         unsafe_allow_html=True,
     )
