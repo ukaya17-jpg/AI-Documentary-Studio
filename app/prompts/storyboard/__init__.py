@@ -44,6 +44,11 @@ SHOT_GUIDANCE = {
         "preparation, nature/outdoor activity, and calm indoor lifestyle "
         "scenes."
     ),
+    TopicCategory.mysterious_discoveries: (
+        "Favor atmospheric, intriguing footage: archaeological or exploration "
+        "sites, dim lighting and shadows, close-ups of artifacts or "
+        "documents, and vast unexplored landscapes."
+    ),
 }
 
 

@@ -43,6 +43,7 @@ class TestBuildStoryboardPrompt(unittest.TestCase):
             TopicCategory.film_highlights: "cinema-adjacent b-roll",
             TopicCategory.sports: "dynamic sports footage",
             TopicCategory.healthy_living: "everyday wellness footage",
+            TopicCategory.mysterious_discoveries: "atmospheric, intriguing footage",
         }
         for category, keyword in expectations.items():
             prompt = storyboard_generator.build_storyboard_prompt(_scene_plan(), _script(), category)

@@ -34,6 +34,7 @@ TONE_VOICE_GUIDANCE = {
     Tone.cinephile: "articulate and analytical, with genuine enthusiasm for craft -- like a film critic explaining why a scene works",
     Tone.dynamic: "energetic and momentum-driven, building intensity toward key moments -- like a sports broadcast narrator",
     Tone.encouraging: "warm, practical, and supportive -- like a knowledgeable friend giving grounded health advice",
+    Tone.mysterious: "hushed and intriguing, building curiosity without sensationalizing -- like a narrator walking through an unsolved case",
 }
 
 # Format is orthogonal to Tone: Tone shapes how the narration sounds (voice),

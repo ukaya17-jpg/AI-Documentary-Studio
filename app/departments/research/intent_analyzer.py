@@ -45,6 +45,10 @@ _CATEGORY_KEYWORDS = {
         "health", "fitness", "nutrition", "wellness", "diet", "exercise",
         "sağlık", "beslenme", "egzersiz", "diyet",
     ],
+    TopicCategory.mysterious_discoveries: [
+        "mystery", "mysterious", "unexplained", "unsolved", "cryptid", "conspiracy", "paranormal",
+        "gizem", "esrarengiz", "çözülemeyen", "esrarlı",
+    ],
 }
 
 

@@ -54,6 +54,12 @@ class TestHeuristicCategory(unittest.TestCase):
             TopicCategory.healthy_living,
         )
 
+    def test_mysterious_discoveries_keyword(self):
+        self.assertEqual(
+            intent_analyzer._heuristic_category("Unexplained Lights Over the Desert"),
+            TopicCategory.mysterious_discoveries,
+        )
+
     def test_unknown_falls_back_to_history(self):
         self.assertEqual(intent_analyzer._heuristic_category("xyzzy"), TopicCategory.history)
 

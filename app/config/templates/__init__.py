@@ -160,6 +160,24 @@ PROFILE_PROMPTS = {
         ),
         "closing": "End with a simple, actionable takeaway the viewer can start today.",
     },
+    Tone.mysterious: {
+        "style": (
+            "Mystery/unexplained-discoveries documentary. Favor an atmosphere "
+            "of intrigue -- present verified facts clearly, but frame open "
+            "questions as genuinely open rather than implying a hidden "
+            "conspiracy or a definitive secret answer."
+        ),
+        "opening_hook": (
+            "Open with the central unanswered question or the strangest known "
+            "fact, before providing any context."
+        ),
+        "section_guidance": (
+            "Cover what was found or observed, the leading scientific or "
+            "scholarly explanations, why it remains unresolved or disputed, "
+            "and what would settle the question."
+        ),
+        "closing": "End by leaving the central mystery open rather than manufacturing a false resolution.",
+    },
 }
 
 
