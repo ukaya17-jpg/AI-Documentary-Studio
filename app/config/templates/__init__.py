@@ -108,6 +108,24 @@ PROFILE_PROMPTS = {
         ),
         "closing": "End with a reflective, open-ended thought rather than a definitive conclusion.",
     },
+    Tone.cinephile: {
+        "style": (
+            "Film documentary. Discuss films, scenes, and filmmaking techniques "
+            "and their cultural impact without quoting dialogue verbatim or "
+            "fabricating quotes attributed to real actors, directors, or other "
+            "real people."
+        ),
+        "opening_hook": (
+            "Open with a specific technique, moment, or piece of cultural impact "
+            "worth examining, described in your own words rather than quoted."
+        ),
+        "section_guidance": (
+            "Cover the film or scene's context, the technique or choice that "
+            "makes it notable, its cultural or artistic impact, and how it "
+            "influenced other films or audiences."
+        ),
+        "closing": "End by placing the specific example within the broader story of film as an art form.",
+    },
 }
 
 

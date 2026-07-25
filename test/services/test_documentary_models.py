@@ -62,6 +62,7 @@ class TestProfileDimensions(unittest.TestCase):
         # above, which is specifically about the pre-existing categories.
         self.assertEqual(DEFAULT_TONE_BY_CATEGORY[TopicCategory.marine], Tone.wondrous)
         self.assertEqual(DEFAULT_TONE_BY_CATEGORY[TopicCategory.spiritual], Tone.reflective)
+        self.assertEqual(DEFAULT_TONE_BY_CATEGORY[TopicCategory.film_highlights], Tone.cinephile)
 
     def test_resolve_tone_defaults_to_category_tone_when_no_override(self):
         for category, expected_tone in DEFAULT_TONE_BY_CATEGORY.items():
@@ -110,6 +111,15 @@ class TestTemplates(unittest.TestCase):
         # authored this phase) -- it deliberately reuses credibility's, the
         # same fallback get_template always had before Tone existed.
         self.assertIs(get_template(Tone.neutral), PROFILE_PROMPTS[Tone.credibility])
+
+    def test_cinephile_template_forbids_verbatim_quotes(self):
+        # film_highlights topics are the one category where the LLM has an
+        # obvious incentive to reproduce real dialogue/quotes -- this must
+        # stay an explicit instruction in the prompt text itself, not just a
+        # hoped-for side effect of "discuss films".
+        style = PROFILE_PROMPTS[Tone.cinephile]["style"]
+        self.assertIn("without quoting dialogue verbatim", style)
+        self.assertIn("fabricating quotes attributed to real", style)
 
 
 class TestModels(unittest.TestCase):

@@ -33,6 +33,10 @@ _CATEGORY_KEYWORDS = {
         "spiritual", "meditation", "soul", "faith", "religion", "mindfulness", "monk",
         "spiritüel", "maneviyat", "ruh", "meditasyon", "inanç",
     ],
+    TopicCategory.film_highlights: [
+        "movie", "film", "cinema", "actor", "director", "hollywood",
+        "sinema", "yönetmen", "oyuncu", "film sahnesi",
+    ],
 }
 
 

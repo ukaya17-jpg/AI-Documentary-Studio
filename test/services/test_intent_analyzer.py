@@ -36,6 +36,12 @@ class TestHeuristicCategory(unittest.TestCase):
             TopicCategory.spiritual,
         )
 
+    def test_film_highlights_keyword(self):
+        self.assertEqual(
+            intent_analyzer._heuristic_category("The Making of a Classic Movie Scene"),
+            TopicCategory.film_highlights,
+        )
+
     def test_unknown_falls_back_to_history(self):
         self.assertEqual(intent_analyzer._heuristic_category("xyzzy"), TopicCategory.history)
 

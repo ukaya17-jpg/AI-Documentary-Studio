@@ -10,6 +10,7 @@ class TopicCategory(str, Enum):
     psychology = "psychology"
     marine = "marine"
     spiritual = "spiritual"
+    film_highlights = "film_highlights"
 
 
 class Tone(str, Enum):
@@ -20,6 +21,7 @@ class Tone(str, Enum):
     neutral = "neutral"
     wondrous = "wondrous"
     reflective = "reflective"
+    cinephile = "cinephile"
 
 
 # One default tone per topic category, chosen to match each category's
@@ -33,6 +35,7 @@ DEFAULT_TONE_BY_CATEGORY = {
     TopicCategory.psychology: Tone.scientific,
     TopicCategory.marine: Tone.wondrous,
     TopicCategory.spiritual: Tone.reflective,
+    TopicCategory.film_highlights: Tone.cinephile,
 }
 
 

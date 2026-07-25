@@ -148,11 +148,12 @@ generator above it.
 **What you can control:**
 - **Topic Category** — `auto` (detected from your topic) or a manual
   override: `history`, `space`, `psychology`, `travel`, `marine`,
-  `spiritual`. Each category has a matched research/outline style.
+  `spiritual`, `film_highlights`. Each category has a matched
+  research/outline style.
 - **Tone** — how the narration *sounds*: `auto` (the category's default,
   e.g. history defaults to a measured, credible voice; space defaults to
   epic/awe-struck), or an explicit override (`cinematic`, `credibility`,
-  `epic`, `scientific`, `neutral`, `wondrous`, `reflective`).
+  `epic`, `scientific`, `neutral`, `wondrous`, `reflective`, `cinephile`).
 - **Format** — what structural job the video does, independent of tone:
   `standard` (no extra structure), `educational` (defines technical terms
   on first use, closes each scene with a spoken recap), or `corporate`

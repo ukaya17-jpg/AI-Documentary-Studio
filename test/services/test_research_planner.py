@@ -80,6 +80,7 @@ class TestBuildResearchPromptToneRegression(unittest.TestCase):
             TopicCategory.psychology: "relatable scenario or experiment",
             TopicCategory.marine: "underwater world",
             TopicCategory.spiritual: "concrete traditions, practices",
+            TopicCategory.film_highlights: "without quoting dialogue verbatim",
         }
         for category, keyword in expectations.items():
             tone = resolve_tone(category, None)

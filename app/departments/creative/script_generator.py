@@ -31,6 +31,7 @@ TONE_VOICE_GUIDANCE = {
     Tone.neutral: "clear and neutral",
     Tone.wondrous: "curious and awe-filled, savoring vivid natural detail -- like a nature documentary narrator marveling at what's on screen",
     Tone.reflective: "calm, unhurried, and contemplative -- like a narrator inviting quiet reflection rather than reciting facts",
+    Tone.cinephile: "articulate and analytical, with genuine enthusiasm for craft -- like a film critic explaining why a scene works",
 }
 
 # Format is orthogonal to Tone: Tone shapes how the narration sounds (voice),

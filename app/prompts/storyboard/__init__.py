@@ -28,6 +28,12 @@ SHOT_GUIDANCE = {
         "Favor serene, contemplative footage: temples, monasteries, meditation "
         "and nature scenes, candlelight, and quiet human moments of reflection."
     ),
+    TopicCategory.film_highlights: (
+        "Favor cinema-adjacent b-roll: film reels, cinemas and projectors, "
+        "behind-the-scenes/set imagery, clapperboards, and film festival or "
+        "awards imagery -- avoid search terms implying use of actual "
+        "copyrighted film footage."
+    ),
 }
 
 
