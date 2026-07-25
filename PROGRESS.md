@@ -1984,3 +1984,88 @@ Doğrulama: tam pytest suite **671 passed, 11 skipped** (666'dan +5, hiç
 regresyon yok), `ruff check app cli.py main.py webui test` temiz, ve
 `resolve_tone`/`get_shot_guidance`/`get_template` gerçek Python
 çağrılarıyla uçtan uca manuel doğrulandı.
+
+## 7 kategorilik genişletme TAMAMLANDI (kullanıcı talebiyle, TAM OTONOMİ ile)
+
+Yukarıdaki marine/spiritual, kullanıcının asıl istediği **7 kategorilik**
+genişletmenin ilk 2 maddesiydi. Kullanıcı devamında kalan 5 kategoriyi de
+istedi ve bu iş için tam otonomi verdi (plan+kod+test+gerçek
+doğrulama+commit+push, tekrar onay beklemeden) — **tek şartla: her
+kategori kendi commit'i + kendi push'u + kendi gerçek API doğrulamasıyla
+bitmeden bir sonrakine geçilmeyecek.**
+
+**Önemli düzeltme (uygulamaya başlamadan önce):** Kullanıcının mesajı bu
+işin "önceden PROGRESS.md'de ertelenmiş bir madde" olduğunu ve bir
+`OUTLINE_REGISTRY` + kategori-başına-ayrı-dosya mimarisi kullanılması
+gerektiğini iddia ediyordu. Her ikisini de doğruladım: repo'da (757
+commit'lik tam git geçmişi dahil) böyle bir erteleme kaydı ya da
+`OUTLINE_REGISTRY` hiç yok. Kullanıcıya bunu açıkça söyleyip iki soru
+sordum (AskUserQuestion): (1) mevcut gerçek mimariyi mi (PROFILE_PROMPTS/
+SHOT_GUIDANCE/keywords, Tone-anahtarlı) kullanalım yoksa sıfırdan bir
+registry mi kuralım, (2) marine/spiritual bu oturumda zaten yazdığım
+haliyle mi kalsın yoksa `marine_life`/`spirituality` olarak yeniden mi
+adlandırılsın. Kullanıcı ikisinde de önerilen (mevcut deseni kullan, ismi
+değiştirme) seçeneği onayladı — aşağıdaki 5 kategori de tamamen mevcut
+mimariye (4 orijinal kategori + marine/spiritual ile birebir aynı desen)
+göre eklendi.
+
+**Seçilen 5 yeni Tone + gerekçesi** (her biri kendi `PROFILE_PROMPTS`,
+`SHOT_GUIDANCE`, `TONE_VOICE_GUIDANCE`, `_CATEGORY_KEYWORDS` girdisiyle):
+
+| Kategori | Tone | Neden bu tone (mevcut 5 tonun hiçbiri yerine yeni bir tane) |
+|---|---|---|
+| `film_highlights` | `cinephile` | Analitik, sinema-eleştirmeni sesi; hiçbir mevcut tone (epic/scientific/vb.) film tekniği tartışmasına uymuyordu |
+| `sports` | `dynamic` | Yüksek enerjili, momentum odaklı; `epic` (uzay/bilim ölçeği) ile karıştırılabilirdi ama farklı bir "an"a odaklanıyor (rekabetin doruk noktası) |
+| `healthy_living` | `encouraging` | Sıcak, pratik, destekleyici; kesin tıbbi iddialardan kaçınma talimatı buraya özel eklendi (hassas konu) |
+| `mysterious_discoveries` | `mysterious` | Gizem atmosferi ama gerçek bilimsel belirsizliği komplo teorisi gibi sunmama talimatıyla (hassas konu, yanlış bilgi riski) |
+| `personal_development` | `motivational` | Doğrudan, harekete geçirici, somut; `encouraging` (healthy_living) ile karıştırılmasın diye kasıtlı olarak ayrı tutuldu |
+
+`film_highlights` için **TELİF HAKKI KORUMASI** (kullanıcının özel talebi):
+`PROFILE_PROMPTS[Tone.cinephile]["style"]` açıkça şunu talimat veriyor:
+*"Discuss films, scenes, and filmmaking techniques and their cultural
+impact without quoting dialogue verbatim or fabricating quotes attributed
+to real actors, directors, or other real people."* Bunun sadece niyet
+olarak kalmaması için `test_documentary_models.py`'ye bu tam metnin
+`PROFILE_PROMPTS` içinde var olduğunu kilitleyen ayrı bir regresyon testi
+eklendi (`test_cinephile_template_forbids_verbatim_quotes`).
+
+**Planda öngörülmemiş ama tam suite sayesinde bulunan gerçek bir boşluk:**
+`app/departments/creative/script_generator.py`'deki `TONE_VOICE_GUIDANCE`
+sözlüğü — script (anlatım) aşamasının kendi ayrı Tone-keyed sözlüğü —
+ilk analizde `TopicCategory.` üzerinden grep yapıldığı için kaçırılmıştı.
+İlk commit'ten (marine/spiritual) hemen sonra tam suite çalıştırılınca
+`test_all_tones_have_voice_guidance` testi bunu **anında** yakaladı; o
+commit'e dahil edilip düzeltildi, sonraki her kategori için de bu sözlüğe
+girdi eklendi. Bu, "tam suite'i her adımdan sonra çalıştır" kuralının
+tam olarak neden var olduğunun somut bir kanıtı.
+
+**Her kategori için gerçek API ile uçtan uca doğrulama** (intent →
+research → outline → scene → script, video/ses hariç — ucuz, gerçek
+OpenAI çağrılarıyla):
+
+| Kategori | Test konusu | Sonuç |
+|---|---|---|
+| `marine` | "The Secret Life of Coral Reefs" | grounded=True; script wondrous tonuna tam uygun ("the reef changes its skin") |
+| `spiritual` | "The Practice of Zen Meditation" | grounded=True; reflective ton ("Before dawn, a bell sounds in darkness") |
+| `film_highlights` | "The Cinematography of Citizen Kane" (bilinçli olarak telif-hassas bir konu) | grounded=True; script SADECE teknik/kültürel etkiyi tartıştı (deep focus, low angle), hiç diyalog alıntılamadı, Welles'e uydurma söz atfetmedi |
+| `sports` | "The Greatest Comeback in Marathon History" | grounded=True (Abebe Bikila/1964 Tokyo gerçek doğrulandı); dynamic ton |
+| `healthy_living` | "The Science of Intermittent Fasting" | grounded=True; script kesin tıbbi iddia yerine temkinli dil kullandı ("long-term proof is still unfolding") |
+| `mysterious_discoveries` | "The Mystery of the Bermuda Triangle" (bilinçli olarak yanlış-bilgi-riskli bir konu) | grounded=True; script gerçek bilimsel konsensüsü doğru yansıttı ("no abnormal pattern"), komplo teorisi üretmedi |
+| `personal_development` | "How to Build Better Habits That Actually Stick" | grounded=True (implementation intentions araştırması); somut, eyleme geçirilebilir, motivational ton |
+
+**Commit'ler (her biri ayrı push edildi, `git push origin main` sonrası
+`git rev-parse main origin/main` ile eşleştiği doğrulandı):**
+1. `99d78a4` — marine + spiritual
+2. `7adfc5a` — film_highlights (+ telif koruması testi)
+3. `8f6b476` — sports
+4. `9d7cab6` — healthy_living
+5. `812f155` — mysterious_discoveries
+6. `105269b` — personal_development
+
+**Sonuç:** `TopicCategory` artık **11** değer (`travel, history, space,
+psychology, marine, spiritual, film_highlights, sports, healthy_living,
+mysterious_discoveries, personal_development`), `Tone` **12** değer.
+`webui/Main.py` hiç değişmedi (enum'dan dinamik türetiliyor).
+`README-en.md`/`README.md` her commit'te güncel tutuldu. Tam pytest suite
+**677 passed, 11 skipped** (671'den +6, sıfır regresyon), `ruff check app
+cli.py main.py webui test` her adımda temiz.
