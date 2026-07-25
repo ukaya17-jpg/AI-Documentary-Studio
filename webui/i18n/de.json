@@ -364,6 +364,9 @@
     "Format: educational": "Lehrreich",
     "Format: corporate": "Unternehmen",
     "Pacing: short": "Kurz",
-    "Pacing: long": "Lang"
+    "Pacing: long": "Lang",
+    "Category Auto Description": "Lässt die KI die passende Kategorie anhand des Themas erkennen.",
+    "Tone Auto Description": "Verwendet den Standardton der gewählten Kategorie.",
+    "Tone Neutral Fallback Description": "Noch kein eigener Stil -- verwendet aktuell den Ton „Glaubwürdig“."
   }
 }

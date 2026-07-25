@@ -364,6 +364,9 @@
     "Format: educational": "Edukatif",
     "Format: corporate": "Korporat",
     "Pacing: short": "Pendek",
-    "Pacing: long": "Panjang"
+    "Pacing: long": "Panjang",
+    "Category Auto Description": "Biarkan AI mendeteksi kategori terbaik dari topik Anda.",
+    "Tone Auto Description": "Gunakan nada default dari kategori yang dipilih.",
+    "Tone Neutral Fallback Description": "Belum memiliki gaya khusus -- saat ini menggunakan nada Kredibel."
   }
 }

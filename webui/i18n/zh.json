@@ -391,6 +391,9 @@
     "Format: educational": "教育向",
     "Format: corporate": "企业向",
     "Pacing: short": "短",
-    "Pacing: long": "长"
+    "Pacing: long": "长",
+    "Category Auto Description": "让 AI 根据主题自动检测最合适的类别。",
+    "Tone Auto Description": "使用所选类别的默认语气。",
+    "Tone Neutral Fallback Description": "暂无专属风格 -- 目前会回退使用「可信」语气。"
   }
 }

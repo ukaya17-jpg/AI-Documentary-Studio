@@ -364,6 +364,9 @@
     "Format: educational": "Eğitici",
     "Format: corporate": "Kurumsal",
     "Pacing: short": "Kısa",
-    "Pacing: long": "Uzun"
+    "Pacing: long": "Uzun",
+    "Category Auto Description": "En uygun kategoriyi konudan AI otomatik seçsin.",
+    "Tone Auto Description": "Seçili kategorinin varsayılan tonu kullanılsın.",
+    "Tone Neutral Fallback Description": "Henüz kendine özel bir stili yok -- şu an Güvenilir tonuna düşüyor."
   }
 }

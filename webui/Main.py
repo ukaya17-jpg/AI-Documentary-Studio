@@ -25,7 +25,14 @@ if root_dir not in sys.path:
     sys.path.append(root_dir)
 
 from app.config import config
-from app.config.profile_dimensions import Format, Pacing, Tone, TopicCategory
+from app.config.profile_dimensions import (
+    DEFAULT_TONE_BY_CATEGORY,
+    Format,
+    Pacing,
+    Tone,
+    TopicCategory,
+)
+from app.config.templates import PROFILE_PROMPTS
 from app.departments.growth import publisher
 from app.models import const
 from app.models.documentary_project import DocumentaryProject
@@ -4142,6 +4149,133 @@ def _documentary_pacing_label(value):
     return tr(f"Pacing: {value}")
 
 
+# Modernizasyon C -- Kategori/Ton kart grid'i (kullanıcı talebiyle, sıra:
+# A -> C -> B). Sadece emoji, yeni asset yok.
+_CATEGORY_ICONS = {
+    "auto": "✨",
+    TopicCategory.travel.value: "✈️",
+    TopicCategory.history.value: "🏛️",
+    TopicCategory.space.value: "🚀",
+    TopicCategory.psychology.value: "🧠",
+    TopicCategory.marine.value: "🐋",
+    TopicCategory.spiritual.value: "🕊️",
+    TopicCategory.film_highlights.value: "🎬",
+    TopicCategory.sports.value: "⚽",
+    TopicCategory.healthy_living.value: "🥗",
+    TopicCategory.mysterious_discoveries.value: "🔍",
+    TopicCategory.personal_development.value: "🌱",
+}
+
+_TONE_ICONS = {
+    "auto": "✨",
+    Tone.cinematic.value: "🎥",
+    Tone.credibility.value: "📚",
+    Tone.epic.value: "🌌",
+    Tone.scientific.value: "🔬",
+    Tone.neutral.value: "⚪",
+    Tone.wondrous.value: "🌊",
+    Tone.reflective.value: "🕯️",
+    Tone.cinephile.value: "🎞️",
+    Tone.dynamic.value: "⚡",
+    Tone.encouraging.value: "🤝",
+    Tone.mysterious.value: "🕵️",
+    Tone.motivational.value: "💪",
+}
+
+_CATEGORY_CARDS_PER_ROW = 4
+_TONE_CARDS_PER_ROW = 4
+
+
+def _tone_style_preview(tone_value: str) -> str:
+    """PROFILE_PROMPTS'un "style" metninden 1 cümlelik bir önizleme çıkarır.
+
+    Bilinçli olarak ÇEVRİLMİYOR: PROFILE_PROMPTS tamamen İngilizce, LLM
+    prompt'larına giden metin (webui'nin çevrilen kullanıcı arayüzünden
+    ayrı bir katman) -- kullanıcı talebi doğrudan "PROFILE_PROMPTS'tan
+    alınan" bir önizleme istiyordu, 12 tone'u 9 dile yeniden çevirmek bu
+    görevin kapsamı dışında (ayrı, çok daha büyük bir çeviri işi olurdu).
+
+    "style" metni her zaman "{Tür} documentary. {Asıl rehberlik}." deseninde
+    -- ilk cümle (tür etiketi) zaten kart üzerindeki isim/ikonla fazlalık
+    olduğu için atılıyor, geriye kalan asıl rehberlik cümlesi(leri)
+    gösteriliyor, kart boyutuna sığması için kısaltılıyor.
+    """
+    if tone_value == "auto":
+        return tr("Tone Auto Description")
+
+    tone = Tone(tone_value)
+    if tone not in PROFILE_PROMPTS:
+        # Sadece Tone.neutral için geçerli -- get_template() zaten aynı
+        # fallback'i (Tone.credibility) kullanıyor, burada bunu şeffaf
+        # bir şekilde kullanıcıya da söylüyoruz.
+        return tr("Tone Neutral Fallback Description")
+
+    style = PROFILE_PROMPTS[tone]["style"]
+    sentences = [s.strip() for s in style.split(". ") if s.strip()]
+    preview = ". ".join(sentences[1:]) if len(sentences) > 1 else style
+    preview = preview.rstrip(".") + "."
+    if len(preview) > 110:
+        preview = preview[:107].rstrip() + "…"
+    return preview
+
+
+def _category_style_preview(category_value: str) -> str:
+    if category_value == "auto":
+        return tr("Category Auto Description")
+
+    category = TopicCategory(category_value)
+    default_tone = DEFAULT_TONE_BY_CATEGORY[category]
+    return _tone_style_preview(default_tone.value)
+
+
+def _render_selection_card(*, kind: str, value: str, icon: str, label: str, preview: str, session_key: str):
+    """Kategori/Ton kart grid'inin tek bir kartı.
+
+    `session_key`'i (documentary_topic_category/documentary_tone) doğrudan
+    kendisi okuyup yazıyor -- eski selectbox'ların kullandığı AYNI
+    session_state anahtarı, böylece run_pipeline()'a giden değer hiç
+    değişmiyor, sadece giriş widget'ı değişiyor. Seçili kart farklı bir
+    container key'i alıyor (`{kind}_card_selected_{value}` vs
+    `{kind}_card_{value}`) -- styles.css'teki nav aktif-sayfa ile aynı
+    wildcard-key deseni bu farkı CSS'te vurguluyor.
+    """
+    is_selected = st.session_state.get(session_key, "auto") == value
+    container_key = f"{kind}_card_{'selected_' if is_selected else ''}{value}"
+    with st.container(key=container_key, border=True):
+        if st.button(
+            f"{icon}  {label}",
+            key=f"{kind}_btn_{value}",
+            use_container_width=True,
+            type="primary" if is_selected else "secondary",
+        ):
+            st.session_state[session_key] = value
+            st.rerun()
+        st.caption(preview)
+
+
+def _render_category_tone_grid(*, kind: str, values: list[str], icons: dict, labels_fn, previews_fn, session_key: str, cards_per_row: int):
+    # Dış container'a sabit bir key veriliyor ki styles.css orta genişlikte
+    # (main_settings_grid'in 2x2 düzenine düştüğü aynı ara nokta) kart
+    # sayısını satır başına düşürebilsin -- st.columns(N) Python tarafında
+    # sabit bir N alıyor, gerçek "sarma" (wrap) CSS'te bu key üzerinden
+    # yapılıyor. 700px altında Streamlit'in kendi native davranışı zaten
+    # tüm stHorizontalBlock'ları tek sütuna indiriyor, ek iş gerekmiyor.
+    with st.container(key=f"{kind}_grid"):
+        for row_start in range(0, len(values), cards_per_row):
+            row_values = values[row_start : row_start + cards_per_row]
+            cols = st.columns(cards_per_row)
+            for col, value in zip(cols, row_values):
+                with col:
+                    _render_selection_card(
+                        kind=kind,
+                        value=value,
+                        icon=icons.get(value, "📌"),
+                        label=labels_fn(value),
+                        preview=previews_fn(value),
+                        session_key=session_key,
+                    )
+
+
 def _render_documentary_studio_page():
     """
     AI Documentary Studio (Beta): Intent -> Research -> Outline -> Scene ->
@@ -4228,16 +4362,6 @@ def _render_documentary_studio_page():
             key="documentary_language",
         )
     with col2:
-        category_options = ["auto"] + [c.value for c in TopicCategory]
-        topic_category = st.selectbox(
-            tr("Documentary Topic Category"),
-            options=category_options,
-            index=0,
-            key="documentary_topic_category",
-            help=tr("Documentary Topic Category Help"),
-            format_func=_documentary_category_label,
-        )
-    with col3:
         pacing = st.selectbox(
             tr("Documentary Pacing"),
             options=[p.value for p in Pacing],
@@ -4245,19 +4369,7 @@ def _render_documentary_studio_page():
             key="documentary_pacing",
             format_func=_documentary_pacing_label,
         )
-
-    col4, col5 = st.columns(2)
-    with col4:
-        tone_options = ["auto"] + [t.value for t in Tone]
-        tone = st.selectbox(
-            tr("Documentary Tone"),
-            options=tone_options,
-            index=0,
-            key="documentary_tone",
-            help=tr("Documentary Tone Help"),
-            format_func=_documentary_tone_label,
-        )
-    with col5:
+    with col3:
         format_options = ["standard"] + [f.value for f in Format]
         format_choice = st.selectbox(
             tr("Documentary Format"),
@@ -4267,6 +4379,35 @@ def _render_documentary_studio_page():
             help=tr("Documentary Format Help"),
             format_func=_documentary_format_label,
         )
+
+    # Kategori ve Ton, seçim ANINDA bir stil önizlemesi gösterebilmek için
+    # (PROFILE_PROMPTS'tan) kart grid'i olarak render ediliyor -- ama
+    # session_state anahtarları (documentary_topic_category/documentary_tone)
+    # eski selectbox'larla BİREBİR AYNI, aşağıdaki run_pipeline() çağrısı
+    # hiç değişmedi.
+    st.caption(tr("Documentary Topic Category Help"))
+    _render_category_tone_grid(
+        kind="category",
+        values=["auto"] + [c.value for c in TopicCategory],
+        icons=_CATEGORY_ICONS,
+        labels_fn=_documentary_category_label,
+        previews_fn=_category_style_preview,
+        session_key="documentary_topic_category",
+        cards_per_row=_CATEGORY_CARDS_PER_ROW,
+    )
+    topic_category = st.session_state.get("documentary_topic_category", "auto")
+
+    st.caption(tr("Documentary Tone Help"))
+    _render_category_tone_grid(
+        kind="tone",
+        values=["auto"] + [t.value for t in Tone],
+        icons=_TONE_ICONS,
+        labels_fn=_documentary_tone_label,
+        previews_fn=_tone_style_preview,
+        session_key="documentary_tone",
+        cards_per_row=_TONE_CARDS_PER_ROW,
+    )
+    tone = st.session_state.get("documentary_tone", "auto")
 
     voice_name = st.text_input(
         tr("Documentary Voice Name"),

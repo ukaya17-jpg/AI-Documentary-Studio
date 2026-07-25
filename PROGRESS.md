@@ -2143,3 +2143,65 @@ regresyon riski yok). Gerçek tarayıcı doğrulaması (ayrı geçici Streamlit
 tam sayfa ekran görüntüsü alınıp kullanıcıya gösterildi, konsol hatası
 yok, mevcut düzen (nav, form, buton) bozulmadı — kullanıcı onayladıktan
 sonra geçici PNG'ler silindi.
+
+## Modernizasyon C — Kategori/Ton kart grid'i (kullanıcı talebiyle)
+
+Documentary Studio'nun Kategori (11+auto) ve Ton (12+auto) seçicileri düz
+selectbox'lardan, seçim anında `PROFILE_PROMPTS`'tan alınan 1 cümlelik stil
+önizlemesi gösteren bir kart grid'ine dönüştürüldü — sadece emoji ikon,
+yeni asset yok. Mimari: `_render_history_page`'in (Faz 4) satır-başına-N
+`st.columns()` chunking desenini birebir kullanan `st.button()` kartları
+(custom HTML DEĞİL — ham HTML Python tarafına tıklama bildiremez).
+`documentary_topic_category`/`documentary_tone` session_state anahtarları
+**hiç değişmedi**, sadece `st.selectbox` yerine kart butonuna tıklanınca bu
+anahtarlara doğrudan yazılıyor + `st.rerun()` — `run_pipeline()`'a giden
+değer bire bir aynı kaldı. Format/Pacing kart grid'ine dönüşmedi, hâlâ
+selectbox.
+
+Önizleme metni tasarım kararı: `PROFILE_PROMPTS` tamamen İngilizce (LLM
+prompt metni, webui'nin çeviri katmanından ayrı) — kullanıcı talebi
+"PROFILE_PROMPTS'tan alınan" önizleme istediği için bu metin **çevrilmedi**
+(12 tone'u 9 dile çevirmek ayrı, çok daha büyük bir iş olurdu). Sadece
+"auto" kartlarının açıklaması ("Category/Tone Auto Description") ve
+`Tone.neutral`'ın (PROFILE_PROMPTS'ta kendi girdisi olmayan, `get_template()`
+zaten Credible'a düşen) dürüst fallback notu ("Tone Neutral Fallback
+Description") 9 dile çevrildi.
+
+**İki gerçek bug bulundu ve düzeltildi (kullanıcı ekran görüntüsünde
+yakaladı):**
+1. Seçili kartın (`type="primary"` buton) metni light modda tamamen
+   görünmüyordu — Streamlit `kind="primary"` butonlara rengi doğrudan
+   `<button>` öğesinde beyaz yazıyor; arka planı transparent yapınca (kart
+   görünümü için) bu beyaz metin beyaz kart zemininde kayboluyordu (dark
+   modda koyu zemin üstünde tesadüfen okunaklı kalmıştı). Düzeltme:
+   `color: inherit !important` ile temanın normal metin rengine zorlandı.
+2. Seçili kartın vurgusu (kırmızı kenarlık/arka plan) **iki temada da**
+   hiç uygulanmıyordu — CSS `stVerticalBlockBorderWrapper` adlı iç içe bir
+   öğeyi hedefliyordu (task_row_/advanced_settings_ ile aynı desen
+   sanılmıştı) ama bu Streamlit sürümünde (1.59.1) `st.container(border=True)`
+   böyle bir iç öğe üretmiyor -- class ve native kenarlık doğrudan dış
+   `stVerticalBlock` öğesinde. Dark modda native varsayılan gri kenarlık
+   zaten göründüğü için fark edilmemişti. Düzeltme: seçici doğrudan
+   class'ı taşıyan öğeyi hedefleyecek şekilde düzeltildi. Bonus: butonun
+   kendi element-container key'i (`{kind}_card_button_{value}` →
+   `{kind}_btn_{value}`) joker seçicinin ona da yanlışlıkla dokunmaması
+   için ayrı bir önekle yeniden adlandırıldı.
+
+Testler: `test_webui_documentary_labels.py`'nin Kategori/Ton'a özel 3 eski
+selectbox testi kart/buton tabanlı yeni testlerle değiştirildi (Format/
+Pacing hâlâ selectbox olduğu için o testler aynen kaldı); `.click().run()`
+ile canlı tıklama denendi ama Format/Pacing'in GÖREV 1 format_func'ı
+(session_state okuyan) AppTest'in *herhangi bir ikinci* `.run()`
+çağrısında (tıklamayla ilgisiz olsa bile) tüm widget ağacını yeniden
+serileştirip aynı bağlanmamış-context quirk'üne düşürdüğü görüldü —
+üretimde sorun yok, sadece test harness sınırı; bu yüzden her test tek
+`.run()` + session_state'i önceden set etme desenine sadık kalındı.
+
+Doğrulama: tam pytest suite **687 passed, 11 skipped** (684'ten +3, sıfır
+regresyon), `ruff check app cli.py main.py webui test` temiz. Gerçek
+tarayıcı doğrulaması iki turda yapıldı (ayrı geçici Streamlit örnekleri,
+8592/8593, production 8501'e hiç dokunulmadı): ilk turda kullanıcı "Auto"
+kartının light modda görünmezliğini yakaladı, düzeltme sonrası ikinci
+turda hem light hem dark'ta metin + vurgu net görünür olduğu computed-style
+introspection'ıyla (getComputedStyle) ve ekran görüntüsüyle doğrulandı,
+kullanıcı onayladı.

@@ -364,6 +364,9 @@
     "Format: educational": "Educativo",
     "Format: corporate": "Corporativo",
     "Pacing: short": "Curto",
-    "Pacing: long": "Longo"
+    "Pacing: long": "Longo",
+    "Category Auto Description": "Deixe a IA detectar a melhor categoria a partir do seu tema.",
+    "Tone Auto Description": "Usa o tom padrão da categoria selecionada.",
+    "Tone Neutral Fallback Description": "Ainda sem estilo próprio -- atualmente usa o tom Credível."
   }
 }

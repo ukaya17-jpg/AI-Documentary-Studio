@@ -403,6 +403,23 @@ div[class*="st-key-task_row_"] button[kind="secondary"] p {
         width: calc(50% - 0.5rem) !important;
         min-width: calc(50% - 0.5rem) !important;
     }
+
+    /* Kategori/Ton kart grid'i: 4 kart/satırdan 2 kart/satıra düşürüyor,
+       main_settings_grid'in 2x2 ile aynı ara nokta ve aynı flex-wrap
+       yöntemi -- st.columns(4) Python tarafında sabit kalıyor, sarma
+       tamamen burada. */
+    div[class*="st-key-category_grid"] div[data-testid="stHorizontalBlock"],
+    div[class*="st-key-tone_grid"] div[data-testid="stHorizontalBlock"] {
+        flex-wrap: wrap !important;
+        gap: 0.75rem !important;
+    }
+
+    div[class*="st-key-category_grid"] div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"],
+    div[class*="st-key-tone_grid"] div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
+        flex: 1 1 calc(50% - 0.4rem) !important;
+        width: calc(50% - 0.4rem) !important;
+        min-width: calc(50% - 0.4rem) !important;
+    }
 }
 
 /* 移动端隐藏桌面表头，并将任务行重排为“主题 + 元信息 + 操作”紧凑结构。 */
@@ -552,4 +569,78 @@ div[data-testid="stMainBlockContainer"] button[kind="primary"]:hover {
 div[data-testid="stMainBlockContainer"] button[kind="primary"]:focus-visible {
     outline: 2px solid color-mix(in srgb, var(--mpt-accent) 48%, transparent);
     outline-offset: 2px;
+}
+
+/* Modernizasyon C -- Kategori/Ton kart grid'i (kullanıcı talebiyle).
+   DÜZELTME (ilk ekran görüntüsü onayından sonra bulundu): st.container(key=...,
+   border=True) bu Streamlit sürümünde (1.59.1) ayrı bir iç
+   stVerticalBlockBorderWrapper ÜRETMİYOR -- st-key-* class'ı ve native
+   kenarlık/köşe-yarıçapı doğrudan dış stVerticalBlock öğesinin kendisinde.
+   Önceki sürüm var olmayan bir iç öğeyi hedeflediği için hem temel
+   kenarlık/hover hem de seçili-kart vurgusu (arka plan/kenarlık rengi)
+   sessizce hiçbir zaman uygulanmıyordu (iki temada da, sadece light modda
+   fark edilmedi çünkü buton metni de görünmezdi ve kart tesadüfen "boş ama
+   makul" görünüyordu). Artık doğrudan class'ı taşıyan öğe hedefleniyor.
+   Butonun kendi element-container'ı (`st-key-{kind}_btn_{value}`) farklı
+   bir isim önekiyle (`_btn_`, `_card_` değil) bilinçli olarak ayrıştırıldı
+   ki bu joker seçiciler ona hiç dokunmasın. */
+div[class*="st-key-category_card_"],
+div[class*="st-key-tone_card_"] {
+    border-radius: var(--mpt-radius) !important;
+    transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+div[class*="st-key-category_card_"]:hover,
+div[class*="st-key-tone_card_"]:hover {
+    border-color: color-mix(in srgb, var(--mpt-accent) 35%, transparent) !important;
+}
+
+div[class*="st-key-category_card_"] button,
+div[class*="st-key-tone_card_"] button {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    justify-content: flex-start !important;
+    padding: 0.15rem 0 !important;
+    /* KRİTİK: Streamlit kind="primary" butonlara (seçili kart) rengi
+       doğrudan <button> öğesinin kendisinde beyaz (#fff) olarak
+       yazıyor -- arka planı transparent yaptığımızda (yukarıda) bu beyaz
+       metin light modda beyaz kart zemininde tamamen kayboluyor (dark
+       modda koyu zemin üzerinde tesadüfen okunaklı kaldığı için ilk
+       ekran görüntüsünde fark edilmedi). `color: inherit` bunu ebeveynin
+       (temanın normal metin rengi, her iki modda da doğru) rengine
+       zorluyor -- seçili/seçili-olmayan kartlar arasındaki görsel fark
+       tamamen arka plan + kenarlık + kalın yazıdan geliyor, metin rengi
+       ikisinde de aynı okunaklı ton. */
+    color: inherit !important;
+}
+
+div[class*="st-key-category_card_"] button p,
+div[class*="st-key-tone_card_"] button p {
+    white-space: normal !important;
+    text-align: left !important;
+    font-weight: 600 !important;
+    color: inherit !important;
+}
+
+/* Satır içi önizleme metni 2 satırla sınırlanıyor ki farklı uzunluktaki
+   stil cümleleri aynı satırdaki kartların yüksekliğini bozmasın. */
+div[class*="st-key-category_card_"] [data-testid="stCaptionContainer"] p,
+div[class*="st-key-tone_card_"] [data-testid="stCaptionContainer"] p {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden !important;
+    min-height: 2.3em;
+}
+
+/* Seçili kart: nav aktif-sayfa ile aynı vurgu deseni (--mpt-accent-soft
+   arka plan + --mpt-accent kenarlık). Seçim, Python tarafında farklı bir
+   container key'i (`..._selected_...`) olarak kodlanıyor -- CSS koşullu
+   bir Python state'ini göremez, bu yüzden state farkı DOM'a (key'e)
+   yansıtılıyor. */
+div[class*="st-key-category_card_selected_"],
+div[class*="st-key-tone_card_selected_"] {
+    background: var(--mpt-accent-soft) !important;
+    border-color: var(--mpt-accent) !important;
 }

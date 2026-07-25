@@ -18,6 +18,17 @@ I18N_DIR = ROOT_DIR / "webui" / "i18n"
 # ast.JoinedStr, ast.Constant değil) -- bu yüzden bu yeni anahtarların i18n
 # kapsamı ayrı, doğrudan bir testle doğrulanıyor, genel AST taramasına
 # güvenilmiyor.
+#
+# Modernizasyon C: bu dosyada kasıtlı olarak hiçbir .click().run() zinciri
+# yok. Deneyerek bulundu -- Format/Pacing selectbox'larının format_func'ı
+# (GÖREV 1) session_state okuyor; AppTest herhangi bir *ikinci* .run()
+# çağrısında (bir tıklamayı takiben de olsa) TÜM widget ağacının durumunu
+# yeniden serileştiriyor, bu da etkileşimle hiç ilgisi olmayan Format/Pacing
+# selectbox'larının format_func'ını da tetikleyip aynı bağlanmamış-context
+# quirk'üne (bkz. GÖREV 1 commit notu) düşürüyor. Üretimde bu hiç sorun
+# değil (gerçek Streamlit session'ında context her zaman bağlı) -- sadece
+# AppTest'in kendi test harness sınırı. Bu yüzden her test tek bir .run()
+# çağrısıyla, session_state'i ÖNCEDEN set ederek doğrulanıyor.
 ALL_LOCALES = ("de", "en", "es", "id", "pt", "ru", "tr", "vi", "zh")
 
 
@@ -51,28 +62,34 @@ def test_pacing_labels_present_and_non_empty_in_every_locale():
     _assert_labels_present("Pacing", [p.value for p in Pacing])
 
 
+def test_category_and_tone_auto_descriptions_present_in_every_locale():
+    for locale in ALL_LOCALES:
+        translation = _translation(locale)
+        for key in (
+            "Category Auto Description",
+            "Tone Auto Description",
+            "Tone Neutral Fallback Description",
+        ):
+            assert key in translation, f"{key!r} missing from {locale}.json"
+            assert translation[key].strip(), f"{key!r} is empty in {locale}.json"
+
+
 def _selectbox_by_key(app, key):
     return next(w for w in app.selectbox if w.key == key)
 
 
-def test_selectboxes_show_translated_labels_but_keep_raw_backend_value():
-    """format_func sadece görünümü değiştirmeli -- selectbox'ın gerçek
-    .value'su (run_pipeline()'a gidecek olan) hâlâ ham enum string'i olmalı,
-    kullanıcının gördüğü metin ise session dilinde çevrilmiş olmalı.
+def _button_by_key(app, key):
+    return next(w for w in app.button if w.key == key)
+
+
+def test_format_and_pacing_selectboxes_still_show_translated_labels():
+    """Format ve Pacing kart grid'ine dönüşmedi (sadece Kategori/Ton
+    dönüştü), hâlâ selectbox -- GÖREV 1'in regresyon garantisi (ham değer +
+    çevrilmiş görünüm) burada da geçerliliğini koruyor.
     """
     app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
     app.session_state["ui_language"] = "tr"
     app.run()
-
-    category_select = _selectbox_by_key(app, "documentary_topic_category")
-    assert category_select.value == "auto"
-    assert "Tarih" in category_select.options
-    assert "history" not in category_select.options
-
-    tone_select = _selectbox_by_key(app, "documentary_tone")
-    assert tone_select.value == "auto"
-    assert "Bilimsel" in tone_select.options
-    assert "scientific" not in tone_select.options
 
     format_select = _selectbox_by_key(app, "documentary_format")
     assert format_select.value == "standard"
@@ -85,33 +102,70 @@ def test_selectboxes_show_translated_labels_but_keep_raw_backend_value():
     assert "long" not in pacing_select.options
 
 
-def test_selectboxes_show_english_labels_for_english_session():
+def test_category_and_tone_cards_show_translated_labels_and_previews():
+    app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+    app.session_state["ui_language"] = "tr"
+    app.run()
+
+    healthy_living_button = _button_by_key(app, "category_btn_healthy_living")
+    assert healthy_living_button.label == "🥗  Sağlıklı Yaşam"
+
+    scientific_button = _button_by_key(app, "tone_btn_scientific")
+    assert scientific_button.label == "🔬  Bilimsel"
+
+    # Her kartın altında bir stil önizlemesi (st.caption) var, boş olmamalı.
+    captions = [c.value for c in app.caption]
+    assert any(cap.strip() for cap in captions)
+
+
+def test_default_selection_is_auto_and_rendered_as_primary():
+    """Regresyon: hiçbir session_state ön ayarı yokken (eski selectbox'ların
+    index=0 varsayılanıyla aynı davranış), "auto" kartı hem kategori hem ton
+    için seçili (primary buton) olarak render edilmeli, diğerleri secondary.
+    """
     app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
     app.session_state["ui_language"] = "en"
     app.run()
 
-    category_select = _selectbox_by_key(app, "documentary_topic_category")
-    assert "Healthy Living" in category_select.options
-    assert "healthy_living" not in category_select.options
+    assert _button_by_key(app, "category_btn_auto").proto.type == "primary"
+    assert _button_by_key(app, "tone_btn_auto").proto.type == "primary"
+    assert _button_by_key(app, "category_btn_travel").proto.type == "secondary"
 
 
-def test_preselected_non_default_value_stays_raw_regardless_of_ui_language():
-    """Regresyon: session_state'te (ör. görev geri yükleme akışından) ham bir
-    enum değeri önceden set edilmişse, format_func bunu Türkçe arayüzde bile
-    bozmamalı -- selectbox'ın gerçek .value'su (run_pipeline()'a gidecek olan)
-    hâlâ "healthy_living" olmalı, sadece gösterilen etiket çevrilmeli.
+def test_preselected_non_default_category_renders_as_primary_and_keeps_raw_value():
+    """Regresyon: session_state'e (ör. görev geri yükleme akışından) ham bir
+    enum değeri önceden set edilmişse, o kart Türkçe arayüzde bile doğru
+    şekilde "seçili" (primary) render edilir -- ve run_pipeline()'a giden
+    gerçek değer (session_state'in kendisi) hâlâ ham "healthy_living" kalır,
+    çeviri katmanı hiçbir şeyi geri yazmaz.
 
-    (.select(raw_value).run() ile canlı bir kullanıcı tıklamasını simüle etmek
-    yerine bunu tercih ediyoruz: AppTest'in kendi iç mekanizması, session_state
-    okuyan bir format_func'ı pending-interaction serileştirmesi sırasında
-    çağırdığında session_state henüz bağlı değil -- bu Streamlit'in test
-    harness'ının bilinen bir sınırı, uygulama kodunda bir hata değil.)
+    (Bunu GÖREV 1'in .select(ham_değer).run() yerine session_state'i
+    ÖNCEDEN set edip .run() çağırma desenini kullanarak test ediyoruz --
+    aynı desen burada da güvenli/doğru.)
     """
     app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
     app.session_state["ui_language"] = "tr"
     app.session_state["documentary_topic_category"] = "healthy_living"
     app.run()
 
-    category_select = _selectbox_by_key(app, "documentary_topic_category")
-    assert category_select.value == "healthy_living"
-    assert "Sağlıklı Yaşam" in category_select.options
+    assert app.session_state["documentary_topic_category"] == "healthy_living"
+
+    selected_button = _button_by_key(app, "category_btn_healthy_living")
+    assert selected_button.proto.type == "primary"
+    assert selected_button.label == "🥗  Sağlıklı Yaşam"
+    assert _button_by_key(app, "category_btn_auto").proto.type == "secondary"
+
+
+def test_neutral_tone_preview_uses_fallback_description_not_misattributed_text():
+    """Tone.neutral'ın PROFILE_PROMPTS'ta kendi girdisi yok (get_template()
+    zaten Tone.credibility'ye düşüyor) -- kart önizlemesi bunu Credible'ın
+    metnini sessizce ödünç almak yerine açıkça, dürüst bir fallback notuyla
+    göstermeli.
+    """
+    app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+    app.session_state["ui_language"] = "en"
+    app.run()
+
+    expected = _translation("en")["Tone Neutral Fallback Description"]
+    captions = [c.value for c in app.caption]
+    assert any(expected in cap for cap in captions)

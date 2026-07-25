@@ -364,6 +364,9 @@
     "Format: educational": "Образовательный",
     "Format: corporate": "Корпоративный",
     "Pacing: short": "Короткий",
-    "Pacing: long": "Длинный"
+    "Pacing: long": "Длинный",
+    "Category Auto Description": "Пусть ИИ определит подходящую категорию по теме.",
+    "Tone Auto Description": "Использовать тон по умолчанию для выбранной категории.",
+    "Tone Neutral Fallback Description": "Пока нет отдельного стиля -- сейчас используется тон «Достоверный»."
   }
 }
