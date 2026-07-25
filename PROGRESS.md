@@ -2282,3 +2282,46 @@ tarayıcı doğrulaması + kullanıcı onayıyla tamamlandı.
 Üçü de production servisine (8501) hiç dokunmadan, ayrı geçici Streamlit
 örnekleriyle doğrulandı; her turun test/QA verisi (ekran görüntüleri,
 test projeleri) kullanıcı onayından sonra temizlendi.
+
+## Kart grid önizleme metni çevirisi düzeltmesi (kullanıcı bildirdi, `ec42906`)
+
+Modernizasyon C'nin kart grid'i, kategori/ton önizleme cümlelerini
+`PROFILE_PROMPTS[tone]["style"]`'dan türetiyordu — kullanıcı arayüz dili
+Türkçe (veya diğer 8 dilden biri) olsa bile bu metinlerin İngilizce kaldığını
+bildirdi. **Kök neden:** `PROFILE_PROMPTS` hiç kullanıcıya gösterilmek üzere
+yazılmamıştı, LLM'e giden prompt talimatıydı (`build_script_prompt()` vb.) —
+webui çeviri katmanından tamamen ayrı.
+
+**Düzeltme (PROFILE_PROMPTS'un kendisine DOKUNULMADI — LLM davranışı risk
+altına girmesin diye):** Her Tone (12'den `neutral` hariç 11 — `neutral`'ın
+zaten kendi dürüst fallback key'i vardı, dokunulmadı) ve her TopicCategory
+(11) için ayrı, kısa, kullanıcıya yönelik bir önizleme cümlesi yazılıp
+`"Tone Preview: {value}"` / `"Category Preview: {value}"` key'leriyle 9 dile
+çevrildi (22 key × 9 dil = 198 yeni çeviri). Kategori kartları artık kendi
+tone'unun metnini ödünç almıyor (`_category_style_preview` artık
+`DEFAULT_TONE_BY_CATEGORY` üzerinden `_tone_style_preview`'a delege etmiyor,
+doğrudan kendi `Category Preview:` key'ini okuyor) — bu ayrıca eski
+tasarımın bir yan etkisini de düzeltti: Psikoloji kategorisi ile Bilimsel
+ton kartı artık birebir aynı metni göstermiyor, her biri kendi alanına özgü
+bir cümle gösteriyor. `webui/Main.py`'den `PROFILE_PROMPTS`/
+`DEFAULT_TONE_BY_CATEGORY` importları tamamen kaldırıldı (artık hiç
+kullanılmıyor) — webui katmanı LLM prompt içeriğinden tamamen ayrıştı.
+
+**Regresyon garantisi:** LLM'e giden gerçek `PROFILE_PROMPTS`/
+`build_script_prompt()`/`TONE_VOICE_GUIDANCE` içeriği hiç değişmedi (sadece
+webui'nin gösterdiği metnin KAYNAĞI değişti) — doğrulandı, `app/` altında
+PROFILE_PROMPTS hâlâ sadece `script_generator.py`/`templates/__init__.py`/
+`profile_dimensions.py`/`default_pipeline.py`'de kullanılıyor.
+
+Testler: 3 yeni test (`test_tone_preview_keys_present_and_non_empty_in_every_locale`,
+`test_category_preview_keys_present_and_non_empty_in_every_locale`,
+**`test_turkish_card_previews_are_not_leaked_english_llm_prompt_text`** —
+Türkçe çeviride PROFILE_PROMPTS'a özgü İngilizce kalıpların ("Ground the
+narration", "Favor ", "documentary.") hiç geçmediğini doğrulayan doğrudan
+bir regresyon testi).
+
+Doğrulama: tam pytest suite **695 passed, 11 skipped** (692'den +3, sıfır
+regresyon), `ruff` temiz. Gerçek tarayıcı doğrulaması (Türkçe arayüz, ayrı
+geçici Streamlit örneği, production'a dokunulmadı): tüm 11 kategori + 11
+ton kartının önizlemesi tam Türkçe, hiç İngilizce kalıntı yok, kullanıcı
+onayladı.
