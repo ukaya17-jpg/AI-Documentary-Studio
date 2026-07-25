@@ -74,6 +74,40 @@ PROFILE_PROMPTS = {
         ),
         "closing": "End with a practical takeaway the viewer can apply to their own life.",
     },
+    Tone.wondrous: {
+        "style": (
+            "Marine/nature documentary. Ground the narration in vivid sensory "
+            "detail of the underwater world (light, motion, scale) and a sense "
+            "of wonder at wildlife behavior."
+        ),
+        "opening_hook": (
+            "Open with a striking, specific image or animal behavior from "
+            "beneath the surface, not a generic 'the ocean is vast' statement."
+        ),
+        "section_guidance": (
+            "Cover the featured creature or ecosystem, how it survives and "
+            "adapts, its role in the wider ecosystem, and one surprising or "
+            "lesser-known behavior."
+        ),
+        "closing": "End by connecting the specific subject to the broader wonder and fragility of ocean life.",
+    },
+    Tone.reflective: {
+        "style": (
+            "Spiritual documentary. Ground abstract or introspective ideas in "
+            "concrete traditions, practices, or personal experiences rather "
+            "than abstract philosophy alone."
+        ),
+        "opening_hook": (
+            "Open with a quiet, evocative moment or a timeless question that "
+            "invites reflection."
+        ),
+        "section_guidance": (
+            "Cover the origin of the practice or belief, how it is experienced "
+            "today, what it offers those who follow it, and a broader "
+            "universal takeaway."
+        ),
+        "closing": "End with a reflective, open-ended thought rather than a definitive conclusion.",
+    },
 }
 
 

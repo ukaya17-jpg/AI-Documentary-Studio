@@ -56,6 +56,13 @@ class TestProfileDimensions(unittest.TestCase):
         self.assertEqual(DEFAULT_TONE_BY_CATEGORY[TopicCategory.space], Tone.epic)
         self.assertEqual(DEFAULT_TONE_BY_CATEGORY[TopicCategory.psychology], Tone.scientific)
 
+    def test_default_tone_by_category_includes_new_categories(self):
+        # marine/spiritual added later than the original 4 -- kept as a
+        # separate test from the hard-locked-mapping regression contract
+        # above, which is specifically about the pre-existing categories.
+        self.assertEqual(DEFAULT_TONE_BY_CATEGORY[TopicCategory.marine], Tone.wondrous)
+        self.assertEqual(DEFAULT_TONE_BY_CATEGORY[TopicCategory.spiritual], Tone.reflective)
+
     def test_resolve_tone_defaults_to_category_tone_when_no_override(self):
         for category, expected_tone in DEFAULT_TONE_BY_CATEGORY.items():
             self.assertEqual(resolve_tone(category, None), expected_tone)

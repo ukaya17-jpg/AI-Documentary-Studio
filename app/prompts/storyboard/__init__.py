@@ -19,6 +19,15 @@ SHOT_GUIDANCE = {
         "Favor human-centered footage: close-ups of faces and expressions, "
         "everyday life scenarios, and abstract/conceptual visuals."
     ),
+    TopicCategory.marine: (
+        "Favor underwater cinematography: coral reefs, marine animals (fish, "
+        "whales, dolphins, sharks), light rays through water, and wide ocean "
+        "or coastline establishing shots."
+    ),
+    TopicCategory.spiritual: (
+        "Favor serene, contemplative footage: temples, monasteries, meditation "
+        "and nature scenes, candlelight, and quiet human moments of reflection."
+    ),
 }
 
 

@@ -1936,3 +1936,51 @@ otomatik temizleniyor, bir sonraki session güncel kodu diskten tekrar
 derliyor). Tam pytest suite: **666 passed, 11 skipped** (Faz 4 testleri
 öncesi 653'tü, +13 hiç regresyon yok). Faz 4'ün QA'sından kalan 4 kalıntı
 PNG (`_history_*.png`) de bu denetimde bulunup temizlendi.
+
+## Yeni konu kategorileri — Denizde Yaşam (`marine`) + Spiritüel Yaşam
+(`spiritual`) (kullanıcı talebiyle)
+
+Kullanıcı iki yeni `TopicCategory` istedi. Kategori sistemi 4 ayrı yerde
+kategoriye özel davranış/metin içeriyor (`DEFAULT_TONE_BY_CATEGORY`,
+`PROFILE_PROMPTS`, `SHOT_GUIDANCE`, `_CATEGORY_KEYWORDS` heuristic
+fallback) — sadece enum'a değer eklemek yetmiyordu: `PROFILE_PROMPTS`
+`Tone`'a göre anahtarlanıyor, yeni kategoriler mevcut bir tone'u
+paylaşsaydı tamamen alakasız bir stil metni (ör. "History documentary...")
+LLM prompt'larına giderdi. Bu yüzden her yeni kategori, mevcut 4
+kategoriyle birebir aynı 1-kategori-1-tone deseninde kendi `Tone`'unu aldı:
+
+- `TopicCategory.marine` → yeni `Tone.wondrous` (doğa/denizaltı belgeseli
+  stili: "vivid sensory detail of the underwater world... sense of wonder
+  at wildlife behavior").
+- `TopicCategory.spiritual` → yeni `Tone.reflective` (spiritüel/düşünsel
+  belgesel stili: "concrete traditions, practices, or personal
+  experiences... quiet, evocative moment").
+
+Değişen 5 dosya: `app/config/profile_dimensions.py` (enum + tone eşlemesi),
+`app/config/templates/__init__.py` (2 yeni `PROFILE_PROMPTS` girdisi),
+`app/prompts/storyboard/__init__.py` (2 yeni `SHOT_GUIDANCE` girdisi —
+marine için sualtı görüntü rehberliği, spiritual için tapınak/meditasyon/
+sakin doğa görüntü rehberliği), `app/departments/research/intent_analyzer.py`
+(2 yeni İngilizce+Türkçe heuristic keyword listesi), ve **planlanmamış ama
+testler sayesinde bulunan** 6. dosya: `app/departments/creative/
+script_generator.py`'deki `TONE_VOICE_GUIDANCE` — bu, script (anlatım)
+aşamasının kendi ayrı Tone-keyed sözlüğüydü, ilk analizde `TopicCategory.`
+üzerinden grep yapıldığı için kaçırılmıştı; `test_all_tones_have_voice_guidance`
+testi tam suite çalıştırılınca bu boşluğu hemen yakaladı, iki yeni tone için
+de ses/anlatım rehberliği eklendi.
+
+Testler: `test_documentary_models.py`, `test_intent_analyzer.py`,
+`test_outline_generator.py`, `test_research_planner.py`,
+`test_storyboard_generator.py`'ye mevcut per-kategori/per-tone desenleriyle
+birebir aynı yeni test eklendi (orijinal 4 kategorinin "hard-locked mapping"
+regresyon kilidi testine dokunulmadı — o, bilinçli olarak sadece orijinal 4
+kategori için). `README-en.md`/`README.md`'deki "Topic Category"/"Tone"
+listeleri güncellendi. `webui/Main.py`'nin kategori/tone seçicileri enum'dan
+dinamik türetildiği için (`[c.value for c in TopicCategory]`) hiç kod
+değişikliği gerekmedi; `test_pipeline_dimension_matrix.py` da
+`list(TopicCategory)`'yi dinamik kullandığı için otomatik kapsadı.
+
+Doğrulama: tam pytest suite **671 passed, 11 skipped** (666'dan +5, hiç
+regresyon yok), `ruff check app cli.py main.py webui test` temiz, ve
+`resolve_tone`/`get_shot_guidance`/`get_template` gerçek Python
+çağrılarıyla uçtan uca manuel doğrulandı.

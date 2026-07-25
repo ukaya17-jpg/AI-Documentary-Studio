@@ -29,6 +29,8 @@ TONE_VOICE_GUIDANCE = {
     Tone.epic: "awe-struck and grand in scale, while staying clear and grounded",
     Tone.scientific: "clear, evidence-minded, and approachable -- like explaining research to a curious friend",
     Tone.neutral: "clear and neutral",
+    Tone.wondrous: "curious and awe-filled, savoring vivid natural detail -- like a nature documentary narrator marveling at what's on screen",
+    Tone.reflective: "calm, unhurried, and contemplative -- like a narrator inviting quiet reflection rather than reciting facts",
 }
 
 # Format is orthogonal to Tone: Tone shapes how the narration sounds (voice),

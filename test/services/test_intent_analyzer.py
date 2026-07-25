@@ -24,6 +24,18 @@ class TestHeuristicCategory(unittest.TestCase):
     def test_travel_keyword(self):
         self.assertEqual(intent_analyzer._heuristic_category("Best travel destinations"), TopicCategory.travel)
 
+    def test_marine_keyword(self):
+        self.assertEqual(
+            intent_analyzer._heuristic_category("The Secret Life of Coral Reefs"),
+            TopicCategory.marine,
+        )
+
+    def test_spiritual_keyword(self):
+        self.assertEqual(
+            intent_analyzer._heuristic_category("The Practice of Daily Meditation"),
+            TopicCategory.spiritual,
+        )
+
     def test_unknown_falls_back_to_history(self):
         self.assertEqual(intent_analyzer._heuristic_category("xyzzy"), TopicCategory.history)
 
@@ -34,6 +46,12 @@ class TestDetectTopicCategoryWithMockLlm(unittest.TestCase):
         mock_generate_json.return_value = {"category": "psychology"}
         result = intent_analyzer.detect_topic_category("Why do we procrastinate?")
         self.assertEqual(result, TopicCategory.psychology)
+
+    @patch("app.departments.research.intent_analyzer.generate_json")
+    def test_uses_llm_result_for_new_category(self, mock_generate_json):
+        mock_generate_json.return_value = {"category": "marine"}
+        result = intent_analyzer.detect_topic_category("Life in the deep sea")
+        self.assertEqual(result, TopicCategory.marine)
 
     @patch("app.departments.research.intent_analyzer.generate_json")
     def test_falls_back_to_heuristic_on_llm_failure(self, mock_generate_json):

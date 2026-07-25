@@ -25,6 +25,14 @@ _CATEGORY_KEYWORDS = {
         "history", "war", "empire", "ancient", "civilization",
         "tarih", "savaş", "imparatorluk", "medeniyet",
     ],
+    TopicCategory.marine: [
+        "ocean", "sea", "marine", "coral", "reef", "whale", "shark", "dolphin", "underwater",
+        "deniz", "okyanus", "balık", "mercan", "yunus",
+    ],
+    TopicCategory.spiritual: [
+        "spiritual", "meditation", "soul", "faith", "religion", "mindfulness", "monk",
+        "spiritüel", "maneviyat", "ruh", "meditasyon", "inanç",
+    ],
 }
 
 

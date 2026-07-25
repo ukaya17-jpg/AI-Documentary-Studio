@@ -8,6 +8,8 @@ class TopicCategory(str, Enum):
     history = "history"
     space = "space"
     psychology = "psychology"
+    marine = "marine"
+    spiritual = "spiritual"
 
 
 class Tone(str, Enum):
@@ -16,6 +18,8 @@ class Tone(str, Enum):
     epic = "epic"
     scientific = "scientific"
     neutral = "neutral"
+    wondrous = "wondrous"
+    reflective = "reflective"
 
 
 # One default tone per topic category, chosen to match each category's
@@ -27,6 +31,8 @@ DEFAULT_TONE_BY_CATEGORY = {
     TopicCategory.history: Tone.credibility,
     TopicCategory.space: Tone.epic,
     TopicCategory.psychology: Tone.scientific,
+    TopicCategory.marine: Tone.wondrous,
+    TopicCategory.spiritual: Tone.reflective,
 }
 
 

@@ -76,7 +76,7 @@ class TestBuildOutlinePromptToneRegression(unittest.TestCase):
         )
         self.assertEqual(prompt, self._EXPECTED[TopicCategory.travel])
 
-    def test_all_four_categories_resolve_to_a_template_with_expected_style_keyword(self):
+    def test_all_categories_resolve_to_a_template_with_expected_style_keyword(self):
         # Cheap per-category smoke check (style keyword unique to each
         # category's original template) that resolve_tone + get_template
         # still route every category to its own original template content.
@@ -85,6 +85,8 @@ class TestBuildOutlinePromptToneRegression(unittest.TestCase):
             TopicCategory.history: "chronological",
             TopicCategory.space: "scale, precision, and awe",
             TopicCategory.psychology: "relatable scenario or experiment",
+            TopicCategory.marine: "underwater world",
+            TopicCategory.spiritual: "concrete traditions, practices",
         }
         for category, keyword in expectations.items():
             tone = resolve_tone(category, None)

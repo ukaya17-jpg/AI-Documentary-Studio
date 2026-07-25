@@ -36,6 +36,15 @@ class TestBuildStoryboardPrompt(unittest.TestCase):
         self.assertIn("How it all began.", prompt)
         self.assertIn("archival", prompt.lower())
 
+    def test_includes_category_guidance_for_new_categories(self):
+        expectations = {
+            TopicCategory.marine: "underwater cinematography",
+            TopicCategory.spiritual: "contemplative footage",
+        }
+        for category, keyword in expectations.items():
+            prompt = storyboard_generator.build_storyboard_prompt(_scene_plan(), _script(), category)
+            self.assertIn(keyword, prompt)
+
     def test_always_includes_specificity_instruction(self):
         # Without this, the model tends to echo the generic nouns straight
         # out of the category guidance (e.g. "old map", "statue") regardless
