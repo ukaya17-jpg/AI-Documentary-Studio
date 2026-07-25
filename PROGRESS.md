@@ -1815,3 +1815,124 @@ bilgisi) ve Publish akışı anlatıldı. `README.md`'ye (Çince) de eşdeğer,
 biraz daha kısa bir bölüm eklendi, İngilizce tam sürüme link verildi. Daha
 önce bu özellik hakkında hiçbir kullanıcı dokümantasyonu yoktu (doğrulandı,
 sıfır sonuç).
+
+## WebUI Navigasyon Refactor'u — Faz 1-4 (kullanıcı talebiyle, gündüz,
+`main` üzerinde doğrudan)
+
+Documentary Studio o âna kadar Klasik Mod sayfasının altında kapalı bir
+expander'da yaşıyordu — kullanıcı önce eski tekil-video formunu görüyor,
+yeni özelliği ancak aşağı kaydırıp expander'ı açınca fark ediyordu. Bu
+oturumda `st.navigation()`/`st.Page()` ile gerçek bir çok-sayfalı yapıya
+geçildi; her faz kendi commit'i, kendi pytest tam suite çalıştırması ve
+ayrı bir Streamlit örneğinde (8503/8590) headless Chromium ile DOM
+seviyesinde doğrulaması ile ilerledi. Production servisi (8501,
+`ai-documentary-studio-webui.service`) bu 5 commit'in hiçbirinde
+durdurulmadı/yeniden başlatılmadı.
+
+### Faz 1 — st.navigation iskeleti (`cafdb3d`)
+
+Sol sidebar navigasyonu kuruldu: Documentary Studio kendi sayfasına
+(`_render_documentary_studio_page`) taşındı, iç mantık (run_pipeline
+çağrısı, idea_generator, publish akışı) hiç değişmedi — sadece dışarıdaki
+`st.expander` sarmalayıcısı kaldırıldı. Legacy form `_render_legacy_page`
+olarak ayrıştırıldı, "Klasik Mod" adıyla varsayılan (`default=True`) sayfa
+olarak kaldı — bu fazda kullanıcının ilk gördüğü ekran değişmedi. Task
+Manager'ın görev geri yükleme dialogu bilinçli olarak navigasyonun dışında,
+global chrome olarak bırakıldı. i18n: "Nav Create"/"Nav Classic Mode"
+key'leri 9 dilin hepsine eşzamanlı eklendi.
+
+### Faz 2 — Documentary Studio varsayılan sayfa (`d9c1c56`)
+
+`default=True` Documentary Studio'ya taşındı, nav'da ilk sıraya alındı;
+Klasik Mod'a stabil bir `url_path="classic"` verildi. Sonuç paneli
+(video + küçük resimler + SEO + kalite notu + publish)
+`st.columns([1, 2, 1])` ile ortalanmış sabit oranlı bir sütuna alındı —
+9:16 dikey video "wide" layout'ta ~2000px yüksekliğe geriliyordu, artık
+ekran boyutuna göre mantıklı kalıyor. AppTest ile çalışan 3 test dosyası
+(BGM/TTS/ses önizleme, toplam 12 çağrı noktası) varsayılan sayfa değişince
+kırıldı; `AppTest.switch_page()` fonksiyon tabanlı sayfaları desteklemediği
+için resmi dokümantasyonun önerdiği gibi `_page_hash`'i doğrudan
+`calc_hash("classic")`'e atayarak düzeltildi.
+
+### Faz 3 — Markalaşma (`fa15415`) + düzeltme (`5793e62`)
+
+Sekme başlığı/ikonu "MoneyPrinterTurbo"/🤖'den "AI Documentary
+Studio"/🎬'ye değişti; `styles.css`'e sidebar nav'a özel kurallar eklendi
+(Streamlit'in kendi `data-testid`'leri hedeflendi, ekstra class
+gerekmedi). İlk commit'te üst bar markasına "Powered by
+MoneyPrinterTurbo" alt notu eklenmişti; kullanıcı bunu "Proje sahibi: Ufuk
+Kaya" olarak değiştirtti — 9 dilin hepsinde "Brand Tagline" key'i buna göre
+güncellendi (`5793e62`). GitHub sürüm linki bilinçli olarak değişmedi,
+gerçekten upstream MoneyPrinterTurbo deposuna gidiyor.
+
+### Faz 4 — "Geçmiş Üretimler" galerisi (`5d0c6d3`)
+
+`storage/tasks/*/project.json` bulunan, `final_video_path`'i hâlâ diskte
+duran tamamlanmış projeleri kart galerisi olarak listeleyen yeni bir sayfa
+(`url_path="history"`, nav'da Oluştur'dan sonra, Klasik Mod'dan önce).
+`_scan_history_tasks` ile aynı iki-aşamalı tarama deseni: önce ucuz
+`os.scandir` metadata'sı (mtime), en yeni 30 tanesi kesilip sadece o alt
+küme için `project.json` parse ediliyor. İki aksiyon: "Tekrar Görüntüle"
+(aç/kapa toggle) ve iki adımlı "İndir" (ilk tık hazırlar, video byte'ları
+sadece o zaman diske okunur — galeri her yüklemede tüm kartların videosunu
+belleğe almasın diye). Documentary Studio'nun sonuç panelinden
+`_render_project_media_panel()` olarak çıkarıldı — iki sayfa da aynı
+fonksiyonu çağırıyor (DRY), Publish bölümü kasıtlı olarak bu fonksiyonun
+dışında tutuldu (Geçmiş Üretimler tamamen salt-okunur kalmalı).
+
+### Faz 5 (i18n son kontrolü) neden ayrı bir adım/commit değil — bilinçli karar
+
+Diğer fazların hepsinin aksine, repo'da "Faz 5" diye ayrı bir commit
+**yok**. Bu bir eksiklik değil, bilinçli bir karar: i18n bütünlüğü zaten
+**her fazın kendi commit'inde eşzamanlı olarak** sağlandı — Faz 1/3/4'ün
+her biri yeni key'lerini 9 dilin (`de/en/es/id/pt/ru/tr/vi/zh`) hepsine
+aynı commit içinde, aynı anda ekledi (diff'lerde her dil dosyasının aynı
+satır sayısında değiştiği doğrulanabilir). Ayrıca sonradan yapılan bir
+denetimde 9 dilin `Translation` sözlükleri programatik olarak
+karşılaştırıldı: bugünkü refactor'un key'lerinde **hiç eksik yok**; tespit
+edilen tek fark (`llm_provider_tips.*`/`tts_provider_tips.*`, 27 key)
+bu refactor'la ilgisiz, önceden beri var olan ve kod içinde bilinçli olarak
+belgelenmiş bir tasarım (`get_llm_provider_tips`/`get_tts_provider_tips`,
+`Main.py`: sadece tr/en dışı diller İngilizce'ye düşecek şekilde
+tasarlanmış — provider config metinlerinin her dilde ayrı ayrı bakımı
+uzun vadede senkronizasyon riski taşıyor). Yani "ayrı bir i18n son kontrol
+fazı" için gerçekten kapatılacak bir şey bulunmadı; resmi Faz 5 commit'i
+bu yüzden hiç açılmadı.
+
+### Faz 4 test kapsamı (ertesi gün, `cecf360`)
+
+Faz 4, galeri sayfası için hiç otomatik test eklemeden commit edilmişti —
+doğrulama tamamen manuel Playwright QA ile yapılmış, o QA verisi (geçici
+görev klasörleri + geçici Streamlit örneği) temizlenmişti; kalıcı
+regresyon koruması yoktu. Yeni `test/services/test_webui_documentary_history.py`
+(13 test) bu boşluğu kapattı:
+- `_scan_history_projects()`/`_safe_load_project_snapshot()` için
+  Streamlit'siz izole birim testler (`test_webui_task_history.py`'deki
+  AST-çıkarma deseniyle aynı yöntem) — boş/eksik `tasks_root`, geçerli
+  parse, bozuk JSON'ın crash etmeden atlanması, video'su/`project.json`'ı
+  eksik görevlerin atlanması, özel limit + sıralama, gerçek
+  `_HISTORY_PROJECTS_LIMIT=30` sabitinin uçtan uca (35 görev → 30'a kesme)
+  doğrulanması.
+- `_render_project_media_panel()`'ın DRY refactor'unun Documentary Studio
+  ile Geçmiş Üretimler'de aynı çıktıyı ürettiğini doğrulayan iki AppTest
+  (aynı örnek proje verisi her iki sayfada da ayrı ayrı render edilip aynı
+  paylaşılan assertion'dan geçiriliyor).
+- Geçmiş Üretimler sayfasının (`url_path="history"`) hatasız render
+  edildiğini doğrulayan bir wiring testi, Faz 2'nin Klasik Mod için
+  kullandığı `_page_hash`/`calc_hash` deseniyle birebir aynı.
+
+Tüm AppTest'ler `utils.task_dir()`'ı `patch.object` ile `tmp_path`'e
+sabitleyerek gerçek `storage/tasks/` verisinden tam izole çalışıyor.
+
+### Genel doğrulama
+
+Bu oturumun sonunda (ayrı bir denetim turunda) production servisi canlı
+olarak headless Chromium ile test edildi: sayfa başlığı "AI Documentary
+Studio", sidebar nav sırasıyla "🎬 Oluştur / 🗂️ Geçmiş Üretimler / 🔧
+Klasik Mod" — servis Faz 1 commit'inden bile önce başlamış olmasına
+(restart edilmemiş) rağmen 4 fazın tamamını gerçekten serve ediyor
+(Streamlit'in script-cache'i tüm session'lar bağlantıyı kestiğinde
+otomatik temizleniyor, bir sonraki session güncel kodu diskten tekrar
+derliyor). Tam pytest suite: **666 passed, 11 skipped** (Faz 4 testleri
+öncesi 653'tü, +13 hiç regresyon yok). Faz 4'ün QA'sından kalan 4 kalıntı
+PNG (`_history_*.png`) de bu denetimde bulunup temizlendi.
