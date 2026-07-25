@@ -35,6 +35,7 @@ TONE_VOICE_GUIDANCE = {
     Tone.dynamic: "energetic and momentum-driven, building intensity toward key moments -- like a sports broadcast narrator",
     Tone.encouraging: "warm, practical, and supportive -- like a knowledgeable friend giving grounded health advice",
     Tone.mysterious: "hushed and intriguing, building curiosity without sensationalizing -- like a narrator walking through an unsolved case",
+    Tone.motivational: "direct, energizing, and practical -- like a coach giving advice you can act on immediately",
 }
 
 # Format is orthogonal to Tone: Tone shapes how the narration sounds (voice),

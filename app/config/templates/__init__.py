@@ -178,6 +178,23 @@ PROFILE_PROMPTS = {
         ),
         "closing": "End by leaving the central mystery open rather than manufacturing a false resolution.",
     },
+    Tone.motivational: {
+        "style": (
+            "Personal development documentary. Ground abstract advice in "
+            "concrete stories, research, or step-by-step practices rather "
+            "than generic platitudes."
+        ),
+        "opening_hook": (
+            "Open with a relatable struggle or a specific, surprising "
+            "insight, not a generic 'we all want to grow' statement."
+        ),
+        "section_guidance": (
+            "Cover the core idea or skill, the reasoning or research behind "
+            "it, a concrete way to practice it, and a common obstacle people "
+            "face applying it."
+        ),
+        "closing": "End with a direct, actionable call to apply one specific idea from the video.",
+    },
 }
 
 

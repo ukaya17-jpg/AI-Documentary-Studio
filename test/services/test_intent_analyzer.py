@@ -60,6 +60,12 @@ class TestHeuristicCategory(unittest.TestCase):
             TopicCategory.mysterious_discoveries,
         )
 
+    def test_personal_development_keyword(self):
+        self.assertEqual(
+            intent_analyzer._heuristic_category("Building Better Habits for Personal Growth"),
+            TopicCategory.personal_development,
+        )
+
     def test_unknown_falls_back_to_history(self):
         self.assertEqual(intent_analyzer._heuristic_category("xyzzy"), TopicCategory.history)
 

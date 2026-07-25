@@ -49,6 +49,10 @@ _CATEGORY_KEYWORDS = {
         "mystery", "mysterious", "unexplained", "unsolved", "cryptid", "conspiracy", "paranormal",
         "gizem", "esrarengiz", "çözülemeyen", "esrarlı",
     ],
+    TopicCategory.personal_development: [
+        "self-improvement", "productivity", "goal setting", "habit", "personal growth",
+        "kişisel gelişim", "üretkenlik", "alışkanlık", "motivasyon",
+    ],
 }
 
 

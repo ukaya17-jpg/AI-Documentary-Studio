@@ -49,6 +49,11 @@ SHOT_GUIDANCE = {
         "sites, dim lighting and shadows, close-ups of artifacts or "
         "documents, and vast unexplored landscapes."
     ),
+    TopicCategory.personal_development: (
+        "Favor human-centered, aspirational footage: people working, "
+        "studying, or practicing a skill, journaling or planning, quiet "
+        "focused moments, and everyday environments (home, office, gym)."
+    ),
 }
 
 

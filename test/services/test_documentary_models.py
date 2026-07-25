@@ -68,6 +68,9 @@ class TestProfileDimensions(unittest.TestCase):
         self.assertEqual(
             DEFAULT_TONE_BY_CATEGORY[TopicCategory.mysterious_discoveries], Tone.mysterious
         )
+        self.assertEqual(
+            DEFAULT_TONE_BY_CATEGORY[TopicCategory.personal_development], Tone.motivational
+        )
 
     def test_resolve_tone_defaults_to_category_tone_when_no_override(self):
         for category, expected_tone in DEFAULT_TONE_BY_CATEGORY.items():

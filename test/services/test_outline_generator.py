@@ -91,6 +91,7 @@ class TestBuildOutlinePromptToneRegression(unittest.TestCase):
             TopicCategory.sports: "momentum-driven",
             TopicCategory.healthy_living: "research suggests",
             TopicCategory.mysterious_discoveries: "hidden conspiracy",
+            TopicCategory.personal_development: "generic platitudes",
         }
         for category, keyword in expectations.items():
             tone = resolve_tone(category, None)
