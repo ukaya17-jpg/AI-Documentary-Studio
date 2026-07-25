@@ -74,6 +74,39 @@ def test_category_and_tone_auto_descriptions_present_in_every_locale():
             assert translation[key].strip(), f"{key!r} is empty in {locale}.json"
 
 
+def test_tone_preview_keys_present_and_non_empty_in_every_locale():
+    # Tone.neutral bilinçli olarak dışarıda: kendi PROFILE_PROMPTS girdisi
+    # yok, ayrı ("Tone Neutral Fallback Description") bir key kullanıyor.
+    tone_values = [t.value for t in Tone if t != Tone.neutral]
+    _assert_labels_present("Tone Preview", tone_values)
+
+
+def test_category_preview_keys_present_and_non_empty_in_every_locale():
+    _assert_labels_present("Category Preview", [c.value for c in TopicCategory])
+
+
+def test_turkish_card_previews_are_not_leaked_english_llm_prompt_text():
+    """Regresyon: kart önizlemesi PROFILE_PROMPTS'tan (LLM'e giden İngilizce
+    prompt metni) DEĞİL, ayrı çevrilmiş "Tone/Category Preview: {value}"
+    key'lerinden gelmeli -- Türkçe arayüzde bu İngilizce metnin birebir
+    sızmadığını doğruluyor.
+    """
+    tr_translation = _translation("tr")
+    preview_texts = [
+        v for k, v in tr_translation.items()
+        if k.startswith("Tone Preview:") or k.startswith("Category Preview:")
+    ]
+    assert preview_texts, "no preview keys found in tr.json"
+
+    # PROFILE_PROMPTS'un İngilizce metinlerinde sürekli tekrar eden, gerçek
+    # bir Türkçe cümlede hiç geçmeyecek kalıplar -- eskiden kaçan bug tam
+    # olarak bu kalıpların Türkçe arayüzde görünmesiydi.
+    english_llm_prompt_markers = ("Ground the narration", "Favor ", "documentary.")
+    for text in preview_texts:
+        for marker in english_llm_prompt_markers:
+            assert marker not in text, f"English PROFILE_PROMPTS text leaked into tr.json: {text!r}"
+
+
 def _selectbox_by_key(app, key):
     return next(w for w in app.selectbox if w.key == key)
 

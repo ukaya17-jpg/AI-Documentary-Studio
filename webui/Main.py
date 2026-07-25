@@ -25,14 +25,7 @@ if root_dir not in sys.path:
     sys.path.append(root_dir)
 
 from app.config import config
-from app.config.profile_dimensions import (
-    DEFAULT_TONE_BY_CATEGORY,
-    Format,
-    Pacing,
-    Tone,
-    TopicCategory,
-)
-from app.config.templates import PROFILE_PROMPTS
+from app.config.profile_dimensions import Format, Pacing, Tone, TopicCategory
 from app.departments.growth import publisher
 from app.models import const
 from app.models.documentary_project import DocumentaryProject
@@ -4209,45 +4202,38 @@ _DOCUMENTARY_TOTAL_STAGES = 12
 
 
 def _tone_style_preview(tone_value: str) -> str:
-    """PROFILE_PROMPTS'un "style" metninden 1 cümlelik bir önizleme çıkarır.
+    """Kart grid'inde gösterilen, kullanıcıya yönelik kısa stil önizlemesi.
 
-    Bilinçli olarak ÇEVRİLMİYOR: PROFILE_PROMPTS tamamen İngilizce, LLM
-    prompt'larına giden metin (webui'nin çevrilen kullanıcı arayüzünden
-    ayrı bir katman) -- kullanıcı talebi doğrudan "PROFILE_PROMPTS'tan
-    alınan" bir önizleme istiyordu, 12 tone'u 9 dile yeniden çevirmek bu
-    görevin kapsamı dışında (ayrı, çok daha büyük bir çeviri işi olurdu).
-
-    "style" metni her zaman "{Tür} documentary. {Asıl rehberlik}." deseninde
-    -- ilk cümle (tür etiketi) zaten kart üzerindeki isim/ikonla fazlalık
-    olduğu için atılıyor, geriye kalan asıl rehberlik cümlesi(leri)
-    gösteriliyor, kart boyutuna sığması için kısaltılıyor.
+    DÜZELTME (kullanıcı Türkçe arayüzde İngilizce kaldığını bildirdi):
+    Önceki sürüm bu metni PROFILE_PROMPTS[tone]["style"]'dan türetiyordu --
+    ama PROFILE_PROMPTS tamamen İngilizce, LLM'e giden prompt talimatı
+    (build_script_prompt() vb.), kullanıcıya gösterilmek üzere hiç
+    tasarlanmamıştı; kart grid'de doğrudan gösterildiğinde arayüz dili
+    Türkçe (veya diğer 8 dilden biri) olsa bile İngilizce kalıyordu. Artık
+    her tone için ayrı, kısa, 9 dile çevrilmiş bir "Tone Preview: {value}"
+    key'i var (webui/i18n/*.json) -- LLM'e giden gerçek PROFILE_PROMPTS/
+    build_script_prompt() içeriği hiç değişmedi, sadece kart grid'in
+    gösterdiği metnin KAYNAĞI değişti.
     """
     if tone_value == "auto":
         return tr("Tone Auto Description")
-
-    tone = Tone(tone_value)
-    if tone not in PROFILE_PROMPTS:
-        # Sadece Tone.neutral için geçerli -- get_template() zaten aynı
-        # fallback'i (Tone.credibility) kullanıyor, burada bunu şeffaf
-        # bir şekilde kullanıcıya da söylüyoruz.
+    if tone_value == Tone.neutral.value:
+        # Tone.neutral'ın kendi PROFILE_PROMPTS girdisi yok (get_template()
+        # zaten Tone.credibility'ye düşüyor) -- kendine özel bir stil
+        # uydurmak yerine bunu dürüstçe söyleyen ayrı bir key kullanılıyor,
+        # bu düzeltmeden önce de böyleydi, dokunulmadı.
         return tr("Tone Neutral Fallback Description")
-
-    style = PROFILE_PROMPTS[tone]["style"]
-    sentences = [s.strip() for s in style.split(". ") if s.strip()]
-    preview = ". ".join(sentences[1:]) if len(sentences) > 1 else style
-    preview = preview.rstrip(".") + "."
-    if len(preview) > 110:
-        preview = preview[:107].rstrip() + "…"
-    return preview
+    return tr(f"Tone Preview: {tone_value}")
 
 
 def _category_style_preview(category_value: str) -> str:
+    """Bkz. _tone_style_preview -- aynı düzeltme, kategoriler için ayrı
+    (tone'dan bağımsız, kategorinin kendi içerik alanını anlatan) bir
+    "Category Preview: {value}" key'i kullanıyor.
+    """
     if category_value == "auto":
         return tr("Category Auto Description")
-
-    category = TopicCategory(category_value)
-    default_tone = DEFAULT_TONE_BY_CATEGORY[category]
-    return _tone_style_preview(default_tone.value)
+    return tr(f"Category Preview: {category_value}")
 
 
 def _render_selection_card(*, kind: str, value: str, icon: str, label: str, preview: str, session_key: str):
@@ -4402,8 +4388,8 @@ def _render_documentary_studio_page():
             format_func=_documentary_format_label,
         )
 
-    # Kategori ve Ton, seçim ANINDA bir stil önizlemesi gösterebilmek için
-    # (PROFILE_PROMPTS'tan) kart grid'i olarak render ediliyor -- ama
+    # Kategori ve Ton, seçim ANINDA kısa, çevrilmiş bir stil önizlemesi
+    # gösterebilmek için kart grid'i olarak render ediliyor -- ama
     # session_state anahtarları (documentary_topic_category/documentary_tone)
     # eski selectbox'larla BİREBİR AYNI, aşağıdaki run_pipeline() çağrısı
     # hiç değişmedi.
