@@ -4126,6 +4126,22 @@ def _render_project_media_panel(project: dict) -> bool:
     return True
 
 
+def _documentary_category_label(value):
+    return tr(f"Category: {value}")
+
+
+def _documentary_tone_label(value):
+    return tr(f"Tone: {value}")
+
+
+def _documentary_format_label(value):
+    return tr(f"Format: {value}")
+
+
+def _documentary_pacing_label(value):
+    return tr(f"Pacing: {value}")
+
+
 def _render_documentary_studio_page():
     """
     AI Documentary Studio (Beta): Intent -> Research -> Outline -> Scene ->
@@ -4219,6 +4235,7 @@ def _render_documentary_studio_page():
             index=0,
             key="documentary_topic_category",
             help=tr("Documentary Topic Category Help"),
+            format_func=_documentary_category_label,
         )
     with col3:
         pacing = st.selectbox(
@@ -4226,6 +4243,7 @@ def _render_documentary_studio_page():
             options=[p.value for p in Pacing],
             index=0,
             key="documentary_pacing",
+            format_func=_documentary_pacing_label,
         )
 
     col4, col5 = st.columns(2)
@@ -4237,6 +4255,7 @@ def _render_documentary_studio_page():
             index=0,
             key="documentary_tone",
             help=tr("Documentary Tone Help"),
+            format_func=_documentary_tone_label,
         )
     with col5:
         format_options = ["standard"] + [f.value for f in Format]
@@ -4246,6 +4265,7 @@ def _render_documentary_studio_page():
             index=0,
             key="documentary_format",
             help=tr("Documentary Format Help"),
+            format_func=_documentary_format_label,
         )
 
     voice_name = st.text_input(

@@ -2069,3 +2069,54 @@ mysterious_discoveries, personal_development`), `Tone` **12** değer.
 `README-en.md`/`README.md` her commit'te güncel tutuldu. Tam pytest suite
 **677 passed, 11 skipped** (671'den +6, sıfır regresyon), `ruff check app
 cli.py main.py webui test` her adımda temiz.
+
+## GÖREV 1 — Kategori/Ton/Format/Pacing seçenekleri 9 dile çevrildi (kullanıcı talebiyle)
+
+7 kategorilik genişletmenin hemen ardından fark edilen bir eksiklik:
+`TopicCategory` (11), `Tone` (12), `Format` (3), `Pacing` (2) seçenekleri
+webui'de selectbox'larda **ham enum değeri** olarak gösteriliyordu (ör.
+"history", "cinematic"), arayüz dilinden bağımsız — kullanıcı Türkçe arayüz
+kullanırken bile "healthy_living" gibi İngilizce/snake_case bir metin
+görüyordu.
+
+**Yaklaşım:** Mevcut `Translation` sözlüğüne `"Category: {value}"`,
+`"Tone: {value}"`, `"Format: {value}"`, `"Pacing: {value}"` desenli 30 yeni
+anahtar (12+13+3+2, "auto" dahil) eklendi — yeni bir i18n dosyası/bloğu
+açmak yerine mevcut `tr()` mekanizması aynen kullanıldı. `webui/Main.py`'de
+4 küçük yardımcı fonksiyon (`_documentary_category_label` vb.) eklenip
+4 selectbox'a `format_func=` olarak bağlandı. **Kritik olan:**
+Streamlit'te `format_func` sadece GÖRÜNÜMÜ değiştirir, selectbox'ın gerçek
+`.value`'su (dolayısıyla `run_pipeline()`'a giden değer) hâlâ ham enum
+string'i — bu yüzden regresyon riski sıfıra yakındı, koddan da doğrulandı.
+
+**Bulunan bir test-harness sınırı (uygulama hatası değil):** İlk yazılan
+regresyon testi `.select(ham_değer).run()` ile canlı bir kullanıcı
+tıklamasını simüle ediyordu; bu, Streamlit'in AppTest'inin
+`_format_value_for_widget`'ının `session_state` okuyan bir `format_func`'ı
+henüz bağlanmamış bir context'te çağırıp sessizce ham değere düşmesine (ve
+sonra `options.index()`'in patlamasına) yol açtı. Düzeltme kod tarafında
+değil, test tarafında: session_state'e ham değeri **önceden** set edip
+`.run()` çağırmak (gerçek görev geri yükleme akışının da zaten yaptığı
+şey) aynı regresyonu kanıtlıyor, bu harness sınırına takılmıyor.
+
+Testler: yeni `test/services/test_webui_documentary_labels.py` (7 test) —
+30 anahtarın 9 dilin hepsinde var ve boş olmadığının doğrulanması + iki
+AppTest (Türkçe ve İngilizce arayüzde selectbox'ların `.value`'sunun ham
+kaldığını, `.options`'ının çevrildiğini, ham enum'un asla seçenek listesinde
+görünmediğini doğrulayan) + yukarıdaki regresyon testi.
+
+**Gerçek tarayıcı doğrulaması** (ayrı bir geçici Streamlit örneği, 8590,
+production 8501'e hiç dokunulmadı, headless Chromium): "Konu Kategorisi"
+selectbox'ı gerçekten "Otomatik" gösteriyor (ham "auto" değil), açılan
+listede "Deniz Yaşamı", "Spiritüel Yaşam", "Film Kesitleri", "Sağlıklı
+Yaşam", "Gizemli Keşifler" gibi tam Türkçe etiketler görünüyor; "Ton" →
+"Otomatik", "Format" → "Standart", "Temp" (Pacing) → "Kısa". Geçici örnek
+QA sonrası durduruldu.
+
+**Kapsam dışı bırakılan (bilerek):** `Documentary Language` selectbox'ı
+(auto/tr/en — belgeselin KONUŞULDUĞU dil, Kategori/Ton/Format/Pacing'den
+ayrı bir alan) bu görevin kapsamında değildi, hâlâ ham değer gösteriyor —
+kullanıcı sadece Kategori/Ton/Format/Pacing istedi.
+
+Doğrulama: tam pytest suite **684 passed, 11 skipped** (677'den +7, sıfır
+regresyon), `ruff check app cli.py main.py webui test` temiz.
