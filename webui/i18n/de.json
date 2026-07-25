@@ -367,6 +367,18 @@
     "Pacing: long": "Lang",
     "Category Auto Description": "Lässt die KI die passende Kategorie anhand des Themas erkennen.",
     "Tone Auto Description": "Verwendet den Standardton der gewählten Kategorie.",
-    "Tone Neutral Fallback Description": "Noch kein eigener Stil -- verwendet aktuell den Ton „Glaubwürdig“."
+    "Tone Neutral Fallback Description": "Noch kein eigener Stil -- verwendet aktuell den Ton „Glaubwürdig“.",
+    "Documentary Stage Intent": "Thema wird erfasst...",
+    "Documentary Stage Research": "Thema wird recherchiert...",
+    "Documentary Stage Outline": "Handlung wird skizziert...",
+    "Documentary Stage Scene": "Szenen werden geplant...",
+    "Documentary Stage Script": "Erzähltext wird geschrieben...",
+    "Documentary Stage Storyboard": "Storyboard wird erstellt...",
+    "Documentary Stage Asset": "Bildmaterial wird ausgewählt...",
+    "Documentary Stage Asset Download": "Videomaterial wird heruntergeladen...",
+    "Documentary Stage Audio": "Erzählung wird vertont...",
+    "Documentary Stage Timeline": "Zeitleiste wird zusammengestellt...",
+    "Documentary Stage SEO": "SEO-Metadaten werden erstellt...",
+    "Documentary Stage Video Render": "Video wird gerendert..."
   }
 }

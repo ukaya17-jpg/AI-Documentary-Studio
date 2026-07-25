@@ -367,6 +367,18 @@
     "Pacing: long": "Uzun",
     "Category Auto Description": "En uygun kategoriyi konudan AI otomatik seçsin.",
     "Tone Auto Description": "Seçili kategorinin varsayılan tonu kullanılsın.",
-    "Tone Neutral Fallback Description": "Henüz kendine özel bir stili yok -- şu an Güvenilir tonuna düşüyor."
+    "Tone Neutral Fallback Description": "Henüz kendine özel bir stili yok -- şu an Güvenilir tonuna düşüyor.",
+    "Documentary Stage Intent": "Konu anlaşılıyor...",
+    "Documentary Stage Research": "Konu araştırılıyor...",
+    "Documentary Stage Outline": "Hikaye taslağı hazırlanıyor...",
+    "Documentary Stage Scene": "Sahneler planlanıyor...",
+    "Documentary Stage Script": "Anlatım yazılıyor...",
+    "Documentary Stage Storyboard": "Sahne kareleri tasarlanıyor...",
+    "Documentary Stage Asset": "Görseller seçiliyor...",
+    "Documentary Stage Asset Download": "Görüntüler indiriliyor...",
+    "Documentary Stage Audio": "Seslendirme yapılıyor...",
+    "Documentary Stage Timeline": "Zaman çizelgesi oluşturuluyor...",
+    "Documentary Stage SEO": "SEO içerikleri yazılıyor...",
+    "Documentary Stage Video Render": "Video oluşturuluyor..."
   }
 }

@@ -367,6 +367,18 @@
     "Pacing: long": "Largo",
     "Category Auto Description": "Deja que la IA detecte la mejor categoría según tu tema.",
     "Tone Auto Description": "Usa el tono predeterminado de la categoría seleccionada.",
-    "Tone Neutral Fallback Description": "Aún sin estilo propio -- actualmente usa el tono Creíble."
+    "Tone Neutral Fallback Description": "Aún sin estilo propio -- actualmente usa el tono Creíble.",
+    "Documentary Stage Intent": "Entendiendo tu tema...",
+    "Documentary Stage Research": "Investigando el tema...",
+    "Documentary Stage Outline": "Esbozando la historia...",
+    "Documentary Stage Scene": "Planificando escenas...",
+    "Documentary Stage Script": "Escribiendo la narración...",
+    "Documentary Stage Storyboard": "Diseñando el storyboard...",
+    "Documentary Stage Asset": "Seleccionando imágenes...",
+    "Documentary Stage Asset Download": "Descargando material de video...",
+    "Documentary Stage Audio": "Grabando la narración...",
+    "Documentary Stage Timeline": "Ensamblando la línea de tiempo...",
+    "Documentary Stage SEO": "Escribiendo metadatos SEO...",
+    "Documentary Stage Video Render": "Renderizando el video final..."
   }
 }

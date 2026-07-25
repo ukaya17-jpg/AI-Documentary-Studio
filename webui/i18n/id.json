@@ -367,6 +367,18 @@
     "Pacing: long": "Panjang",
     "Category Auto Description": "Biarkan AI mendeteksi kategori terbaik dari topik Anda.",
     "Tone Auto Description": "Gunakan nada default dari kategori yang dipilih.",
-    "Tone Neutral Fallback Description": "Belum memiliki gaya khusus -- saat ini menggunakan nada Kredibel."
+    "Tone Neutral Fallback Description": "Belum memiliki gaya khusus -- saat ini menggunakan nada Kredibel.",
+    "Documentary Stage Intent": "Memahami topik Anda...",
+    "Documentary Stage Research": "Meneliti topik...",
+    "Documentary Stage Outline": "Menyusun kerangka cerita...",
+    "Documentary Stage Scene": "Merencanakan adegan...",
+    "Documentary Stage Script": "Menulis narasi...",
+    "Documentary Stage Storyboard": "Membuat storyboard...",
+    "Documentary Stage Asset": "Memilih visual...",
+    "Documentary Stage Asset Download": "Mengunduh rekaman video...",
+    "Documentary Stage Audio": "Merekam narasi...",
+    "Documentary Stage Timeline": "Menyusun garis waktu...",
+    "Documentary Stage SEO": "Menulis metadata SEO...",
+    "Documentary Stage Video Render": "Merender video akhir..."
   }
 }

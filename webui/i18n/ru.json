@@ -367,6 +367,18 @@
     "Pacing: long": "Длинный",
     "Category Auto Description": "Пусть ИИ определит подходящую категорию по теме.",
     "Tone Auto Description": "Использовать тон по умолчанию для выбранной категории.",
-    "Tone Neutral Fallback Description": "Пока нет отдельного стиля -- сейчас используется тон «Достоверный»."
+    "Tone Neutral Fallback Description": "Пока нет отдельного стиля -- сейчас используется тон «Достоверный».",
+    "Documentary Stage Intent": "Анализируем тему...",
+    "Documentary Stage Research": "Изучаем тему...",
+    "Documentary Stage Outline": "Составляем план истории...",
+    "Documentary Stage Scene": "Планируем сцены...",
+    "Documentary Stage Script": "Пишем закадровый текст...",
+    "Documentary Stage Storyboard": "Создаём раскадровку...",
+    "Documentary Stage Asset": "Подбираем видеоряд...",
+    "Documentary Stage Asset Download": "Загружаем видеоматериал...",
+    "Documentary Stage Audio": "Записываем озвучку...",
+    "Documentary Stage Timeline": "Собираем таймлайн...",
+    "Documentary Stage SEO": "Готовим SEO-метаданные...",
+    "Documentary Stage Video Render": "Рендерим финальное видео..."
   }
 }

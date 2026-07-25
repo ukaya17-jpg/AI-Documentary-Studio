@@ -4185,6 +4185,28 @@ _TONE_ICONS = {
 _CATEGORY_CARDS_PER_ROW = 4
 _TONE_CARDS_PER_ROW = 4
 
+# Modernizasyon B -- canlı ilerleme göstergesi (kullanıcı talebiyle). Key'ler
+# default_pipeline.run_pipeline()'ın stage()'e verdiği ham isimlerle (ör.
+# "asset download", "audio (TTS)") birebir aynı -- oradaki TOTAL_STAGES=12
+# ile de eşleşiyor. Yeni bir aşama eklenirse ve buradaki dict'e karşılığı
+# eklenmezse status mesajı sessizce güncellenmez (numara/spinner yine
+# ilerler) -- crash olmaz, sadece o aşama için metin sabit kalır.
+_DOCUMENTARY_STAGE_KEYS = {
+    "intent": "Documentary Stage Intent",
+    "research": "Documentary Stage Research",
+    "outline": "Documentary Stage Outline",
+    "scene": "Documentary Stage Scene",
+    "script": "Documentary Stage Script",
+    "storyboard": "Documentary Stage Storyboard",
+    "asset": "Documentary Stage Asset",
+    "asset download": "Documentary Stage Asset Download",
+    "audio (TTS)": "Documentary Stage Audio",
+    "timeline": "Documentary Stage Timeline",
+    "seo": "Documentary Stage SEO",
+    "video render": "Documentary Stage Video Render",
+}
+_DOCUMENTARY_TOTAL_STAGES = 12
+
 
 def _tone_style_preview(tone_value: str) -> str:
     """PROFILE_PROMPTS'un "style" metninden 1 cümlelik bir önizleme çıkarır.
@@ -4430,7 +4452,13 @@ def _render_documentary_studio_page():
 
         project_id = str(uuid4())
         try:
-            with st.spinner(tr("Generating Documentary")):
+            with st.status(tr("Generating Documentary"), expanded=True) as status:
+
+                def _update_documentary_stage_status(n, name):
+                    key = _DOCUMENTARY_STAGE_KEYS.get(name)
+                    if key:
+                        status.update(label=f"({n}/{_DOCUMENTARY_TOTAL_STAGES}) {tr(key)}")
+
                 project = default_pipeline.run_pipeline(
                     project_id=project_id,
                     topic=topic.strip(),
@@ -4442,7 +4470,14 @@ def _render_documentary_studio_page():
                     format=(None if format_choice == "standard" else format_choice),
                     pacing=pacing,
                     voice_name=voice_name.strip(),
+                    on_stage_change=_update_documentary_stage_status,
                 )
+                # st.status()'un kendi __exit__'i istisna durumunda zaten
+                # state="error"ya, başarıda state="complete"ye otomatik
+                # geçiyor (mutable_status_container.py) -- burada sadece
+                # başarı etiketini son aşama mesajından daha net bir şeye
+                # güncelliyoruz.
+                status.update(label=tr("Documentary Generated"))
         except Exception as exc:
             logger.exception(
                 f"documentary studio: pipeline failed for topic={topic!r}"

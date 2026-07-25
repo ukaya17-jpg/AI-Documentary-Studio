@@ -295,6 +295,49 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         self.assertIs(thumb_b_args[1], self.seo)
         self.assertEqual(thumb_b_args[2], "proj-1")
 
+    def test_on_stage_change_called_for_all_12_stages_in_order(self):
+        # Modernizasyon B: on_stage_change purely additive, must not change
+        # anything about what run_pipeline() does -- only observed here.
+        calls = []
+        default_pipeline.run_pipeline(
+            project_id="proj-1",
+            topic="The Fall of Rome",
+            language="auto",
+            pacing=Pacing.short,
+            voice_name="en-US-JennyNeural",
+            on_stage_change=lambda n, name: calls.append((n, name)),
+        )
+
+        self.assertEqual(
+            calls,
+            [
+                (1, "intent"),
+                (2, "research"),
+                (3, "outline"),
+                (4, "scene"),
+                (5, "script"),
+                (6, "storyboard"),
+                (7, "asset"),
+                (8, "asset download"),
+                (9, "audio (TTS)"),
+                (10, "timeline"),
+                (11, "seo"),
+                (12, "video render"),
+            ],
+        )
+
+    def test_omitting_on_stage_change_behaves_identically(self):
+        # Regression: every pre-existing caller (CLI, every other test in
+        # this file) never passes on_stage_change -- must be a true no-op.
+        project = default_pipeline.run_pipeline(
+            project_id="proj-1",
+            topic="The Fall of Rome",
+            language="auto",
+            pacing=Pacing.short,
+            voice_name="en-US-JennyNeural",
+        )
+        self.assertEqual(project.final_video_path, "/tmp/tasks/proj-1/final.mp4")
+
     def test_tone_override_wins_over_category_default(self):
         # Category resolves to history -> credibility by default (see
         # test_full_pipeline_wiring), but an explicit override must win.

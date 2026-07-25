@@ -367,6 +367,18 @@
     "Pacing: long": "Dài",
     "Category Auto Description": "Để AI tự động phát hiện danh mục phù hợp nhất từ chủ đề.",
     "Tone Auto Description": "Sử dụng tông giọng mặc định của danh mục đã chọn.",
-    "Tone Neutral Fallback Description": "Chưa có phong cách riêng -- hiện đang dùng tông Đáng tin cậy."
+    "Tone Neutral Fallback Description": "Chưa có phong cách riêng -- hiện đang dùng tông Đáng tin cậy.",
+    "Documentary Stage Intent": "Đang phân tích chủ đề...",
+    "Documentary Stage Research": "Đang nghiên cứu chủ đề...",
+    "Documentary Stage Outline": "Đang lên dàn ý câu chuyện...",
+    "Documentary Stage Scene": "Đang lên kế hoạch cảnh quay...",
+    "Documentary Stage Script": "Đang viết lời dẫn chuyện...",
+    "Documentary Stage Storyboard": "Đang thiết kế storyboard...",
+    "Documentary Stage Asset": "Đang chọn hình ảnh...",
+    "Documentary Stage Asset Download": "Đang tải video...",
+    "Documentary Stage Audio": "Đang thu âm lời dẫn...",
+    "Documentary Stage Timeline": "Đang ghép dòng thời gian...",
+    "Documentary Stage SEO": "Đang viết metadata SEO...",
+    "Documentary Stage Video Render": "Đang dựng video hoàn chỉnh..."
   }
 }

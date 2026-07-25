@@ -5,6 +5,7 @@ AssetDownload -> Audio(TTS) -> Timeline -> SEO -> VideoRenderer
 """
 
 import os
+from typing import Callable
 
 from loguru import logger
 
@@ -85,7 +86,17 @@ def run_pipeline(
     bgm_type: str = "random",
     bgm_file: str = "",
     bgm_volume: float = 0.2,
+    on_stage_change: Callable[[int, str], None] | None = None,
 ) -> DocumentaryProject:
+    """Run the full Intent->...->VideoRenderer pipeline for one documentary.
+
+    `on_stage_change`, if given, is called as `on_stage_change(n, name)` at
+    the start of each of the 12 stages (same `n`/`name` as the `stage()`
+    log line below) -- purely additive, e.g. for a caller (webui) to drive a
+    live progress indicator. `None` (the default) preserves every existing
+    caller's behavior exactly: this hook does not change what the pipeline
+    does, only what it reports while doing it.
+    """
     resolved_pacing = resolve_pacing(pacing)
     # Unlike tone, format doesn't depend on topic_category -- it can be
     # resolved up front alongside pacing, no need to wait for stage 1.
@@ -105,6 +116,8 @@ def run_pipeline(
 
     def stage(n: int, name: str):
         logger.info(f"documentary pipeline [{n}/{TOTAL_STAGES}] {name}: {topic}")
+        if on_stage_change is not None:
+            on_stage_change(n, name)
 
     try:
         stage(1, "intent")

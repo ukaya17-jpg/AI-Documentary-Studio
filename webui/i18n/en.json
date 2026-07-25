@@ -394,6 +394,18 @@
     "Pacing: long": "Long",
     "Category Auto Description": "Let AI detect the best category from your topic.",
     "Tone Auto Description": "Use the selected category's default tone.",
-    "Tone Neutral Fallback Description": "No dedicated style yet -- currently falls back to the Credible tone."
+    "Tone Neutral Fallback Description": "No dedicated style yet -- currently falls back to the Credible tone.",
+    "Documentary Stage Intent": "Understanding your topic...",
+    "Documentary Stage Research": "Researching the topic...",
+    "Documentary Stage Outline": "Outlining the story...",
+    "Documentary Stage Scene": "Planning scenes...",
+    "Documentary Stage Script": "Writing the narration...",
+    "Documentary Stage Storyboard": "Storyboarding shots...",
+    "Documentary Stage Asset": "Selecting visuals...",
+    "Documentary Stage Asset Download": "Downloading footage...",
+    "Documentary Stage Audio": "Recording narration...",
+    "Documentary Stage Timeline": "Assembling the timeline...",
+    "Documentary Stage SEO": "Writing SEO metadata...",
+    "Documentary Stage Video Render": "Rendering the final video..."
   }
 }

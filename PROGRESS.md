@@ -2205,3 +2205,80 @@ kartının light modda görünmezliğini yakaladı, düzeltme sonrası ikinci
 turda hem light hem dark'ta metin + vurgu net görünür olduğu computed-style
 introspection'ıyla (getComputedStyle) ve ekran görüntüsüyle doğrulandı,
 kullanıcı onayladı.
+
+## Modernizasyon B — Canlı ilerleme göstergesi (kullanıcı talebiyle)
+
+3 yönlü modernizasyon planının (A → C → B) son adımı. `st.spinner()` yerine
+`st.status()` ile Documentary Studio'nun üretim sırasında hangi aşamada
+olduğunu (12 aşamanın hangisi, canlı, 9 dilde çevrilmiş metinle) gösteren
+bir ilerleme göstergesi eklendi.
+
+**Mimari:** `default_pipeline.py`'de zaten her 12 aşamanın başında çağrılan
+bir `stage(n, name)` iç yardımcı fonksiyonu vardı (sadece `logger.info`
+yazıyordu) — sıfırdan bir mekanizma kurmak yerine buraya opsiyonel bir
+`on_stage_change: Callable[[int, str], None] | None = None` parametresi
+eklendi. `stage()`'e eklenen tek satır: `if on_stage_change is not None:
+on_stage_change(n, name)`. **Regresyon garantisi:** parametre verilmezse
+(CLI, `test_default_pipeline.py`, `test_pipeline_dimension_matrix.py` dahil
+mevcut HER çağıran) davranış bire bir aynı kalır — bu no-op'un kendisi ayrı
+bir testle kilitlendi (`test_omitting_on_stage_change_behaves_identically`).
+
+webui tarafı: `with st.status(tr("Generating Documentary"), expanded=True)
+as status:` içinde `on_stage_change` callback'i `status.update(label=f"({n}
+/12) {tr(key)}")` çağırıyor. `st.status()`'un kendi `__exit__`'i (Streamlit
+kaynağından doğrulandı, `mutable_status_container.py`) istisna durumunda
+otomatik `state="error"`, başarıda otomatik `state="complete"` yapıyor —
+elle bir hata/başarı state yönetimi eklemeye gerek kalmadı, sadece başarı
+etiketi son aşama mesajından daha net bir şeye ("Documentary Generated")
+güncellendi.
+
+**12 aşama mesajı** (`_DOCUMENTARY_STAGE_KEYS`, `webui/Main.py`) 9 dile
+çevrildi (108 yeni key): intent/research/outline/scene/script/storyboard/
+asset/asset download/audio (TTS)/timeline/seo/video render → "Konu
+anlaşılıyor...", "Konu araştırılıyor...", "Hikaye taslağı hazırlanıyor..."
+vb. (tam liste ve diğer 8 dil `webui/i18n/*.json`'da).
+
+**Testler:**
+- `test_default_pipeline.py`: `test_on_stage_change_called_for_all_12_stages_in_order`
+  (mock'lu aşamalarla callback'in tam 12 kez, doğru sırayla `(n, name)` ile
+  çağrıldığını doğruluyor) + `test_omitting_on_stage_change_behaves_identically`
+  (regresyon, yukarıda).
+- Yeni `test_webui_documentary_progress.py` (3 test): 12 mesaj key'inin 9
+  dilde de var/boş-olmadığının doğrulanması; **`_DOCUMENTARY_STAGE_KEYS`'in
+  (webui/Main.py) `default_pipeline.py`'nin gerçek `stage()` çağrılarındaki
+  ham isimlerle (AST ile ikisi de koddan çıkarılıp) birebir eşleştiğinin
+  doğrulanması** — pipeline'a yeni bir aşama eklenip webui tarafı
+  güncellenmezse bu test kırılır, status mesajı sessizce eskimiş kalmaz.
+
+**Gerçek tarayıcı doğrulaması (uçtan uca, gerçek API):** Ayrı bir geçici
+Streamlit örneğinde (8594, production 8501'e dokunulmadı) gerçek bir konu
+("The Discovery of Penicillin") ile "Generate Documentary"a tıklanıp
+üretim izlendi. **6 farklı aşama geçişi canlı yakalandı ve ekran
+görüntüsüyle kanıtlandı:** (2/12) Researching the topic... → (3/12)
+Outlining the story... → (5/12) Writing the narration... → (6/12)
+Storyboarding shots... → (8/12) Downloading footage... → (9/12) Recording
+narration... — kullanıcı onayladı. İlk deneme (farklı bir tarayıcı hedefi
+çöktüğü + yanlış ekran bölgesini yakaladığı için) atılıp düzeltilmiş
+ikinci bir çalıştırmayla tekrarlandı. İki test üretimi de (ikinci deneme
+sırasında aynı anda 2 tane, "Part Two" dahil) doğrulama sonrası
+`storage/tasks/`'tan silindi -- bu depo production ile paylaşıldığı için
+(aynı `ai-documentary-studio-webui.service`), test verisi Geçmiş
+Üretimler'de görünmesin diye.
+
+Doğrulama: tam pytest suite **692 passed, 11 skipped** (687'den +5, sıfır
+regresyon), `ruff check app cli.py main.py webui test` temiz.
+
+## Modernizasyon A/B/C — konsolide özet (kullanıcı talebiyle)
+
+Kullanıcının onayladığı sıra: **A → C → B**, üçü de ayrı commit + ayrı
+tarayıcı doğrulaması + kullanıcı onayıyla tamamlandı.
+
+| Adım | Ne yapıldı | Commit | Doğrulama |
+|---|---|---|---|
+| **A** — Görsel/tema yenileme | `webui/styles.css`'e CSS-only renk paleti (`:root` custom-property'leri, mevcut `#ff4b4b` vurgu korunarak), tipografi (başlık ağırlığı/iz aralığı), boşluk ritmi (`--mpt-space-*`). `[theme]` bilinçli olarak değiştirilmedi. | `f8ad552` | 684 passed; light+dark tam sayfa ekran görüntüsü, konsol hatası yok, kullanıcı onayı |
+| **C** — Kategori/Ton kart grid'i | 11 kategori + 12 ton selectbox'ı, `PROFILE_PROMPTS`'tan 1 cümlelik stil önizlemesi gösteren `st.button()` kart grid'ine dönüştürüldü (custom HTML değil). `documentary_topic_category`/`documentary_tone` session_state anahtarları hiç değişmedi. **İlk turda kullanıcı iki gerçek bug yakaladı** (seçili kartın metni light modda görünmüyordu + vurgusu iki temada da hiç uygulanmıyordu, `stVerticalBlockBorderWrapper` bu Streamlit sürümünde yok) — ikisi de düzeltilip yeniden doğrulandı. | `58b0a87` | 687 passed (+3); düzeltme sonrası light+dark computed-style + ekran görüntüsü, kullanıcı onayı |
+| **B** — Canlı ilerleme göstergesi | `run_pipeline()`'a opsiyonel `on_stage_change` callback (geriye tam uyumlu), `st.spinner()` → `st.status()`, 12 aşama mesajı × 9 dil (108 key). | *(bu commit)* | 692 passed (+5); gerçek uçtan uca üretimle 6 farklı aşama geçişi canlı yakalandı, kullanıcı onayı |
+
+Üçü de production servisine (8501) hiç dokunmadan, ayrı geçici Streamlit
+örnekleriyle doğrulandı; her turun test/QA verisi (ekran görüntüleri,
+test projeleri) kullanıcı onayından sonra temizlendi.

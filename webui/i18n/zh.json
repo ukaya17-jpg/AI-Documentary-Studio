@@ -394,6 +394,18 @@
     "Pacing: long": "长",
     "Category Auto Description": "让 AI 根据主题自动检测最合适的类别。",
     "Tone Auto Description": "使用所选类别的默认语气。",
-    "Tone Neutral Fallback Description": "暂无专属风格 -- 目前会回退使用「可信」语气。"
+    "Tone Neutral Fallback Description": "暂无专属风格 -- 目前会回退使用「可信」语气。",
+    "Documentary Stage Intent": "正在理解主题...",
+    "Documentary Stage Research": "正在研究主题...",
+    "Documentary Stage Outline": "正在构思故事大纲...",
+    "Documentary Stage Scene": "正在规划场景...",
+    "Documentary Stage Script": "正在撰写旁白...",
+    "Documentary Stage Storyboard": "正在设计分镜...",
+    "Documentary Stage Asset": "正在挑选素材...",
+    "Documentary Stage Asset Download": "正在下载素材...",
+    "Documentary Stage Audio": "正在生成配音...",
+    "Documentary Stage Timeline": "正在编排时间线...",
+    "Documentary Stage SEO": "正在撰写 SEO 元数据...",
+    "Documentary Stage Video Render": "正在渲染最终视频..."
   }
 }
