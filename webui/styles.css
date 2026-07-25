@@ -1,3 +1,42 @@
+/* GÖREV 2A -- görsel/tema yenileme (kullanıcı talebiyle, gündüz oturumu):
+   mevcut vurgu rengi (#ff4b4b -- Streamlit'in kendi varsayılan
+   primaryColor'ı, Faz 3'ten beri nav/marka renklerinde zaten kullanılıyordu)
+   HİÇ değişmedi, sadece tek bir yerden yönetilecek şekilde CSS custom
+   property'e taşındı ve durum renkleriyle (başarı/uyarı/bilgi -- şu an
+   hiçbir yerde kullanılmıyor ama ileride st.success/st.warning gibi native
+   Streamlit bileşenlerinin yanına özel bir vurgu eklenmek istenirse tek
+   yerden hazır olsun diye) + boşluk/köşe-yarıçapı ölçeğiyle genişletildi.
+   [theme] BİLİNÇLİ OLARAK eklenmedi (Faz 3 kararı, aşağıdaki nav bloğuna
+   bkz.) -- tarayıcının otomatik light/dark geçişini bozmamak için tüm
+   değerler burada, [theme]'e dokunmadan, sadece bu dosyada tanımlanıyor. */
+:root {
+    --mpt-accent: #ff4b4b;
+    --mpt-accent-strong: #e03c3c;
+    --mpt-accent-soft: color-mix(in srgb, var(--mpt-accent) 12%, transparent);
+    --mpt-success: #2e7d5b;
+    --mpt-warning: #b8860b;
+    --mpt-info: #3b6ea5;
+    --mpt-space-xs: 0.35rem;
+    --mpt-space-sm: 0.65rem;
+    --mpt-space-md: 1rem;
+    --mpt-space-lg: 1.5rem;
+    --mpt-radius: 0.5rem;
+}
+
+/* Karanlık modda kırmızı/sarı/mavi tonları aynı hissi korurken biraz
+   parlaklaştırılıyor -- koyu arka planda soluk kalmasınlar diye. Marka
+   vurgusu (--mpt-accent) kasıtlı olarak burada değişmiyor: nav aktif-sayfa
+   şeridi ve marka linki her iki temada da aynı kırmızıyla tanınabilir
+   kalsın isteniyor, sadece "strong"/durum tonları ayarlanıyor. */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --mpt-accent-strong: #ff6b6b;
+        --mpt-success: #4caf7d;
+        --mpt-warning: #d9a441;
+        --mpt-info: #6fa8dc;
+    }
+}
+
 header[data-testid="stHeader"],
 div[data-testid="stToolbar"],
 div[data-testid="stDecoration"],
@@ -69,7 +108,7 @@ div[class*="st-key-voice_mode_control"] [role="radiogroup"] > button p {
     min-width: 0;
     font-size: 2.75rem;
     font-weight: 700;
-    letter-spacing: 0;
+    letter-spacing: -0.015em;
     white-space: nowrap;
 }
 
@@ -91,7 +130,7 @@ div[class*="st-key-voice_mode_control"] [role="radiogroup"] > button p {
 }
 
 .mpt-brand__version:focus-visible {
-    outline: 2px solid rgba(255, 75, 75, 0.48);
+    outline: 2px solid color-mix(in srgb, var(--mpt-accent) 48%, transparent);
     outline-offset: 2px;
 }
 
@@ -101,7 +140,7 @@ div[class*="st-key-voice_mode_control"] [role="radiogroup"] > button p {
     flex: 0 0 auto;
     font-size: 0.875rem;
     font-weight: 600;
-    color: #d94848 !important;
+    color: var(--mpt-accent-strong) !important;
     text-decoration: none !important;
     white-space: nowrap;
 }
@@ -112,7 +151,7 @@ div[class*="st-key-voice_mode_control"] [role="radiogroup"] > button p {
 }
 
 .mpt-brand__update:focus-visible {
-    outline: 2px solid rgba(255, 75, 75, 0.48);
+    outline: 2px solid color-mix(in srgb, var(--mpt-accent) 48%, transparent);
     outline-offset: 2px;
 }
 
@@ -125,12 +164,6 @@ div[class*="st-key-voice_mode_control"] [role="radiogroup"] > button p {
     font-weight: 500;
     color: inherit;
     opacity: 0.6;
-}
-
-@media (prefers-color-scheme: dark) {
-    .mpt-brand__update {
-        color: #ff6b6b !important;
-    }
 }
 
 /* Streamlit 会自动给 h1 追加一个标题锚点。品牌区已有版本号项目链接，额外的
@@ -473,8 +506,8 @@ a[data-testid="stSidebarNavLink"]:hover {
 }
 
 a[data-testid="stSidebarNavLink"][aria-current="page"] {
-    background: color-mix(in srgb, #ff4b4b 12%, transparent) !important;
-    border-left-color: #ff4b4b;
+    background: var(--mpt-accent-soft) !important;
+    border-left-color: var(--mpt-accent);
 }
 
 a[data-testid="stSidebarNavLink"][aria-current="page"] p {
@@ -485,4 +518,38 @@ a[data-testid="stSidebarNavLink"][aria-current="page"] p {
    sidebar'da gözden kaçıyor; ürün hissi için biraz büyütülüyor. */
 span[data-testid="stIconEmoji"] {
     font-size: 1.3em;
+}
+
+/* GÖREV 2A -- tipografi/boşluk ritmi: Streamlit'in varsayılan st.header/
+   st.subheader (h2/h3) her yerde aynı ince ağırlıkla geliyor, bölüm
+   başlıkları içerikten yeterince ayrışmıyor. Sadece ana içerik alanına
+   (sidebar/dialog başlıklarına dokunmadan) hafif bir ağırlık/iz aralığı ve
+   yukarıdaki --mpt-space-* ölçeğiyle tutarlı bir dikey ritim ekleniyor --
+   font-family'ye hiç dokunulmadı (Streamlit'in kendi emotion-CSS'iyle
+   çakışma riski + harici font yükleme gerektirirdi, bu görevin kapsamı
+   dışında tutuldu). */
+div[data-testid="stMainBlockContainer"] h2 {
+    font-weight: 700 !important;
+    letter-spacing: -0.01em;
+    margin-top: var(--mpt-space-lg) !important;
+    margin-bottom: var(--mpt-space-sm) !important;
+}
+
+div[data-testid="stMainBlockContainer"] h3 {
+    font-weight: 600 !important;
+    margin-top: var(--mpt-space-md) !important;
+}
+
+/* Birincil eylem butonu (ör. "Generate Documentary") marka vurgusuyla
+   tutarlı, biraz daha belirgin bir hover/focus versinsin -- Streamlit'in
+   kendi primaryColor'ı zaten --mpt-accent ile aynı (#ff4b4b), burada sadece
+   hover/focus tonunu tek kaynaktan (--mpt-accent-strong) yönetiyoruz. */
+div[data-testid="stMainBlockContainer"] button[kind="primary"]:hover {
+    background-color: var(--mpt-accent-strong) !important;
+    border-color: var(--mpt-accent-strong) !important;
+}
+
+div[data-testid="stMainBlockContainer"] button[kind="primary"]:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--mpt-accent) 48%, transparent);
+    outline-offset: 2px;
 }

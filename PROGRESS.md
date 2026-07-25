@@ -2120,3 +2120,26 @@ kullanıcı sadece Kategori/Ton/Format/Pacing istedi.
 
 Doğrulama: tam pytest suite **684 passed, 11 skipped** (677'den +7, sıfır
 regresyon), `ruff check app cli.py main.py webui test` temiz.
+
+## Modernizasyon A — Görsel/tema yenileme (kullanıcı talebiyle, sıra: A → C → B)
+
+`webui/styles.css`'e CSS-only bir palet/tipografi/boşluk güncellemesi
+eklendi — `[theme]` global config'e bilinçli olarak dokunulmadı (Faz 3
+kararına sadık kalındı, tarayıcının otomatik light/dark geçişi bozulmadı).
+Mevcut vurgu rengi (`#ff4b4b`, zaten Streamlit'in varsayılan
+`primaryColor`'ıydı) değişmedi, tek bir `:root` custom-property setine
+taşındı (`--mpt-accent`/`--mpt-accent-strong`/`--mpt-accent-soft` +
+ileride kullanılmak üzere `--mpt-success`/`--mpt-warning`/`--mpt-info`,
+hepsi karanlık modda otomatik ayarlanıyor) ve `--mpt-space-xs/sm/md/lg`
+boşluk ölçeğiyle genişletildi. Ana içerik alanındaki `h2`/`h3` başlıklara
+(sidebar/dialog etkilenmeden) daha belirgin ağırlık + tutarlı dikey ritim,
+marka ismine hafif sıkılaştırılmış harf aralığı eklendi. Bonus: karanlık
+mod için ayrı, artık gereksiz bir tekrarlı renk kuralı kaldırıldı (değişken
+zaten uyarlanıyor).
+
+Doğrulama: tam pytest suite değişmedi (684 passed, 11 skipped — CSS-only,
+regresyon riski yok). Gerçek tarayıcı doğrulaması (ayrı geçici Streamlit
+örneği, 8591, production 8501'e dokunulmadı): hem light hem dark tema
+tam sayfa ekran görüntüsü alınıp kullanıcıya gösterildi, konsol hatası
+yok, mevcut düzen (nav, form, buton) bozulmadı — kullanıcı onayladıktan
+sonra geçici PNG'ler silindi.
