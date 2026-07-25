@@ -142,6 +142,24 @@ PROFILE_PROMPTS = {
         ),
         "closing": "End by connecting the specific achievement to what it represents about human competition and perseverance.",
     },
+    Tone.encouraging: {
+        "style": (
+            "Health and wellness documentary. Ground narration in practical, "
+            "evidence-aware guidance rather than absolute medical claims -- "
+            "prefer phrasing like 'many people find' or 'research suggests' "
+            "over definitive prescriptions."
+        ),
+        "opening_hook": (
+            "Open with a relatable everyday health challenge or a surprising, "
+            "well-supported fact."
+        ),
+        "section_guidance": (
+            "Cover the habit or topic itself, the evidence or reasoning behind "
+            "it, practical ways to apply it, and common misconceptions or "
+            "pitfalls."
+        ),
+        "closing": "End with a simple, actionable takeaway the viewer can start today.",
+    },
 }
 
 

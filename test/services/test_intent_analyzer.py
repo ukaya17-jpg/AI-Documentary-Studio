@@ -48,6 +48,12 @@ class TestHeuristicCategory(unittest.TestCase):
             TopicCategory.sports,
         )
 
+    def test_healthy_living_keyword(self):
+        self.assertEqual(
+            intent_analyzer._heuristic_category("Simple Nutrition Habits for a Healthier Life"),
+            TopicCategory.healthy_living,
+        )
+
     def test_unknown_falls_back_to_history(self):
         self.assertEqual(intent_analyzer._heuristic_category("xyzzy"), TopicCategory.history)
 

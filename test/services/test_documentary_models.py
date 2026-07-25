@@ -64,6 +64,7 @@ class TestProfileDimensions(unittest.TestCase):
         self.assertEqual(DEFAULT_TONE_BY_CATEGORY[TopicCategory.spiritual], Tone.reflective)
         self.assertEqual(DEFAULT_TONE_BY_CATEGORY[TopicCategory.film_highlights], Tone.cinephile)
         self.assertEqual(DEFAULT_TONE_BY_CATEGORY[TopicCategory.sports], Tone.dynamic)
+        self.assertEqual(DEFAULT_TONE_BY_CATEGORY[TopicCategory.healthy_living], Tone.encouraging)
 
     def test_resolve_tone_defaults_to_category_tone_when_no_override(self):
         for category, expected_tone in DEFAULT_TONE_BY_CATEGORY.items():

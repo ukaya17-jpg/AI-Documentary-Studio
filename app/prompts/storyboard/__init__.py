@@ -39,6 +39,11 @@ SHOT_GUIDANCE = {
         "crowds, close-ups of effort and celebration, and slow-motion-style "
         "action shots."
     ),
+    TopicCategory.healthy_living: (
+        "Favor everyday wellness footage: exercise and movement, healthy food "
+        "preparation, nature/outdoor activity, and calm indoor lifestyle "
+        "scenes."
+    ),
 }
 
 

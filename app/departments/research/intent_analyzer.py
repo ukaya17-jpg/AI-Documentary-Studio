@@ -41,6 +41,10 @@ _CATEGORY_KEYWORDS = {
         "sport", "football", "basketball", "athlete", "olympic", "championship",
         "spor", "futbol", "basketbol", "sporcu", "şampiyona",
     ],
+    TopicCategory.healthy_living: [
+        "health", "fitness", "nutrition", "wellness", "diet", "exercise",
+        "sağlık", "beslenme", "egzersiz", "diyet",
+    ],
 }
 
 
