@@ -141,7 +141,7 @@ WebUI 中的第二套独立工作流，专为**叙事型纪录片短片**设计�
 独立区域，有自己的主题输入框和"Generate Documentary"按钮，与上方的标准视频
 生成器互不影响。
 
-**可调整的维度：** 主题类别（`auto` 或手动指定 history/space/psychology/travel/marine/spiritual/film_highlights）、
+**可调整的维度：** 主题类别（`auto` 或手动指定 history/space/psychology/travel/marine/spiritual/film_highlights/sports）、
 语气 Tone（旁白听起来的感觉）、格式 Format（`standard`/`educational`/`corporate`，
 与语气正交，决定内容的结构性用途）、节奏 Pacing（`short` 4 个场景 / `long` 7 个
 场景）、以及配音音色。

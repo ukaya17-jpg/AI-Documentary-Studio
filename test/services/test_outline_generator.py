@@ -88,6 +88,7 @@ class TestBuildOutlinePromptToneRegression(unittest.TestCase):
             TopicCategory.marine: "underwater world",
             TopicCategory.spiritual: "concrete traditions, practices",
             TopicCategory.film_highlights: "without quoting dialogue verbatim",
+            TopicCategory.sports: "momentum-driven",
         }
         for category, keyword in expectations.items():
             tone = resolve_tone(category, None)

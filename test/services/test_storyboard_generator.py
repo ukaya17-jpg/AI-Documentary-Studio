@@ -41,6 +41,7 @@ class TestBuildStoryboardPrompt(unittest.TestCase):
             TopicCategory.marine: "underwater cinematography",
             TopicCategory.spiritual: "contemplative footage",
             TopicCategory.film_highlights: "cinema-adjacent b-roll",
+            TopicCategory.sports: "dynamic sports footage",
         }
         for category, keyword in expectations.items():
             prompt = storyboard_generator.build_storyboard_prompt(_scene_plan(), _script(), category)

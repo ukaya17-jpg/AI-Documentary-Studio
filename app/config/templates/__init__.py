@@ -126,6 +126,22 @@ PROFILE_PROMPTS = {
         ),
         "closing": "End by placing the specific example within the broader story of film as an art form.",
     },
+    Tone.dynamic: {
+        "style": (
+            "Sports documentary. Favor high-energy, momentum-driven narration "
+            "built around competition, effort, and achievement."
+        ),
+        "opening_hook": (
+            "Open with a decisive moment of competition or a striking "
+            "statistic, not a generic 'sports are popular' statement."
+        ),
+        "section_guidance": (
+            "Cover the athlete, team, or event's background, the challenge or "
+            "rivalry at stake, the pivotal moment of competition, and its "
+            "lasting impact on the sport."
+        ),
+        "closing": "End by connecting the specific achievement to what it represents about human competition and perseverance.",
+    },
 }
 
 

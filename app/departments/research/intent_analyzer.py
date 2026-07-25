@@ -37,6 +37,10 @@ _CATEGORY_KEYWORDS = {
         "movie", "film", "cinema", "actor", "director", "hollywood",
         "sinema", "yönetmen", "oyuncu", "film sahnesi",
     ],
+    TopicCategory.sports: [
+        "sport", "football", "basketball", "athlete", "olympic", "championship",
+        "spor", "futbol", "basketbol", "sporcu", "şampiyona",
+    ],
 }
 
 

@@ -42,6 +42,12 @@ class TestHeuristicCategory(unittest.TestCase):
             TopicCategory.film_highlights,
         )
 
+    def test_sports_keyword(self):
+        self.assertEqual(
+            intent_analyzer._heuristic_category("The Untold Story of a Championship Football Team"),
+            TopicCategory.sports,
+        )
+
     def test_unknown_falls_back_to_history(self):
         self.assertEqual(intent_analyzer._heuristic_category("xyzzy"), TopicCategory.history)
 

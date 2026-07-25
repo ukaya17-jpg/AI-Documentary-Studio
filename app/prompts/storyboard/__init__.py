@@ -34,6 +34,11 @@ SHOT_GUIDANCE = {
         "awards imagery -- avoid search terms implying use of actual "
         "copyrighted film footage."
     ),
+    TopicCategory.sports: (
+        "Favor dynamic sports footage: athletes in motion, stadiums and "
+        "crowds, close-ups of effort and celebration, and slow-motion-style "
+        "action shots."
+    ),
 }
 
 
