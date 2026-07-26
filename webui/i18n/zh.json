@@ -440,6 +440,10 @@
     "Category Preview: netflix_style": "悬念感十足的精品风格，适合一口气追看。",
     "Tone Preview: savory": "用诱人的感官细节让一道菜肴栩栩如生。",
     "Tone Preview: majestic": "以对自然的敬畏之心，讲述宏大壮丽的景象。",
-    "Tone Preview: gripping": "紧张悬疑、步步升级的叙事节奏。"
+    "Tone Preview: gripping": "紧张悬疑、步步升级的叙事节奏。",
+    "Documentary SEO Title Variants": "备选标题",
+    "Documentary SEO Title Variants Help": "可用于 A/B 测试的其他标题选项，替代上方的主标题。",
+    "Documentary SEO Keywords": "SEO 关键词",
+    "Documentary SEO Keywords Help": "用于平台标签/关键词字段的更广泛关键词（不是屏幕上显示的话题标签）。"
   }
 }

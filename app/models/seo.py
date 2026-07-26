@@ -11,3 +11,10 @@ class SeoMetadata(BaseModel):
     chapters: list[str] = Field(default_factory=list)
     end_screen_suggestion: str = ""
     pinned_comment: str = ""
+    # GÖREV 2 (SEO Engine genişletmesi, OTONOM KARAR): mevcut engagement
+    # LLM çağrısına eklendi, yeni bir çağrı/ücretli API yok. title_variants:
+    # A/B test için ana başlığa alternatif 2 başlık. keywords: platformun
+    # etiket/keywords alanı için ana hashtags listesinden daha geniş, "#"
+    # önekisiz bir SEO anahtar kelime listesi.
+    title_variants: list[str] = Field(default_factory=list)
+    keywords: list[str] = Field(default_factory=list)

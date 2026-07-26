@@ -2374,3 +2374,60 @@ düzenlendiği için sonradan 3 ayrı temiz commit'e bölmek (git add -p ile
 JSON/dict parçalama) kırılma riski taşırdı -- daha güvenli/geri alınabilir
 seçenek olarak (genel kural 1) tek, kapsamlı ve her kategoriyi ayrı ayrı
 belgeleyen bir commit'te birleştirildi.
+
+## GÖREV 2 (TAM OTONOMİ) — SEO Engine genişletmesi: title_variants + keywords
+
+**OTONOM KARAR — kapsam:** Ön-onay yeni ücretli API/arama-hacmi entegrasyonu
+eklemeyi yasaklıyordu, sadece mevcut LLM çağrısını genişletmeyi izin
+veriyordu. `generate_engagement_metadata()` (GECE OTURUMU 2 / Task C'de
+eklenmiş, `end_screen_suggestion`+`pinned_comment` üreten izole çağrı) zaten
+tam bunun için doğru genişletme noktasıydı — yeni bir LLM çağrısı eklemek
+yerine bu ÇAĞRININ JSON şemasına 2 alan daha eklendi: `title_variants`
+(ana başlığa 2 alternatif, A/B test için) ve `keywords` (platformun
+tag/anahtar-kelime alanı için 8-10 geniş SEO terimi — on-screen hashtag'lerden
+ayrı). `llm.generate_social_metadata()`/`build_social_metadata_prompt()`
+(legacy tekil-video pipeline'ıyla PAYLAŞILAN kod) hiç değiştirilmedi.
+
+**ADIM 0 (her yeni alanın gerçek bir tüketicisi olsun kuralı):**
+`webui/Main.py`'de `_render_project_media_panel()`'e eklendi:
+- `title_variants` varsa: SEO başlığının hemen altında, çevrilmiş etiketle
+  (`Documentary SEO Title Variants`) salt-okunur bir `st.text_area` (satır
+  satır).
+- `keywords` varsa: mevcut "Documentary SEO Extras" expander'ı içinde
+  (chapters/end-screen/pinned-comment ile aynı yerde), virgülle ayrılmış
+  salt-okunur bir `st.text_input`.
+Her ikisi de eski (bu alanlar olmadan üretilmiş) proje JSON'larında sessizce
+hiç render edilmiyor — crash yok, boş widget yok (regresyon testiyle
+kilitlendi: `test_missing_title_variants_and_keywords_render_nothing_extra`).
+
+**Gerçek API doğrulamasında bulunan ve düzeltilen bir kalite sorunu:**
+İlk gerçek çalıştırmada (`"The Unsolved Disappearance of D.B. Cooper"`),
+`title_variants[0]` ana `title` ile BİREBİR AYNI çıktı ("The Hijacker Who
+Vanished Into Thin Air") — çünkü `title` ve `title_variants` iki tamamen
+ayrı LLM çağrısından geliyor (`generate_social_metadata` / `generate_engagement_metadata`),
+ikinci çağrı birincinin sonucunu hiç görmüyordu. **Düzeltme (yeni LLM çağrısı
+EKLEMEDEN):** `build_engagement_prompt()`/`generate_engagement_metadata()`'ya
+opsiyonel `existing_title` parametresi eklendi; `generate_seo_metadata()`
+zaten elindeki `result["title"]`'ı bu MEVCUT çağrıya context olarak geçiriyor
+("The video's main title is already: ...") + prompt talimatı "genuinely
+different from the main title above" olarak güçlendirildi. $0 ek maliyet,
+aynı tek çağrı.
+
+Testler: `test_seo_generator.py`'a `TestBuildEngagementPrompt` sınıfı (title
+context var/yok senaryoları) + `test_drops_blank_title_variants_and_keywords`
++ `test_maps_social_metadata_result_to_seo_metadata` güncellendi (engagement
+prompt'unun gerçekten ana başlığı içerdiğini doğrulayan assertion eklendi).
+`test_webui_seo_extensions.py` (yeni dosya, 3 test): i18n key'lerinin 9 dilde
+var/dolu olduğu, title_variants'ın başlığın hemen altında doğru render
+olduğu, keywords'ün expander içinde virgülle render olduğu, eksik alanlarda
+hiçbir şey render edilmediği.
+
+Doğrulama: tam pytest suite **707 passed, 11 skipped** (699'dan +8, sıfır
+regresyon), `ruff` temiz. **Gerçek API doğrulaması (D.B. Cooper konusu, iki
+ayrı çalıştırma):** İlk çalıştırma başlık tekrarı sorununu ortaya çıkardı;
+düzeltme sonrası İKİNCİ gerçek çalıştırmada `title` = "The Hijacker Who
+Vanished Into Thin Air", `title_variants` = ["The $200,000 Skyjacking That
+Still Baffles the FBI", "He Jumped From a Plane With Ransom Money—and Became
+a Legend"] — üçü de birbirinden gerçekten farklı, hiç tekrar yok. `keywords`
+10 alakalı terim üretti (ör. "D.B. Cooper", "unsolved mysteries", "true crime
+documentary", "FBI cold case").

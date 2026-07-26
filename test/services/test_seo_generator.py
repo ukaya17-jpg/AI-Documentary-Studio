@@ -32,12 +32,48 @@ class TestGenerateChapters(unittest.TestCase):
         self.assertEqual(seo_generator.generate_chapters(ScenePlan(scenes=[])), [])
 
 
+class TestBuildEngagementPrompt(unittest.TestCase):
+    def test_asks_for_title_variants_and_keywords(self):
+        # GÖREV 2 (SEO Engine genişletmesi): bu talimatların prompt'ta
+        # gerçekten var olduğunu kilitliyor, sadece parse edilmesini değil.
+        prompt = seo_generator.build_engagement_prompt(
+            "The Fall of Rome", Script(full_text="Rome fell.")
+        )
+        self.assertIn("title_variants", prompt)
+        self.assertIn("keywords", prompt)
+        self.assertIn("exactly 2 alternative titles", prompt)
+        self.assertIn("no \"#\" prefix", prompt)
+
+    def test_omits_existing_title_context_when_not_given(self):
+        prompt = seo_generator.build_engagement_prompt(
+            "The Fall of Rome", Script(full_text="Rome fell.")
+        )
+        self.assertNotIn("main title is already", prompt)
+
+    def test_includes_existing_title_context_when_given(self):
+        # GÖREV 2 sonrası bulunan gerçek bir kalite sorunu: title ve
+        # title_variants iki ayrı LLM çağrısından geldiği için, ikinci
+        # çağrı birincinin sonucunu bilmeden aynı başlığı üretebiliyordu
+        # (gerçek API doğrulamasında gözlemlendi). Bu context olmadan bu
+        # test de geçerdi ama regresyonu hiç yakalamazdı -- prompt'un
+        # gerçekten ana başlığı içerdiğini kilitliyor.
+        prompt = seo_generator.build_engagement_prompt(
+            "The Fall of Rome",
+            Script(full_text="Rome fell."),
+            existing_title="Why Rome Really Fell",
+        )
+        self.assertIn('"Why Rome Really Fell"', prompt)
+        self.assertIn("genuinely different from the main title", prompt)
+
+
 class TestGenerateEngagementMetadata(unittest.TestCase):
     @patch("app.departments.growth.seo_generator.generate_json")
     def test_returns_parsed_fields(self, mock_generate_json):
         mock_generate_json.return_value = {
             "end_screen_suggestion": "Ask viewers to subscribe for more history content.",
             "pinned_comment": "What do you think caused Rome's fall the most?",
+            "title_variants": ["Why Rome Really Fell", "The Empire's Final Days"],
+            "keywords": ["roman empire", "fall of rome", "ancient history"],
         }
         result = seo_generator.generate_engagement_metadata(
             "The Fall of Rome", Script(full_text="Rome fell.")
@@ -49,6 +85,26 @@ class TestGenerateEngagementMetadata(unittest.TestCase):
         self.assertEqual(
             result["pinned_comment"], "What do you think caused Rome's fall the most?"
         )
+        self.assertEqual(
+            result["title_variants"], ["Why Rome Really Fell", "The Empire's Final Days"]
+        )
+        self.assertEqual(
+            result["keywords"], ["roman empire", "fall of rome", "ancient history"]
+        )
+
+    @patch("app.departments.growth.seo_generator.generate_json")
+    def test_drops_blank_title_variants_and_keywords(self, mock_generate_json):
+        mock_generate_json.return_value = {
+            "end_screen_suggestion": "Subscribe for more.",
+            "pinned_comment": "What do you think?",
+            "title_variants": ["A Real Title", "  ", ""],
+            "keywords": ["real keyword", "", "   "],
+        }
+        result = seo_generator.generate_engagement_metadata(
+            "The Fall of Rome", Script(full_text="Rome fell.")
+        )
+        self.assertEqual(result["title_variants"], ["A Real Title"])
+        self.assertEqual(result["keywords"], ["real keyword"])
 
     @patch("app.departments.growth.seo_generator.generate_json")
     def test_returns_empty_strings_on_failure(self, mock_generate_json):
@@ -56,7 +112,15 @@ class TestGenerateEngagementMetadata(unittest.TestCase):
         result = seo_generator.generate_engagement_metadata(
             "The Fall of Rome", Script(full_text="Rome fell.")
         )
-        self.assertEqual(result, {"end_screen_suggestion": "", "pinned_comment": ""})
+        self.assertEqual(
+            result,
+            {
+                "end_screen_suggestion": "",
+                "pinned_comment": "",
+                "title_variants": [],
+                "keywords": [],
+            },
+        )
 
 
 class TestGenerateSeoMetadata(unittest.TestCase):
@@ -73,6 +137,8 @@ class TestGenerateSeoMetadata(unittest.TestCase):
         mock_generate_json.return_value = {
             "end_screen_suggestion": "Subscribe for more.",
             "pinned_comment": "What do you think?",
+            "title_variants": ["Why Rome Really Fell", "The Empire's Final Days"],
+            "keywords": ["roman empire", "fall of rome"],
         }
         script = Script(full_text="Rome fell in 476 AD.")
         seo = seo_generator.generate_seo_metadata(
@@ -85,12 +151,22 @@ class TestGenerateSeoMetadata(unittest.TestCase):
         self.assertEqual(seo.chapters, ["0:00 Origins", "0:05 Decline", "1:10 Fall"])
         self.assertEqual(seo.end_screen_suggestion, "Subscribe for more.")
         self.assertEqual(seo.pinned_comment, "What do you think?")
+        self.assertEqual(
+            seo.title_variants, ["Why Rome Really Fell", "The Empire's Final Days"]
+        )
+        self.assertEqual(seo.keywords, ["roman empire", "fall of rome"])
         mock_generate_social_metadata.assert_called_once_with(
             video_subject="The Fall of Rome",
             video_script="Rome fell in 476 AD.",
             language="en",
             platform="youtube_shorts",
         )
+        # generate_engagement_metadata'ya gönderilen prompt'un, social_
+        # metadata'nın ürettiği başlığı context olarak içerdiğini doğrula --
+        # bu, title_variants'ın ana başlıkla aynı çıkma riskini azaltan
+        # düzeltmenin gerçekten uçtan uca bağlandığını kanıtlıyor.
+        engagement_prompt = mock_generate_json.call_args[0][0]
+        self.assertIn('main title is already: "The Fall of Rome"', engagement_prompt)
 
     @patch("app.departments.growth.seo_generator.generate_json")
     @patch("app.departments.growth.seo_generator.llm.generate_social_metadata")

@@ -36,37 +36,78 @@ def generate_chapters(scene_plan: ScenePlan | None) -> list[str]:
     return chapters
 
 
-def build_engagement_prompt(topic: str, script: Script, language: str = "") -> str:
+def build_engagement_prompt(
+    topic: str, script: Script, language: str = "", existing_title: str = ""
+) -> str:
+    # OTONOM KARAR (GÖREV 2, SEO Engine genişletmesi): title_variants/keywords
+    # bilinçli olarak burada, MEVCUT engagement çağrısına eklendi --
+    # llm.generate_social_metadata()/build_social_metadata_prompt() (legacy
+    # tekil-video pipeline'ıyla PAYLAŞILAN kod) hiç değiştirilmedi, yeni bir
+    # LLM çağrısı da eklenmedi. Yeni ücretli bir API/arama-hacmi
+    # entegrasyonu yok -- tamamen aynı $0 ek maliyetli LLM çağrısının
+    # döndürdüğü JSON şemasının genişletilmesi.
     prompt = (
         "You are a YouTube/social growth assistant. For the documentary below, "
-        "suggest a short end-of-video note for the creator and a pinned comment "
-        "to drive engagement."
+        "suggest a short end-of-video note for the creator, a pinned comment "
+        "to drive engagement, alternative title ideas, and broader SEO keywords."
         f'\n\nTopic: "{topic}"\n\nNarration:\n{script.full_text}'
     )
+    if existing_title:
+        # OTONOM KARAR (gerçek API doğrulamasında bulundu): title ve
+        # title_variants iki AYRI LLM çağrısından geliyor (generate_social_
+        # metadata / generate_engagement_metadata) -- ikinci çağrı birincinin
+        # sonucunu görmeden "alternatif" başlık üretirse, tesadüfen ana
+        # başlıkla birebir aynı bir sonuç üretebiliyor (gözlemlendi). Buraya
+        # ana başlığı açıkça vermek yeni bir LLM çağrısı EKLEMİYOR, sadece
+        # zaten yapılan bu çağrının bağlamını zenginleştiriyor.
+        prompt += f'\n\nThe video\'s main title is already: "{existing_title}"'
     if language and language != "auto":
         prompt += f"\n\nRespond in language: {language}"
     prompt += """
 
 Respond with a single JSON object with exactly this shape:
-{"end_screen_suggestion": "...", "pinned_comment": "..."}
+{"end_screen_suggestion": "...", "pinned_comment": "...", "title_variants": ["...", "..."], "keywords": ["...", "..."]}
 end_screen_suggestion: one sentence telling the creator what to say/show in
 the last few seconds (e.g., a subscribe prompt or a tease for a related
 topic) -- advice for the creator, not on-screen text to render.
 pinned_comment: a short, engaging comment (a question or a hook) the creator
-can pin to drive replies. Do not include any other text."""
+can pin to drive replies.
+title_variants: exactly 2 alternative titles for the same video, each taking
+a different angle/hook than an obvious title would (for the creator to A/B
+test) -- each must be genuinely different from the main title above and
+from each other, not a minor reword of it.
+keywords: 8 to 10 broader SEO keywords or short phrases relevant to the
+topic (for the platform's tags/keywords field, not on-screen hashtags --
+plain text, no "#" prefix, no duplicates).
+Do not include any other text."""
     return prompt
 
 
-def generate_engagement_metadata(topic: str, script: Script, language: str = "auto") -> dict:
+def generate_engagement_metadata(
+    topic: str, script: Script, language: str = "auto", existing_title: str = ""
+) -> dict:
     try:
-        data = generate_json(build_engagement_prompt(topic, script, language))
+        data = generate_json(
+            build_engagement_prompt(topic, script, language, existing_title)
+        )
         return {
             "end_screen_suggestion": str(data.get("end_screen_suggestion", "")).strip(),
             "pinned_comment": str(data.get("pinned_comment", "")).strip(),
+            "title_variants": [
+                str(t).strip() for t in data.get("title_variants", []) if str(t).strip()
+            ],
+            "keywords": [
+                str(k).strip() for k in data.get("keywords", []) if str(k).strip()
+            ],
         }
     except Exception as e:
         logger.warning(f"seo_generator: engagement metadata generation failed: {e}")
-        return {"end_screen_suggestion": "", "pinned_comment": ""}
+        return {
+            "end_screen_suggestion": "",
+            "pinned_comment": "",
+            "title_variants": [],
+            "keywords": [],
+        }
 
 
 def generate_seo_metadata(
@@ -82,7 +123,9 @@ def generate_seo_metadata(
         language=language,
         platform=platform,
     )
-    engagement = generate_engagement_metadata(topic, script, language)
+    engagement = generate_engagement_metadata(
+        topic, script, language, existing_title=result.get("title", "")
+    )
     return SeoMetadata(
         title=result.get("title", ""),
         description=result.get("caption", ""),
@@ -90,4 +133,6 @@ def generate_seo_metadata(
         chapters=generate_chapters(scene_plan),
         end_screen_suggestion=engagement["end_screen_suggestion"],
         pinned_comment=engagement["pinned_comment"],
+        title_variants=engagement["title_variants"],
+        keywords=engagement["keywords"],
     )

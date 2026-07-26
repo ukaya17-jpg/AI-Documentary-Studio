@@ -4061,6 +4061,13 @@ def _render_project_media_panel(project: dict) -> bool:
     seo = (project or {}).get("seo") or {}
     if seo.get("title"):
         st.text_input(tr("Documentary SEO Title"), value=seo["title"], disabled=True)
+    if seo.get("title_variants"):
+        st.text_area(
+            tr("Documentary SEO Title Variants"),
+            value="\n".join(seo["title_variants"]),
+            disabled=True,
+            help=tr("Documentary SEO Title Variants Help"),
+        )
     if seo.get("description"):
         st.text_area(
             tr("Documentary SEO Description"),
@@ -4077,6 +4084,7 @@ def _render_project_media_panel(project: dict) -> bool:
         seo.get("chapters")
         or seo.get("end_screen_suggestion")
         or seo.get("pinned_comment")
+        or seo.get("keywords")
     ):
         if seo.get("chapters"):
             # Shown outside the (collapsed-by-default) expander below -- a
@@ -4102,6 +4110,16 @@ def _render_project_media_panel(project: dict) -> bool:
                     tr("Documentary SEO Pinned Comment"),
                     value=seo["pinned_comment"],
                     disabled=True,
+                )
+            if seo.get("keywords"):
+                # hashtags'ten (platform etiketleri, "#" önekli) kasıtlı
+                # olarak ayrı: bu liste platformun ayrı "keywords/tags"
+                # alanı için, "#" öneki yok.
+                st.text_input(
+                    tr("Documentary SEO Keywords"),
+                    value=", ".join(seo["keywords"]),
+                    disabled=True,
+                    help=tr("Documentary SEO Keywords Help"),
                 )
 
     quality_verdict = (project or {}).get("quality_verdict")
