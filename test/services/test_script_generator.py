@@ -185,6 +185,63 @@ class TestBuildScriptPromptFormat(unittest.TestCase):
             self.assertIn(fmt, script_generator.FORMAT_GUIDANCE)
 
 
+class TestGrowthGuidance(unittest.TestCase):
+    """GÖREV 3 (TAM OTONOMİ, kullanıcı onaylı): platform büyüme ilkeleri --
+    Tone/Format gibi kullanıcı seçimi DEĞİL, her zaman açık, kapatılamaz.
+    """
+
+    def test_present_unconditionally_even_with_no_tone_format_or_outline(self):
+        prompt = script_generator.build_script_prompt(_scene_plan(), "Topic")
+        self.assertIn("Growth requirements:", prompt)
+        self.assertIn("Opening:", prompt)
+        self.assertIn("Advertiser-safe:", prompt)
+        self.assertIn("Series feel:", prompt)
+
+    def test_present_for_a_single_scene_plan_too(self):
+        # Story craft's Retention bullet is skipped for a single scene, but
+        # growth guidance is unconditional -- must still appear.
+        single_scene_plan = ScenePlan(
+            scenes=[Scene(index=0, title="Only", narration_beat="The whole story", duration_seconds=5.0)]
+        )
+        prompt = script_generator.build_script_prompt(single_scene_plan, "Topic")
+        self.assertIn("Growth requirements:", prompt)
+
+    def test_includes_closing_nudge_and_engagement_question_by_default(self):
+        prompt = script_generator.build_script_prompt(_scene_plan(), "Topic")
+        self.assertIn("Closing nudge:", prompt)
+        self.assertIn("Engagement:", prompt)
+
+    def test_suppresses_closing_nudge_and_engagement_for_corporate_format(self):
+        # Format.corporate explicitly asks for a neutral, non-promotional,
+        # third-person voice -- a subscribe-style nudge or a direct
+        # engagement question would contradict that.
+        prompt = script_generator.build_script_prompt(
+            _scene_plan(), "Topic", format=Format.corporate
+        )
+        self.assertNotIn("Closing nudge:", prompt)
+        self.assertNotIn("Engagement:", prompt)
+        # The rest of growth guidance still applies -- corporate isn't exempt
+        # from the ad-safe/opening/series-feel requirements.
+        self.assertIn("Opening:", prompt)
+        self.assertIn("Advertiser-safe:", prompt)
+        self.assertIn("Series feel:", prompt)
+
+    def test_keeps_closing_nudge_and_engagement_for_educational_format(self):
+        # Only corporate is exempted -- educational (or no format at all)
+        # keeps the full growth block.
+        prompt = script_generator.build_script_prompt(
+            _scene_plan(), "Topic", format=Format.educational
+        )
+        self.assertIn("Closing nudge:", prompt)
+        self.assertIn("Engagement:", prompt)
+
+    def test_retention_instruction_now_asks_for_regular_new_detail(self):
+        # Reinforces (rather than duplicating with a separate, potentially
+        # contradictory instruction) the existing per-scene Retention rule.
+        prompt = script_generator.build_script_prompt(_scene_plan(), "Topic")
+        self.assertIn("a new concrete detail or turn should surface", prompt)
+
+
 class TestGenerateScript(unittest.TestCase):
     @patch("app.departments.creative.script_generator.generate_json")
     def test_parses_lines_in_scene_order(self, mock_generate_json):

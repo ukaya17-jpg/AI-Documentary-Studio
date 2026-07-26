@@ -74,7 +74,9 @@ def _story_craft_instructions(scene_plan: ScenePlan, outline: Outline | None) ->
         instructions.append(
             "- Retention: end most scenes on a forward-pulling detail, tension, "
             "or open question rather than a fully resolved statement, so the "
-            "viewer wants to see what happens next."
+            "viewer wants to see what happens next -- across the narration as "
+            "a whole, a new concrete detail or turn should surface every "
+            "couple of scenes so the pacing never goes flat."
         )
     if outline and outline.closing.strip():
         instructions.append(
@@ -85,6 +87,44 @@ def _story_craft_instructions(scene_plan: ScenePlan, outline: Outline | None) ->
     if not instructions:
         return ""
     return "\n\nStory craft requirements:\n" + "\n".join(instructions)
+
+
+# GÖREV 3 (kullanıcı onaylı, TAM OTONOMİ): platform büyüme/monetizasyon
+# ilkeleri -- Tone/Format gibi kullanıcı seçimi DEĞİL, Hook/Retention/
+# Callback ile aynı "her zaman açık, kapatılamaz" kategori. Kullanıcı
+# hiçbir yeni seçenek görmüyor/seçmiyor -- webui'de toggle yok.
+def _growth_guidance_instructions(format: Format | None) -> str:
+    """Platform-growth requirements applied to every generation unconditionally.
+
+    Format.corporate explicitly asks for a "neutral third-person voice" and
+    to "avoid promotional or salesy language" -- a subscribe-style nudge or a
+    direct audience-engagement question would undercut that institutional
+    tone, so those two lines are suppressed specifically for that format.
+    The opening/ad-safe/series-feel lines still apply everywhere since they
+    don't conflict with a neutral voice.
+    """
+    lines = [
+        "- Opening: the first ~8 seconds must open with a concrete, specific "
+        "detail about this topic -- never a generic greeting, throat-clearing, "
+        "or scene-setting preamble.",
+        "- Advertiser-safe: do not include graphic violence, hate speech, or "
+        "sensational/unverified claims.",
+        "- Series feel: where it fits naturally, hint that this topic connects "
+        "to a broader pattern or theme, without inventing a connection that "
+        "isn't true.",
+    ]
+    if format != Format.corporate:
+        lines.append(
+            "- Closing nudge: end with a brief, non-pushy invitation to keep "
+            "watching or follow along, phrased as a natural continuation of "
+            "the story rather than a jingle or direct sales pitch."
+        )
+        lines.append(
+            "- Engagement: include one natural open-ended question or "
+            "invitation for the viewer's own view on the topic, phrased so it "
+            "could prompt a reply -- not a forced or robotic call to comment."
+        )
+    return "\n\nGrowth requirements:\n" + "\n".join(lines)
 
 
 def build_script_prompt(
@@ -121,6 +161,7 @@ closely as possible so the timing lines up with the scene's on-screen duration:
         if format_guidance:
             prompt += f"\n\nFormat: {format_guidance}."
     prompt += _story_craft_instructions(scene_plan, outline)
+    prompt += _growth_guidance_instructions(format)
     if language and language != "auto":
         prompt += f"\n\nRespond in language: {language}"
     prompt += """
