@@ -417,6 +417,20 @@
     "Documentary SEO Title Variants": "Alternative Titel",
     "Documentary SEO Title Variants Help": "Weitere Titeloptionen, die Sie anstelle des Haupttitels oben A/B-testen können.",
     "Documentary SEO Keywords": "SEO-Schlüsselwörter",
-    "Documentary SEO Keywords Help": "Breitere Schlüsselwörter für das Tags/Keywords-Feld der Plattform (keine sichtbaren Hashtags)."
+    "Documentary SEO Keywords Help": "Breitere Schlüsselwörter für das Tags/Keywords-Feld der Plattform (keine sichtbaren Hashtags).",
+    "Documentary Video Source": "Videoquelle",
+    "Documentary Video Source Help": "Wählen Sie zwischen kostenlosem Stockmaterial oder KI-generierten Videoclips (echte Kosten pro Video, erfordert einen konfigurierten fal.ai-API-Schlüssel).",
+    "Documentary Video Source: stock": "Stockmaterial (Kostenlos)",
+    "Documentary Video Source: ai_generated": "KI-Generiert (Kostenpflichtig)",
+    "Documentary AI Video Not Configured": "Die KI-Videoerstellung ist nicht konfiguriert. Fügen Sie in config.toml einen fal.ai-API-Schlüssel hinzu, um diese Option zu aktivieren.",
+    "Documentary AI Video Cost Estimate": "Geschätzte Kosten",
+    "Documentary AI Video Cost Disclaimer": "Dies ist eine Schätzung basierend auf der konfigurierten Modellstufe, keine endgültige Rechnung -- die tatsächlichen Kosten werden Ihrem fal.ai-Konto berechnet.",
+    "Documentary AI Video Cost Confirm": "Ich verstehe die geschätzten Kosten und möchte fortfahren.",
+    "Documentary AI Video Clips Progress": "KI-Videoclips",
+    "Documentary AI Video Generation Failed": "KI-Videoerstellung fehlgeschlagen",
+    "Documentary AI Video Scene": "Szene",
+    "Documentary AI Video Partial Success": "Hinweis",
+    "Documentary AI Video Clips Generated Suffix": "Clip(s) wurden vor diesem Fehler bereits erstellt (und in Rechnung gestellt), aber die Dokumentation konnte nicht abgeschlossen werden.",
+    "Documentary AI Video Retry Guidance": "Sie können die Videoquelle oben auf Stockmaterial umstellen und erneut auf Generate Documentary klicken."
   }
 }

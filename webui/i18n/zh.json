@@ -444,6 +444,20 @@
     "Documentary SEO Title Variants": "备选标题",
     "Documentary SEO Title Variants Help": "可用于 A/B 测试的其他标题选项，替代上方的主标题。",
     "Documentary SEO Keywords": "SEO 关键词",
-    "Documentary SEO Keywords Help": "用于平台标签/关键词字段的更广泛关键词（不是屏幕上显示的话题标签）。"
+    "Documentary SEO Keywords Help": "用于平台标签/关键词字段的更广泛关键词（不是屏幕上显示的话题标签）。",
+    "Documentary Video Source": "视频来源",
+    "Documentary Video Source Help": "在免费素材库视频和 AI 生成视频片段之间选择（每个视频需支付真实费用，需要已配置的 fal.ai API 密钥）。",
+    "Documentary Video Source: stock": "素材库视频（免费）",
+    "Documentary Video Source: ai_generated": "AI 生成（付费）",
+    "Documentary AI Video Not Configured": "尚未配置 AI 视频生成功能。请在 config.toml 中添加 fal.ai API 密钥以启用此选项。",
+    "Documentary AI Video Cost Estimate": "预估费用",
+    "Documentary AI Video Cost Disclaimer": "此为基于已配置模型层级的估算值，非最终账单——实际费用将从您的 fal.ai 账户中扣除。",
+    "Documentary AI Video Cost Confirm": "我理解预估费用并希望继续。",
+    "Documentary AI Video Clips Progress": "AI 视频片段",
+    "Documentary AI Video Generation Failed": "AI 视频生成失败",
+    "Documentary AI Video Scene": "场景",
+    "Documentary AI Video Partial Success": "提示",
+    "Documentary AI Video Clips Generated Suffix": "在此次失败之前已生成（并计费）的片段，但纪录片未能完成制作。",
+    "Documentary AI Video Retry Guidance": "您可以将上方的视频来源切换为素材库视频，然后再次点击 Generate Documentary。"
   }
 }

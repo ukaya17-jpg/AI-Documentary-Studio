@@ -417,6 +417,20 @@
     "Documentary SEO Title Variants": "Títulos Alternativos",
     "Documentary SEO Title Variants Help": "Outras opções de título que você pode testar em A/B em vez do título principal acima.",
     "Documentary SEO Keywords": "Palavras-chave de SEO",
-    "Documentary SEO Keywords Help": "Palavras-chave mais amplas para o campo de tags/palavras-chave da plataforma (não são hashtags exibidas na tela)."
+    "Documentary SEO Keywords Help": "Palavras-chave mais amplas para o campo de tags/palavras-chave da plataforma (não são hashtags exibidas na tela).",
+    "Documentary Video Source": "Fonte de Vídeo",
+    "Documentary Video Source Help": "Escolha entre imagens de banco gratuitas ou clipes de vídeo gerados por IA (custo real por vídeo, requer uma chave de API fal.ai configurada).",
+    "Documentary Video Source: stock": "Imagens de Banco (Grátis)",
+    "Documentary Video Source: ai_generated": "Gerado por IA (Pago)",
+    "Documentary AI Video Not Configured": "A geração de vídeo por IA não está configurada. Adicione uma chave de API fal.ai em config.toml para habilitar esta opção.",
+    "Documentary AI Video Cost Estimate": "Custo estimado",
+    "Documentary AI Video Cost Disclaimer": "Esta é uma estimativa baseada no nível de modelo configurado, não uma fatura final -- o custo real será cobrado na sua conta fal.ai.",
+    "Documentary AI Video Cost Confirm": "Entendo o custo estimado e quero continuar.",
+    "Documentary AI Video Clips Progress": "Clipes de vídeo IA",
+    "Documentary AI Video Generation Failed": "A geração de vídeo por IA falhou",
+    "Documentary AI Video Scene": "Cena",
+    "Documentary AI Video Partial Success": "Nota",
+    "Documentary AI Video Clips Generated Suffix": "clipe(s) já foram gerados (e cobrados) antes desta falha, mas o documentário não pôde ser concluído.",
+    "Documentary AI Video Retry Guidance": "Você pode alterar a Fonte de Vídeo acima para Imagens de Banco e clicar em Generate Documentary novamente."
   }
 }

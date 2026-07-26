@@ -417,6 +417,20 @@
     "Documentary SEO Title Variants": "Tiêu Đề Thay Thế",
     "Documentary SEO Title Variants Help": "Các lựa chọn tiêu đề khác bạn có thể thử nghiệm A/B thay cho tiêu đề chính ở trên.",
     "Documentary SEO Keywords": "Từ Khóa SEO",
-    "Documentary SEO Keywords Help": "Từ khóa rộng hơn cho trường tag/từ khóa của nền tảng (không phải hashtag hiển thị trên màn hình)."
+    "Documentary SEO Keywords Help": "Từ khóa rộng hơn cho trường tag/từ khóa của nền tảng (không phải hashtag hiển thị trên màn hình).",
+    "Documentary Video Source": "Nguồn Video",
+    "Documentary Video Source Help": "Chọn giữa video stock miễn phí hoặc clip video do AI tạo ra (chi phí thực tế cho mỗi video, yêu cầu khóa API fal.ai đã được cấu hình).",
+    "Documentary Video Source: stock": "Video Stock (Miễn phí)",
+    "Documentary Video Source: ai_generated": "AI Tạo (Có phí)",
+    "Documentary AI Video Not Configured": "Tính năng tạo video AI chưa được cấu hình. Thêm khóa API fal.ai vào config.toml để bật tùy chọn này.",
+    "Documentary AI Video Cost Estimate": "Chi phí ước tính",
+    "Documentary AI Video Cost Disclaimer": "Đây là ước tính dựa trên cấp độ mô hình đã cấu hình, không phải hóa đơn cuối cùng -- chi phí thực tế sẽ được tính vào tài khoản fal.ai của bạn.",
+    "Documentary AI Video Cost Confirm": "Tôi hiểu chi phí ước tính và muốn tiếp tục.",
+    "Documentary AI Video Clips Progress": "Clip video AI",
+    "Documentary AI Video Generation Failed": "Tạo video AI thất bại",
+    "Documentary AI Video Scene": "Cảnh",
+    "Documentary AI Video Partial Success": "Lưu ý",
+    "Documentary AI Video Clips Generated Suffix": "clip đã được tạo (và tính phí) trước khi lỗi này xảy ra, nhưng không thể hoàn thành bộ phim tài liệu.",
+    "Documentary AI Video Retry Guidance": "Bạn có thể chuyển Nguồn Video ở trên sang Video Stock và nhấn Generate Documentary lại."
   }
 }

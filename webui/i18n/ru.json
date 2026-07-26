@@ -417,6 +417,20 @@
     "Documentary SEO Title Variants": "Альтернативные заголовки",
     "Documentary SEO Title Variants Help": "Другие варианты заголовка для A/B-тестирования вместо основного заголовка выше.",
     "Documentary SEO Keywords": "SEO-ключевые слова",
-    "Documentary SEO Keywords Help": "Более широкие ключевые слова для поля тегов/ключевых слов платформы (не отображаемые на экране хэштеги)."
+    "Documentary SEO Keywords Help": "Более широкие ключевые слова для поля тегов/ключевых слов платформы (не отображаемые на экране хэштеги).",
+    "Documentary Video Source": "Источник видео",
+    "Documentary Video Source Help": "Выберите между бесплатными стоковыми кадрами или видеоклипами, созданными ИИ (реальная стоимость за видео, требуется настроенный ключ API fal.ai).",
+    "Documentary Video Source: stock": "Стоковые кадры (Бесплатно)",
+    "Documentary Video Source: ai_generated": "Создано ИИ (Платно)",
+    "Documentary AI Video Not Configured": "Генерация видео с помощью ИИ не настроена. Добавьте ключ API fal.ai в config.toml, чтобы включить эту опцию.",
+    "Documentary AI Video Cost Estimate": "Примерная стоимость",
+    "Documentary AI Video Cost Disclaimer": "Это оценка на основе настроенного уровня модели, а не окончательный счёт -- реальная стоимость будет списана с вашего аккаунта fal.ai.",
+    "Documentary AI Video Cost Confirm": "Я понимаю примерную стоимость и хочу продолжить.",
+    "Documentary AI Video Clips Progress": "Видеоклипы ИИ",
+    "Documentary AI Video Generation Failed": "Не удалось создать видео с помощью ИИ",
+    "Documentary AI Video Scene": "Сцена",
+    "Documentary AI Video Partial Success": "Примечание",
+    "Documentary AI Video Clips Generated Suffix": "клип(ы) уже были созданы (и оплачены) до этой ошибки, но документальный фильм не удалось завершить.",
+    "Documentary AI Video Retry Guidance": "Вы можете переключить Источник видео выше на Стоковые кадры и снова нажать Generate Documentary."
   }
 }

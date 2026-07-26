@@ -417,6 +417,20 @@
     "Documentary SEO Title Variants": "Alternatif Başlıklar",
     "Documentary SEO Title Variants Help": "Yukarıdaki ana başlık yerine A/B test edebileceğiniz diğer başlık seçenekleri.",
     "Documentary SEO Keywords": "SEO Anahtar Kelimeleri",
-    "Documentary SEO Keywords Help": "Platformun etiket/anahtar kelime alanı için daha geniş kelimeler (ekranda görünen hashtag'ler değil)."
+    "Documentary SEO Keywords Help": "Platformun etiket/anahtar kelime alanı için daha geniş kelimeler (ekranda görünen hashtag'ler değil).",
+    "Documentary Video Source": "Video Kaynağı",
+    "Documentary Video Source Help": "Ücretsiz stok görüntü ile AI-üretimi video klipler (video başına gerçek maliyet, yapılandırılmış bir fal.ai API anahtarı gerektirir) arasında seçim yapın.",
+    "Documentary Video Source: stock": "Stok Görüntü (Ücretsiz)",
+    "Documentary Video Source: ai_generated": "AI Üretimi (Ücretli)",
+    "Documentary AI Video Not Configured": "AI video üretimi yapılandırılmamış. Bu seçeneği etkinleştirmek için config.toml'a bir fal.ai API anahtarı ekleyin.",
+    "Documentary AI Video Cost Estimate": "Tahmini maliyet",
+    "Documentary AI Video Cost Disclaimer": "Bu, yapılandırılmış model katmanına dayanan bir tahmindir, kesin fatura değildir -- gerçek ücret fal.ai hesabınıza yansıtılır.",
+    "Documentary AI Video Cost Confirm": "Tahmini maliyeti anladım ve devam etmek istiyorum.",
+    "Documentary AI Video Clips Progress": "AI video klipleri",
+    "Documentary AI Video Generation Failed": "AI video üretimi başarısız oldu",
+    "Documentary AI Video Scene": "Sahne",
+    "Documentary AI Video Partial Success": "Not",
+    "Documentary AI Video Clips Generated Suffix": "klip bu hatadan önce zaten üretildi (ve ücretlendirildi), ancak belgesel tamamlanamadı.",
+    "Documentary AI Video Retry Guidance": "Yukarıdan Video Kaynağı'nı Stok Görüntü'ye çevirip Generate Documentary'ye tekrar basabilirsiniz."
   }
 }

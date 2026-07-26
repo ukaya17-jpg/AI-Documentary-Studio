@@ -417,6 +417,20 @@
     "Documentary SEO Title Variants": "Judul Alternatif",
     "Documentary SEO Title Variants Help": "Opsi judul lain yang bisa Anda uji A/B sebagai pengganti judul utama di atas.",
     "Documentary SEO Keywords": "Kata Kunci SEO",
-    "Documentary SEO Keywords Help": "Kata kunci yang lebih luas untuk kolom tag/kata kunci platform (bukan hashtag yang tampil di layar)."
+    "Documentary SEO Keywords Help": "Kata kunci yang lebih luas untuk kolom tag/kata kunci platform (bukan hashtag yang tampil di layar).",
+    "Documentary Video Source": "Sumber Video",
+    "Documentary Video Source Help": "Pilih antara rekaman stok gratis atau klip video hasil AI (biaya nyata per video, memerlukan kunci API fal.ai yang telah dikonfigurasi).",
+    "Documentary Video Source: stock": "Rekaman Stok (Gratis)",
+    "Documentary Video Source: ai_generated": "Hasil AI (Berbayar)",
+    "Documentary AI Video Not Configured": "Pembuatan video AI belum dikonfigurasi. Tambahkan kunci API fal.ai di config.toml untuk mengaktifkan opsi ini.",
+    "Documentary AI Video Cost Estimate": "Perkiraan biaya",
+    "Documentary AI Video Cost Disclaimer": "Ini adalah perkiraan berdasarkan tingkat model yang dikonfigurasi, bukan tagihan akhir -- biaya sebenarnya akan ditagihkan ke akun fal.ai Anda.",
+    "Documentary AI Video Cost Confirm": "Saya memahami perkiraan biaya dan ingin melanjutkan.",
+    "Documentary AI Video Clips Progress": "Klip video AI",
+    "Documentary AI Video Generation Failed": "Pembuatan video AI gagal",
+    "Documentary AI Video Scene": "Adegan",
+    "Documentary AI Video Partial Success": "Catatan",
+    "Documentary AI Video Clips Generated Suffix": "klip sudah dibuat (dan ditagih) sebelum kegagalan ini, tetapi dokumenter tidak dapat diselesaikan.",
+    "Documentary AI Video Retry Guidance": "Anda dapat mengubah Sumber Video di atas ke Rekaman Stok dan klik Generate Documentary lagi."
   }
 }

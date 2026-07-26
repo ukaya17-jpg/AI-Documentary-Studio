@@ -25,8 +25,9 @@ if root_dir not in sys.path:
     sys.path.append(root_dir)
 
 from app.config import config
-from app.config.profile_dimensions import Format, Pacing, Tone, TopicCategory
+from app.config.profile_dimensions import PACING_SCENE_SPEC, Format, Pacing, Tone, TopicCategory
 from app.departments.growth import publisher
+from app.departments.production import ai_video_generator
 from app.models import const
 from app.models.documentary_project import DocumentaryProject
 from app.models.llm_provider import (
@@ -47,6 +48,7 @@ from app.thinking import idea_generator
 from app.services import bgm as bgm_service
 from app.services import cache_manager, llm, video, voice, webui_task
 from app.services import elevenlabs_music as elevenlabs_music_service
+from app.services.fal_video import fal_video_service
 from app.services import sonilo as sonilo_service
 from app.services import state as sm
 from app.services import task as tm
@@ -4224,6 +4226,28 @@ _DOCUMENTARY_STAGE_KEYS = {
 }
 _DOCUMENTARY_TOTAL_STAGES = 12
 
+# AI-üretimi video görselleri (fal.ai/Kling, kullanıcı onaylı, opt-in) --
+# maliyet tahmini SADECE varsayılan model tier'ına (config'teki
+# fal_kling_model varsayılanı: v1.0 standard) dayanıyor, kesin fatura değil
+# -- kullanıcı config'te farklı bir tier'a geçerse tahmin sapabilir, bu
+# yüzden UI'da her zaman bir "tahmini" uyarısı gösteriliyor.
+_FAL_KLING_PRICE_PER_SECOND_USD = 0.045
+_DOCUMENTARY_STOCK_VIDEO_SOURCE = "stock"
+
+
+def _estimate_ai_video_cost_usd(pacing_value: str) -> float:
+    try:
+        spec = PACING_SCENE_SPEC[Pacing(pacing_value)]
+    except ValueError:
+        return 0.0
+    # Kling'in duration parametresi sadece "5" ya da "10" saniye kabul
+    # ediyor -- default_pipeline._kling_duration_for_scene_seconds() ile
+    # aynı yuvarlama mantığı (kısa sahneler için hesap büyümesin diye
+    # burada ayrı, private bir fonksiyonu import etmek yerine küçük mantık
+    # tekrarlandı).
+    billed_seconds_per_clip = 5 if spec["scene_duration"] <= 5.0 else 10
+    return spec["scene_count"] * billed_seconds_per_clip * _FAL_KLING_PRICE_PER_SECOND_USD
+
 
 def _tone_style_preview(tone_value: str) -> str:
     """Kart grid'inde gösterilen, kullanıcıya yönelik kısa stil önizlemesi.
@@ -4448,11 +4472,47 @@ def _render_documentary_studio_page():
         help=tr("Documentary Voice Name Help"),
     )
 
+    # En düşük riskli başlangıç noktası (kullanıcı onaylı): yeni bir
+    # provider seçeneği olarak eklendi, varsayılan hâlâ ücretsiz stok --
+    # Documentary Studio'da bugüne kadar hiç video-kaynağı seçici yoktu
+    # (her zaman sabit "pexels" kullanıyordu, bkz. run_pipeline'ın
+    # varsayılanı), bu ilk kez ekleniyor.
+    video_source_choice = st.selectbox(
+        tr("Documentary Video Source"),
+        options=[_DOCUMENTARY_STOCK_VIDEO_SOURCE, default_pipeline.AI_GENERATED_VIDEO_SOURCE],
+        index=0,
+        key="documentary_video_source",
+        help=tr("Documentary Video Source Help"),
+        format_func=lambda v: tr(f"Documentary Video Source: {v}"),
+    )
+
+    ai_video_cost_confirmed = True
+    if video_source_choice == default_pipeline.AI_GENERATED_VIDEO_SOURCE:
+        if not fal_video_service.is_configured():
+            st.warning(tr("Documentary AI Video Not Configured"))
+            ai_video_cost_confirmed = False
+        else:
+            # Publisher'daki "geri alınamaz eylem -> önce göster, sonra
+            # manuel onay" ilkesiyle tutarlı (bkz. _render_publish_section) --
+            # burada daha da erken devreye giriyor, çünkü maliyet üretimin
+            # KENDİSİ sırasında oluşuyor, yayın gibi ayrı bir adımda değil.
+            estimated_cost = _estimate_ai_video_cost_usd(pacing)
+            st.info(f"{tr('Documentary AI Video Cost Estimate')}: ~${estimated_cost:.2f}")
+            st.caption(tr("Documentary AI Video Cost Disclaimer"))
+            ai_video_cost_confirmed = st.checkbox(
+                tr("Documentary AI Video Cost Confirm"),
+                key="documentary_ai_video_cost_confirmed",
+            )
+
     generate_clicked = st.button(
         tr("Generate Documentary"),
         key="documentary_generate_button",
         type="primary",
         use_container_width=True,
+        disabled=(
+            video_source_choice == default_pipeline.AI_GENERATED_VIDEO_SOURCE
+            and not ai_video_cost_confirmed
+        ),
     )
 
     if generate_clicked:
@@ -4461,6 +4521,11 @@ def _render_documentary_studio_page():
             st.stop()
 
         project_id = str(uuid4())
+        resolved_video_source = (
+            "pexels"
+            if video_source_choice == _DOCUMENTARY_STOCK_VIDEO_SOURCE
+            else video_source_choice
+        )
         try:
             with st.status(tr("Generating Documentary"), expanded=True) as status:
 
@@ -4468,6 +4533,19 @@ def _render_documentary_studio_page():
                     key = _DOCUMENTARY_STAGE_KEYS.get(name)
                     if key:
                         status.update(label=f"({n}/{_DOCUMENTARY_TOTAL_STAGES}) {tr(key)}")
+
+                def _update_documentary_ai_video_progress(done, total):
+                    # Gerçek fal.ai üretimi tek bir klip için ~6dk sürebiliyor
+                    # -- 12 aşamalık sabit mesajın aksine, bu aşama (8/12)
+                    # dakikalarca aynı metinde kalmasın diye ayrı bir alt-
+                    # ilerleme göstergesi (Modernizasyon B'nin doğal uzantısı).
+                    key = _DOCUMENTARY_STAGE_KEYS.get("asset download")
+                    status.update(
+                        label=(
+                            f"(8/{_DOCUMENTARY_TOTAL_STAGES}) {tr(key)} -- "
+                            f"{tr('Documentary AI Video Clips Progress')}: {done}/{total}"
+                        )
+                    )
 
                 project = default_pipeline.run_pipeline(
                     project_id=project_id,
@@ -4480,7 +4558,9 @@ def _render_documentary_studio_page():
                     format=(None if format_choice == "standard" else format_choice),
                     pacing=pacing,
                     voice_name=voice_name.strip(),
+                    video_source=resolved_video_source,
                     on_stage_change=_update_documentary_stage_status,
+                    on_substage_progress=_update_documentary_ai_video_progress,
                 )
                 # st.status()'un kendi __exit__'i istisna durumunda zaten
                 # state="error"ya, başarıda state="complete"ye otomatik
@@ -4488,6 +4568,28 @@ def _render_documentary_studio_page():
                 # başarı etiketini son aşama mesajından daha net bir şeye
                 # güncelliyoruz.
                 status.update(label=tr("Documentary Generated"))
+        except ai_video_generator.AIVideoGenerationError as exc:
+            # ADIM 0 kuralı / kullanıcı talimatı: gerçek para harcayan bir
+            # aşama sessizce stoğa düşmemeli -- hangi sahnenin neden
+            # başarısız olduğunu açıkça göster, zaten üretilmiş (ücreti
+            # tahsil edilmiş) klipleri de şeffafça belirt. Otomatik/tek-
+            # tıkla per-sahne retry (kısmi pipeline resume) bilinçli olarak
+            # v1 kapsamı dışında bırakıldı -- bu altyapı hiçbir yerde yok,
+            # şimdi eklemek riski/kapsamı ciddi büyütürdü.
+            logger.exception(
+                f"documentary studio: AI video generation failed for topic={topic!r}"
+            )
+            st.error(tr("Documentary AI Video Generation Failed"))
+            for scene_index, error_message in exc.failures:
+                st.write(f"- {tr('Documentary AI Video Scene')} {scene_index}: {error_message}")
+            if exc.completed_paths:
+                st.info(
+                    f"{tr('Documentary AI Video Partial Success')}: "
+                    f"{len(exc.completed_paths)} "
+                    f"{tr('Documentary AI Video Clips Generated Suffix')}"
+                )
+            st.caption(tr("Documentary AI Video Retry Guidance"))
+            st.stop()
         except Exception as exc:
             logger.exception(
                 f"documentary studio: pipeline failed for topic={topic!r}"

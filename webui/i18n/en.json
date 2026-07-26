@@ -444,6 +444,20 @@
     "Documentary SEO Title Variants": "Alternative Titles",
     "Documentary SEO Title Variants Help": "Other title options you can A/B test instead of the main title above.",
     "Documentary SEO Keywords": "SEO Keywords",
-    "Documentary SEO Keywords Help": "Broader keywords for the platform's tags/keywords field (not on-screen hashtags)."
+    "Documentary SEO Keywords Help": "Broader keywords for the platform's tags/keywords field (not on-screen hashtags).",
+    "Documentary Video Source": "Video Source",
+    "Documentary Video Source Help": "Choose between free stock footage or AI-generated video clips (real cost per video, requires a configured fal.ai API key).",
+    "Documentary Video Source: stock": "Stock Footage (Free)",
+    "Documentary Video Source: ai_generated": "AI-Generated (Paid)",
+    "Documentary AI Video Not Configured": "AI video generation is not configured. Add a fal.ai API key in config.toml to enable this option.",
+    "Documentary AI Video Cost Estimate": "Estimated cost",
+    "Documentary AI Video Cost Disclaimer": "This is an estimate based on the configured model tier, not a final bill -- the real charge is billed to your fal.ai account.",
+    "Documentary AI Video Cost Confirm": "I understand the estimated cost and want to proceed.",
+    "Documentary AI Video Clips Progress": "AI video clips",
+    "Documentary AI Video Generation Failed": "AI video generation failed",
+    "Documentary AI Video Scene": "Scene",
+    "Documentary AI Video Partial Success": "Note",
+    "Documentary AI Video Clips Generated Suffix": "clip(s) were already generated (and billed) before this failure, but the documentary could not be completed.",
+    "Documentary AI Video Retry Guidance": "You can switch Video Source to Stock Footage above and click Generate Documentary again."
   }
 }
