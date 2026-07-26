@@ -4889,6 +4889,22 @@ def _render_application():
     if restore_applied or restore_succeeded:
         st.success(tr("Task Configuration Loaded"))
 
+    # GÖREV 1 (TAM OTONOMİ, risk analizi sonrası seçilen yaklaşım): "Klasik
+    # Mod" kenar çubuğundan gizlendi (visibility="hidden") -- kod/testler
+    # SİLİNMEDİ, sayfa hâlâ st.navigation'da KAYITLI. Tam silme yerine bunu
+    # seçtim çünkü: (1) _render_legacy_page() ve alt-fonksiyonları 4 ayrı test
+    # dosyasında (test_webui_bgm.py, test_webui_documentary_history.py,
+    # test_webui_tts_settings.py, test_webui_voice_preview.py -- toplam ~39
+    # test) _LEGACY_PAGE_HASH (calc_hash("classic")) ile doğrudan
+    # hedefleniyor -- bu mekanizma sayfanın st.navigation listesinde KAYITLI
+    # kalmasını gerektiriyor (denendi: sayfayı listeden tamamen çıkarmak bu
+    # 25 testi kırdı, çünkü AppTest._page_hash artık hiçbir sayfaya
+    # eşleşmiyordu). visibility="hidden" (bu Streamlit sürümünde mevcut)
+    # sayfayı KAYITLI/erişilebilir tutarken sidebar'dan kaldırıyor -- testler
+    # hiç değişmeden geçiyor. (2) app/ ve main.py'de (FastAPI backend)
+    # _render_legacy_page'e hiçbir bağımlılık yok (grep ile doğrulandı).
+    # (3) En tutucu/geri alınabilir seçenek -- tek parametre değişikliği,
+    # anında geri alınabilir.
     pg = st.navigation(
         [
             st.Page(
@@ -4907,13 +4923,8 @@ def _render_application():
                 _render_legacy_page,
                 title=tr("Nav Classic Mode"),
                 icon="🔧",
-                # Stable, explicit url_path so tests can target this page via
-                # AppTest._page_hash without depending on the render
-                # function's name (AppTest.switch_page() only supports
-                # file-based pages, not the callable pages st.navigation uses
-                # here -- see _LEGACY_PAGE_HASH in test/services/test_webui_bgm.py
-                # and friends).
                 url_path="classic",
+                visibility="hidden",
             ),
         ],
         position="sidebar",
