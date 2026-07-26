@@ -436,6 +436,14 @@
     "Documentary Aspect Ratio: 9:16": "9:16 (Vertikal / Shorts)",
     "Documentary Aspect Ratio: 16:9": "16:9 (Horizontal)",
     "Pacing: extended": "Durasi Film Dokumenter (10+ menit)",
-    "Documentary AI Video Extended Pacing Warning": "Adegan pada pacing diperpanjang (30 detik masing-masing) jauh lebih panjang daripada yang bisa dicakup satu klip AI (maks. 10 detik) -- perkirakan lebih banyak frame yang berulang per adegan dibandingkan dengan Rekaman Stok atau pacing yang lebih pendek."
+    "Documentary AI Video Extended Pacing Warning": "Adegan pada pacing diperpanjang (30 detik masing-masing) jauh lebih panjang daripada yang bisa dicakup satu klip AI (maks. 10 detik) -- perkirakan lebih banyak frame yang berulang per adegan dibandingkan dengan Rekaman Stok atau pacing yang lebih pendek.",
+    "Documentary Edit Script": "Edit Naskah",
+    "Documentary Edit Script Help": "Edit teks narasi per adegan, lalu buat ulang audio dan video. Visual (rekaman stok atau klip AI) TIDAK dibuat ulang -- hanya suara, waktu, SEO, dan render akhir.",
+    "Documentary Edit Script Large Change Warning": "Paling cocok untuk perbaikan kata-kata kecil. Perubahan konten besar tidak disarankan: jika durasi narasi baru sangat berbeda dari yang asli, rekaman yang ada mungkin tidak lagi cocok dengan baik (klip bisa berulang atau terpotong).",
+    "Documentary Edit Script Scene": "Adegan",
+    "Documentary Edit Script Regenerate Button": "Simpan dan Buat Ulang Audio/Video",
+    "Documentary Edit Script Regenerating": "Membuat ulang audio dan video dari naskah yang Anda edit...",
+    "Documentary Edit Script Success": "Naskah diperbarui -- audio dan video berhasil dibuat ulang.",
+    "Documentary Edit Script Failed": "Gagal membuat ulang dari naskah yang diedit"
   }
 }

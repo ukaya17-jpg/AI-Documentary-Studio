@@ -436,6 +436,14 @@
     "Documentary Aspect Ratio: 9:16": "9:16 (Dọc / Shorts)",
     "Documentary Aspect Ratio: 16:9": "16:9 (Ngang)",
     "Pacing: extended": "Thời Lượng Phim Tài Liệu (10+ phút)",
-    "Documentary AI Video Extended Pacing Warning": "Các cảnh của nhịp độ mở rộng (30 giây mỗi cảnh) dài hơn nhiều so với một clip AI đơn lẻ (tối đa 10 giây) có thể bao phủ -- hãy dự kiến số khung hình lặp lại trên mỗi cảnh sẽ nhiều hơn đáng kể so với Video Stock hoặc nhịp độ ngắn hơn."
+    "Documentary AI Video Extended Pacing Warning": "Các cảnh của nhịp độ mở rộng (30 giây mỗi cảnh) dài hơn nhiều so với một clip AI đơn lẻ (tối đa 10 giây) có thể bao phủ -- hãy dự kiến số khung hình lặp lại trên mỗi cảnh sẽ nhiều hơn đáng kể so với Video Stock hoặc nhịp độ ngắn hơn.",
+    "Documentary Edit Script": "Chỉnh Sửa Kịch Bản",
+    "Documentary Edit Script Help": "Chỉnh sửa văn bản lồng tiếng cho từng cảnh, sau đó tạo lại âm thanh và video. Hình ảnh (video stock hoặc clip AI) KHÔNG được tạo lại -- chỉ lồng tiếng, thời lượng, SEO và bản dựng cuối cùng.",
+    "Documentary Edit Script Large Change Warning": "Phù hợp nhất cho các chỉnh sửa từ ngữ nhỏ. Không khuyến khích thay đổi nội dung lớn: nếu độ dài lồng tiếng mới khác nhiều so với bản gốc, video hiện có có thể không còn khớp tốt (clip có thể lặp lại hoặc bị cắt ngắn).",
+    "Documentary Edit Script Scene": "Cảnh",
+    "Documentary Edit Script Regenerate Button": "Lưu và Tạo Lại Âm Thanh/Video",
+    "Documentary Edit Script Regenerating": "Đang tạo lại âm thanh và video từ kịch bản đã chỉnh sửa của bạn...",
+    "Documentary Edit Script Success": "Kịch bản đã cập nhật -- âm thanh và video đã được tạo lại thành công.",
+    "Documentary Edit Script Failed": "Không thể tạo lại từ kịch bản đã chỉnh sửa"
   }
 }

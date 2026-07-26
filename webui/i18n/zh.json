@@ -463,6 +463,14 @@
     "Documentary Aspect Ratio: 9:16": "9:16（竖屏 / Shorts）",
     "Documentary Aspect Ratio: 16:9": "16:9（横屏）",
     "Pacing: extended": "纪录片时长（10分钟以上）",
-    "Documentary AI Video Extended Pacing Warning": "长篇节奏的每个场景（30秒）远远超过单个 AI 片段（最长 10 秒）所能覆盖的时长——与素材库视频或较短节奏相比，预计每个场景会出现明显更多的重复帧。"
+    "Documentary AI Video Extended Pacing Warning": "长篇节奏的每个场景（30秒）远远超过单个 AI 片段（最长 10 秒）所能覆盖的时长——与素材库视频或较短节奏相比，预计每个场景会出现明显更多的重复帧。",
+    "Documentary Edit Script": "编辑脚本",
+    "Documentary Edit Script Help": "逐场景编辑旁白文本，然后重新生成音频和视频。画面内容（素材库视频或 AI 片段）不会重新生成——只会更新配音、时长、SEO 和最终渲染。",
+    "Documentary Edit Script Large Change Warning": "最适合小幅措辞修改。不建议进行大幅内容修改：如果新旁白的时长与原始内容差异很大，现有画面可能无法很好匹配（片段可能会重复或被截断）。",
+    "Documentary Edit Script Scene": "场景",
+    "Documentary Edit Script Regenerate Button": "保存并重新生成音频/视频",
+    "Documentary Edit Script Regenerating": "正在根据您编辑的脚本重新生成音频和视频……",
+    "Documentary Edit Script Success": "脚本已更新——音频和视频已成功重新生成。",
+    "Documentary Edit Script Failed": "无法根据编辑后的脚本重新生成"
   }
 }

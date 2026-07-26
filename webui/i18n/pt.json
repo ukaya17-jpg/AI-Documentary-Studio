@@ -436,6 +436,14 @@
     "Documentary Aspect Ratio: 9:16": "9:16 (Vertical / Shorts)",
     "Documentary Aspect Ratio: 16:9": "16:9 (Horizontal)",
     "Pacing: extended": "Duração Documental (10+ min)",
-    "Documentary AI Video Extended Pacing Warning": "As cenas do ritmo estendido (30s cada) são muito mais longas do que um único clipe de IA (máx. 10s) pode cobrir -- espere consideravelmente mais quadros repetidos por cena do que com Imagens de Banco ou ritmo mais curto."
+    "Documentary AI Video Extended Pacing Warning": "As cenas do ritmo estendido (30s cada) são muito mais longas do que um único clipe de IA (máx. 10s) pode cobrir -- espere consideravelmente mais quadros repetidos por cena do que com Imagens de Banco ou ritmo mais curto.",
+    "Documentary Edit Script": "Editar Roteiro",
+    "Documentary Edit Script Help": "Edite o texto de narração por cena e depois regenere o áudio e o vídeo. As imagens (imagens de banco ou clipes de IA) NÃO são regeneradas -- apenas a narração, o tempo, o SEO e a renderização final.",
+    "Documentary Edit Script Large Change Warning": "Ideal para pequenas correções de texto. Grandes mudanças de conteúdo não são recomendadas: se a duração da nova narração for muito diferente da original, as imagens existentes podem não corresponder bem (os clipes podem se repetir ou ser cortados).",
+    "Documentary Edit Script Scene": "Cena",
+    "Documentary Edit Script Regenerate Button": "Salvar e Regenerar Áudio/Vídeo",
+    "Documentary Edit Script Regenerating": "Regenerando áudio e vídeo a partir do seu roteiro editado...",
+    "Documentary Edit Script Success": "Roteiro atualizado -- áudio e vídeo regenerados com sucesso.",
+    "Documentary Edit Script Failed": "Falha ao regenerar a partir do roteiro editado"
   }
 }

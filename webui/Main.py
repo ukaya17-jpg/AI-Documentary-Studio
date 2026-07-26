@@ -30,6 +30,7 @@ from app.departments.growth import publisher
 from app.departments.production import ai_video_generator
 from app.models import const
 from app.models.documentary_project import DocumentaryProject
+from app.models.script import Script, ScriptLine
 from app.models.llm_provider import (
     DEFAULT_LLM_PROVIDER_ID,
     LLM_PROVIDER_REGISTRY,
@@ -3941,6 +3942,70 @@ def _render_generation_controls(
     return start_button
 
 
+def _render_script_edit_section(last_project: dict):
+    """ÖZELLİK A (kullanıcı onaylı): tamamlanmış bir belgeselin narration
+    metnini düzenleyip SADECE ses/timeline/SEO/video'yu yeniden oluşturma
+    -- storyboard/görseller HİÇ dokunulmuyor (bkz.
+    default_pipeline.regenerate_from_edited_script), bu yüzden AI Video
+    seçilmiş olsa bile yeni bir video-üretim maliyeti doğurmuyor.
+
+    _render_project_media_panel (History ile PAYLAŞILAN, salt-okunur)
+    DIŞINDA, _render_publish_section'la aynı desende ayrı tutuluyor --
+    Geçmiş Üretimler sayfasının "tamamen salt-okunur" ilkesi script
+    düzenleme için bozulmuyor (ÖZELLİK B'nin etiketler için yaptığı dar
+    istisnadan farklı olarak, bu özellik SADECE Documentary Studio'nun
+    kendi sonuç panelinde kullanılabilir).
+    """
+    script = (last_project or {}).get("script") or {}
+    lines = script.get("lines") or []
+    if not lines:
+        return
+
+    project_id = (last_project or {}).get("project_id", "")
+
+    with st.expander(tr("Documentary Edit Script"), expanded=False):
+        st.caption(tr("Documentary Edit Script Help"))
+        st.warning(tr("Documentary Edit Script Large Change Warning"))
+
+        edited_lines = []
+        for line in lines:
+            scene_index = line.get("scene_index", 0)
+            edited_text = st.text_area(
+                f"{tr('Documentary Edit Script Scene')} {scene_index}",
+                value=line.get("text", ""),
+                key=f"documentary_edit_script_line_{project_id}_{scene_index}",
+            )
+            edited_lines.append((scene_index, edited_text))
+
+        regenerate_clicked = st.button(
+            tr("Documentary Edit Script Regenerate Button"),
+            key=f"documentary_edit_script_regenerate_{project_id}",
+        )
+        if regenerate_clicked:
+            edited_script = Script(
+                full_text="\n\n".join(text for _, text in edited_lines),
+                lines=[
+                    ScriptLine(scene_index=scene_index, text=text)
+                    for scene_index, text in edited_lines
+                ],
+                language=script.get("language", ""),
+            )
+            try:
+                with st.spinner(tr("Documentary Edit Script Regenerating")):
+                    project = DocumentaryProject(**last_project)
+                    project = default_pipeline.regenerate_from_edited_script(
+                        project, edited_script
+                    )
+            except Exception as exc:
+                logger.exception(
+                    f"documentary studio: script regeneration failed for project {project_id!r}"
+                )
+                st.error(f"{tr('Documentary Edit Script Failed')}: {exc}")
+                st.stop()
+            st.session_state["documentary_last_project"] = project.model_dump(mode="json")
+            st.success(tr("Documentary Edit Script Success"))
+
+
 def _render_publish_section(last_project: dict):
     """Manual publish step for the finished documentary -- deliberately not
     part of default_pipeline.run_pipeline(): posting to real social accounts
@@ -4632,6 +4697,7 @@ def _render_documentary_studio_page():
         _, results_col, _ = st.columns([1, 2, 1])
         with results_col:
             _render_project_media_panel(last_project)
+            _render_script_edit_section(last_project)
             _render_publish_section(last_project)
 
 

@@ -4,7 +4,6 @@ Intent -> Research -> Outline -> Scene -> Script -> Storyboard -> Asset ->
 AssetDownload -> Audio(TTS) -> Timeline -> SEO -> VideoRenderer
 """
 
-import os
 from typing import Callable
 
 from loguru import logger
@@ -21,6 +20,7 @@ from app.config.profile_dimensions import (
 )
 from app.models.documentary_project import DocumentaryProject
 from app.models.schema import VideoAspect, VideoConcatMode
+from app.models.script import Script
 from app.departments.creative import scene_planner, script_generator, storyboard_generator
 from app.departments.growth import seo_generator, thumbnail_generator
 from app.departments.production import (
@@ -56,25 +56,6 @@ _ASSET_DOWNLOAD_DURATION_SAFETY_MULTIPLIER = 2.0
 # pixabay/coverr/local) is completely unaffected. See PROGRESS.md for the
 # full architectural rationale from planning.
 AI_GENERATED_VIDEO_SOURCE = "ai_generated"
-
-
-def _save_project_snapshot(project: DocumentaryProject) -> None:
-    """Persist the current project state to storage/tasks/<id>/project.json.
-
-    Plain pydantic serialization (model_dump_json()) -- no custom schema.
-    Called after every stage so partial progress (each scene's storyboard
-    search_terms, which asset was downloaded for it, timeline clip order,
-    ...) survives on disk even if a later stage fails or the process is
-    interrupted. Never raises: a disk-write failure must not abort the
-    pipeline.
-    """
-    try:
-        task_directory = utils.task_dir(project.project_id)
-        snapshot_path = os.path.join(task_directory, "project.json")
-        with open(snapshot_path, "w", encoding="utf-8") as f:
-            f.write(project.model_dump_json(indent=2))
-    except Exception as e:
-        logger.warning(f"documentary pipeline: failed to save project snapshot: {e}")
 
 
 def run_pipeline(
@@ -128,6 +109,8 @@ def run_pipeline(
         voice_volume=voice_volume,
         video_source=video_source,
         video_aspect=video_aspect,
+        bgm_type=bgm_type,
+        bgm_volume=bgm_volume,
     )
 
     def stage(n: int, name: str):
@@ -148,13 +131,13 @@ def run_pipeline(
         # hard-locked tone exactly (see resolve_tone/DEFAULT_TONE_BY_CATEGORY).
         resolved_tone = resolve_tone(project.topic_category, tone)
         project.tone = resolved_tone
-        _save_project_snapshot(project)
+        utils.save_project_snapshot(project)
 
         stage(2, "research")
         project.research_plan = research_planner.generate_research_plan(
             topic, tone=resolved_tone, language=project.language
         )
-        _save_project_snapshot(project)
+        utils.save_project_snapshot(project)
 
         stage(3, "outline")
         project.outline = outline_generator.generate_outline(
@@ -164,11 +147,11 @@ def run_pipeline(
             language=project.language,
             pacing=resolved_pacing,
         )
-        _save_project_snapshot(project)
+        utils.save_project_snapshot(project)
 
         stage(4, "scene")
         project.scene_plan = scene_planner.plan_scenes(project.outline, pacing=resolved_pacing)
-        _save_project_snapshot(project)
+        utils.save_project_snapshot(project)
 
         stage(5, "script")
         project.script = script_generator.generate_script(
@@ -179,7 +162,7 @@ def run_pipeline(
             tone=resolved_tone,
             format=resolved_format,
         )
-        _save_project_snapshot(project)
+        utils.save_project_snapshot(project)
 
         stage(6, "storyboard")
         project.storyboard = storyboard_generator.generate_storyboard(
@@ -189,7 +172,7 @@ def run_pipeline(
             topic=project.topic,
             key_facts=project.research_plan.key_facts[:3],
         )
-        _save_project_snapshot(project)
+        utils.save_project_snapshot(project)
 
         stage(7, "asset")
         project.asset_plan = asset_generator.build_asset_plan(
@@ -198,7 +181,7 @@ def run_pipeline(
             topic_category=project.topic_category,
             script=project.script,
         )
-        _save_project_snapshot(project)
+        utils.save_project_snapshot(project)
 
         stage(8, "asset download")
         aspect_enum = VideoAspect(video_aspect)
@@ -228,7 +211,7 @@ def run_pipeline(
                 video_concat_mode=VideoConcatMode.random,
                 max_clip_duration=max_clip_duration,
             )
-        _save_project_snapshot(project)
+        utils.save_project_snapshot(project)
 
         stage(9, "audio (TTS)")
         project.audio_plan = audio_renderer.render_audio_plan(
@@ -239,7 +222,7 @@ def run_pipeline(
             voice_volume=voice_volume,
             bgm_file=bgm_file,
         )
-        _save_project_snapshot(project)
+        utils.save_project_snapshot(project)
 
         stage(10, "timeline")
         project.timeline = timeline_builder.build_timeline(
@@ -250,7 +233,7 @@ def run_pipeline(
             video_concat_mode=VideoConcatMode.random,
             max_clip_duration=max_clip_duration,
         )
-        _save_project_snapshot(project)
+        utils.save_project_snapshot(project)
 
         stage(11, "seo")
         project.seo = seo_generator.generate_seo_metadata(
@@ -260,7 +243,7 @@ def run_pipeline(
             scene_plan=project.scene_plan,
             key_facts=project.research_plan.key_facts[:3],
         )
-        _save_project_snapshot(project)
+        utils.save_project_snapshot(project)
 
         stage(12, "video render")
         params = video_renderer.build_video_params(
@@ -277,7 +260,7 @@ def run_pipeline(
             task_id=project.project_id,
             params=params,
         )
-        _save_project_snapshot(project)
+        utils.save_project_snapshot(project)
 
         # Informational only: never blocks, never affects final_video_path.
         # What a failing verdict should actually do (retry a stage, warn the
@@ -295,7 +278,7 @@ def run_pipeline(
             logger.warning(
                 "documentary pipeline: quality review unavailable, continuing without a verdict"
             )
-        _save_project_snapshot(project)
+        utils.save_project_snapshot(project)
 
         # Best-effort only: a missing thumbnail never blocks or fails the pipeline.
         project.thumbnail_path = thumbnail_generator.generate_thumbnail(
@@ -321,4 +304,99 @@ def run_pipeline(
     finally:
         # Guarantees a snapshot reflecting wherever the project got to, even
         # if a stage above raised -- "success or failure, doesn't matter".
-        _save_project_snapshot(project)
+        utils.save_project_snapshot(project)
+
+
+def regenerate_from_edited_script(
+    project: DocumentaryProject, edited_script: Script
+) -> DocumentaryProject:
+    """Re-render audio/timeline/SEO/video for an ALREADY-COMPLETED project
+    after the user edits its narration text (ÖZELLİK A, kullanıcı onaylı).
+
+    Deliberately does NOT touch project.storyboard/project.asset_plan --
+    visuals are never regenerated here (no new stock download, no new
+    AI-video generation call, so this never costs real money even when
+    video_source is the paid AI provider). Only stages 9 (TTS) through 12
+    (video render) re-run, against the edited script, reusing whatever
+    footage the original run already has. quality_critic and the two
+    thumbnails are also refreshed (both cheap/free, and both would
+    otherwise silently go stale -- the thumbnail overlays the OLD seo.title
+    on a frame from the just-rebuilt combined.mp4).
+
+    This is why editing is intended for wording fixes, not large content
+    rewrites: if the edited narration's real spoken length diverges a lot
+    from the original, the reused footage may no longer cover it well
+    (the same repeated-frame/truncation risk documented elsewhere in this
+    pipeline) -- the webui surfaces this as a caption, not a hard block.
+
+    Raises whatever the underlying stage raises (e.g. TTS failure) --
+    this is a user-triggered, foreground action, not a best-effort
+    background one, so silently swallowing an error here would hide a
+    real failure from the person who just clicked "regenerate".
+
+    Mutates and returns `project` (same object); the caller persists it
+    (see app.utils.utils.save_project_snapshot) exactly like run_pipeline().
+    """
+    existing_bgm_file = project.audio_plan.bgm_file if project.audio_plan else ""
+    project.script = edited_script
+
+    aspect_enum = VideoAspect(project.video_aspect)
+    max_clip_duration = int(PACING_SCENE_SPEC[project.pacing]["scene_duration"])
+
+    project.audio_plan = audio_renderer.render_audio_plan(
+        project.script,
+        task_id=project.project_id,
+        voice_name=project.voice_name,
+        voice_rate=project.voice_rate,
+        voice_volume=project.voice_volume,
+        bgm_file=existing_bgm_file,
+    )
+    utils.save_project_snapshot(project)
+
+    project.timeline = timeline_builder.build_timeline(
+        project.asset_plan,
+        project.audio_plan.narration,
+        task_id=project.project_id,
+        video_aspect=aspect_enum,
+        video_concat_mode=VideoConcatMode.random,
+        max_clip_duration=max_clip_duration,
+    )
+    utils.save_project_snapshot(project)
+
+    project.seo = seo_generator.generate_seo_metadata(
+        project.topic,
+        project.script,
+        language=project.language,
+        scene_plan=project.scene_plan,
+        key_facts=project.research_plan.key_facts[:3] if project.research_plan else [],
+    )
+    utils.save_project_snapshot(project)
+
+    params = video_renderer.build_video_params(
+        topic=project.topic,
+        video_aspect=project.video_aspect,
+        voice_name=project.voice_name,
+        bgm_type=project.bgm_type,
+        bgm_file=existing_bgm_file,
+        bgm_volume=project.bgm_volume,
+    )
+    project.final_video_path = video_renderer.render_final_video(
+        project.timeline,
+        project.audio_plan.narration,
+        task_id=project.project_id,
+        params=params,
+    )
+    utils.save_project_snapshot(project)
+
+    project.quality_verdict = quality_critic.evaluate_project(project)
+    project.thumbnail_path = thumbnail_generator.generate_thumbnail(
+        project.timeline.combined_video_path, project.seo, project.project_id
+    )
+    if project.thumbnail_path:
+        project.thumbnail_variant_b_path = thumbnail_generator.generate_thumbnail_variant_b(
+            project.timeline.combined_video_path, project.seo, project.project_id
+        )
+    utils.save_project_snapshot(project)
+
+    logger.success(f"documentary pipeline: regenerated from edited script -- {project.final_video_path}")
+    return project

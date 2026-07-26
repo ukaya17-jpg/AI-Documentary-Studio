@@ -436,6 +436,14 @@
     "Documentary Aspect Ratio: 9:16": "9:16 (Dikey / Shorts)",
     "Documentary Aspect Ratio: 16:9": "16:9 (Yatay)",
     "Pacing: extended": "Belgesel Uzunluğunda (10+ dk)",
-    "Documentary AI Video Extended Pacing Warning": "Uzun pacing'in sahneleri (30sn) tek bir AI klibinin (azami 10sn) kapsayabileceğinden çok daha uzun -- Stok Görüntü'ye ya da daha kısa pacing'e göre sahne başına belirgin şekilde daha fazla tekrar eden kare beklenmeli."
+    "Documentary AI Video Extended Pacing Warning": "Uzun pacing'in sahneleri (30sn) tek bir AI klibinin (azami 10sn) kapsayabileceğinden çok daha uzun -- Stok Görüntü'ye ya da daha kısa pacing'e göre sahne başına belirgin şekilde daha fazla tekrar eden kare beklenmeli.",
+    "Documentary Edit Script": "Senaryoyu Düzenle",
+    "Documentary Edit Script Help": "Her sahnenin anlatım metnini düzenleyin, sonra ses ve videoyu yeniden oluşturun. Görseller (stok görüntü ya da AI klipler) YENİDEN ÜRETİLMEZ -- sadece seslendirme, zamanlama, SEO ve final render yenilenir.",
+    "Documentary Edit Script Large Change Warning": "Küçük ifade düzeltmeleri için uygundur. Büyük içerik değişiklikleri önerilmez: yeni anlatımın süresi orijinalden çok farklı olursa, mevcut görüntüler artık iyi eşleşmeyebilir (klipler tekrar edebilir ya da kesilebilir).",
+    "Documentary Edit Script Scene": "Sahne",
+    "Documentary Edit Script Regenerate Button": "Kaydet ve Ses/Videoyu Yeniden Oluştur",
+    "Documentary Edit Script Regenerating": "Düzenlenen senaryonuzdan ses ve video yeniden oluşturuluyor...",
+    "Documentary Edit Script Success": "Senaryo güncellendi -- ses ve video başarıyla yeniden oluşturuldu.",
+    "Documentary Edit Script Failed": "Düzenlenen senaryodan yeniden oluşturma başarısız oldu"
   }
 }

@@ -32,6 +32,14 @@ class DocumentaryProject(BaseModel):
     voice_volume: float = 1.0
     video_source: str = "pexels"
     video_aspect: str = "9:16"  # VideoAspect value, e.g. "9:16", "16:9", "1:1"
+    # ÖZELLİK A (kullanıcı onaylı, edit-script-and-re-render): run_pipeline()
+    # zaten bu ikisini video_renderer.build_video_params()'a geçiriyordu ama
+    # hiç projeye yazmıyordu -- script düzenlendikten sonra SADECE stage
+    # 9-12'yi tekrar çalıştıran regenerate_from_edited_script()'in orijinal
+    # BGM ayarlarını (varsayılana sessizce dönmeden) yeniden üretebilmesi
+    # için burada saklanıyor.
+    bgm_type: str = "random"
+    bgm_volume: float = 0.2
 
     research_plan: ResearchPlan | None = None
     outline: Outline | None = None

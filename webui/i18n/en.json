@@ -463,6 +463,14 @@
     "Documentary Aspect Ratio: 9:16": "9:16 (Vertical / Shorts)",
     "Documentary Aspect Ratio: 16:9": "16:9 (Horizontal)",
     "Pacing: extended": "Documentary-Length (10+ min)",
-    "Documentary AI Video Extended Pacing Warning": "Extended pacing's scenes (30s each) are much longer than a single AI clip (max 10s) can cover -- expect noticeably more repeated frames per scene than with Stock Footage or shorter pacing."
+    "Documentary AI Video Extended Pacing Warning": "Extended pacing's scenes (30s each) are much longer than a single AI clip (max 10s) can cover -- expect noticeably more repeated frames per scene than with Stock Footage or shorter pacing.",
+    "Documentary Edit Script": "Edit Script",
+    "Documentary Edit Script Help": "Edit the narration text per scene, then regenerate audio and video. The visuals (stock footage or AI clips) are NOT regenerated -- only the voiceover, timing, SEO, and final render.",
+    "Documentary Edit Script Large Change Warning": "Best for small wording fixes. Large content changes are not recommended: if the new narration's length differs a lot from the original, the existing footage may no longer match well (clips could repeat or get cut short).",
+    "Documentary Edit Script Scene": "Scene",
+    "Documentary Edit Script Regenerate Button": "Save and Regenerate Audio/Video",
+    "Documentary Edit Script Regenerating": "Regenerating audio and video from your edited script...",
+    "Documentary Edit Script Success": "Script updated -- audio and video regenerated successfully.",
+    "Documentary Edit Script Failed": "Failed to regenerate from the edited script"
   }
 }

@@ -115,6 +115,30 @@ def task_dir(sub_dir: str = ""):
     return d
 
 
+def save_project_snapshot(project) -> None:
+    """Persist a DocumentaryProject's current state to
+    storage/tasks/<id>/project.json.
+
+    Moved here from app.pipeline.default_pipeline (ÖZELLİK A, kullanıcı
+    onaylı) so webui can also persist an already-completed project after a
+    user edit (e.g. an edited script + regenerated audio/video) -- not just
+    the pipeline itself, mid-run. Plain pydantic serialization
+    (model_dump_json()), no custom schema. Never raises: a disk-write
+    failure must not abort whatever the caller is doing.
+
+    `project` is typed loosely (not `DocumentaryProject`) to avoid importing
+    app.models.documentary_project into this low-level, widely-imported
+    utility module purely for a type hint.
+    """
+    try:
+        task_directory = task_dir(project.project_id)
+        snapshot_path = os.path.join(task_directory, "project.json")
+        with open(snapshot_path, "w", encoding="utf-8") as f:
+            f.write(project.model_dump_json(indent=2))
+    except Exception as e:
+        logger.warning(f"save_project_snapshot: failed to save project snapshot: {e}")
+
+
 def font_dir(sub_dir: str = ""):
     d = resource_dir("fonts")
     if sub_dir:

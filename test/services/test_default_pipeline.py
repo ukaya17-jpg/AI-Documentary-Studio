@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from app.config.profile_dimensions import Format, Pacing, Tone, TopicCategory
 from app.models.asset import AssetCandidate, AssetPlan
 from app.models.audio import AudioPlan, AudioTrack
+from app.models.documentary_project import DocumentaryProject
 from app.models.outline import Outline, OutlineSection
 from app.models.quality import QualityVerdict
 from app.models.research_plan import ResearchPlan
@@ -526,32 +527,167 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         self.assertEqual(saved["final_video_path"], "")
 
 
-class TestSaveProjectSnapshot(unittest.TestCase):
+class TestRegenerateFromEditedScript(unittest.TestCase):
+    """ÖZELLİK A (kullanıcı onaylı): tamamlanmış bir projenin script'i
+    düzenlenip SADECE stage 9-12 (TTS/timeline/SEO/render) yeniden
+    çalıştırılıyor -- storyboard/asset_plan (görseller) HİÇ dokunulmuyor.
+    """
+
     def setUp(self):
-        self.task_id = "test-save-project-snapshot"
-        self.task_directory = utils.task_dir(self.task_id)
+        self.asset_plan = AssetPlan(
+            candidates=[AssetCandidate(scene_index=0, search_term="ancient ruins")],
+            downloaded_paths=["/tmp/ruins.mp4"],
+        )
+        self.research_plan = ResearchPlan(
+            topic="The Fall of Rome",
+            key_facts=["Rome was founded in 753 BC.", "The Senate governed the Republic."],
+        )
+        self.scene_plan = ScenePlan(
+            pacing=Pacing.short,
+            scenes=[Scene(index=0, title="Origins", narration_beat="How Rome began", duration_seconds=5.0)],
+        )
+        self.project = DocumentaryProject(
+            project_id="proj-edit-1",
+            topic="The Fall of Rome",
+            language="en",
+            pacing=Pacing.short,
+            voice_name="en-US-JennyNeural",
+            voice_rate=1.0,
+            voice_volume=1.0,
+            video_aspect="9:16",
+            bgm_type="random",
+            bgm_volume=0.3,
+            research_plan=self.research_plan,
+            scene_plan=self.scene_plan,
+            script=Script(full_text="Original narration.", lines=[ScriptLine(scene_index=0, text="Original narration.")]),
+            storyboard=Storyboard(shots=[StoryboardShot(scene_index=0, description="ruins")]),
+            asset_plan=self.asset_plan,
+            audio_plan=AudioPlan(
+                narration=AudioTrack(voice_file="/tmp/old_audio.mp3", duration_seconds=5.0),
+                bgm_file="/tmp/bgm.mp3",
+            ),
+            timeline=Timeline(combined_video_path="/tmp/old_combined.mp4", total_duration=5.0),
+            seo=SeoMetadata(title="Old Title"),
+            final_video_path="/tmp/old_final.mp4",
+        )
+        self.edited_script = Script(
+            full_text="Edited narration.", lines=[ScriptLine(scene_index=0, text="Edited narration.")]
+        )
 
-    def tearDown(self):
-        shutil.rmtree(self.task_directory, ignore_errors=True)
+        new_audio_plan = AudioPlan(
+            narration=AudioTrack(voice_file="/tmp/new_audio.mp3", duration_seconds=6.0),
+            bgm_file="/tmp/bgm.mp3",
+        )
+        new_timeline = Timeline(combined_video_path="/tmp/new_combined.mp4", total_duration=6.0)
+        new_seo = SeoMetadata(title="New Title")
 
-    def test_writes_valid_json_matching_the_model(self):
-        from app.models.documentary_project import DocumentaryProject
+        self.mocks = {
+            "audio": patch(
+                "app.pipeline.default_pipeline.audio_renderer.render_audio_plan",
+                return_value=new_audio_plan,
+            ),
+            "timeline": patch(
+                "app.pipeline.default_pipeline.timeline_builder.build_timeline",
+                return_value=new_timeline,
+            ),
+            "seo": patch(
+                "app.pipeline.default_pipeline.seo_generator.generate_seo_metadata",
+                return_value=new_seo,
+            ),
+            "video": patch(
+                "app.pipeline.default_pipeline.video_renderer.render_final_video",
+                return_value="/tmp/new_final.mp4",
+            ),
+            "video_params": patch(
+                "app.pipeline.default_pipeline.video_renderer.build_video_params",
+                return_value=object(),
+            ),
+            "quality": patch(
+                "app.pipeline.default_pipeline.quality_critic.evaluate_project", return_value=None
+            ),
+            "thumbnail": patch(
+                "app.pipeline.default_pipeline.thumbnail_generator.generate_thumbnail",
+                return_value="/tmp/new_thumb.png",
+            ),
+            "thumbnail_b": patch(
+                "app.pipeline.default_pipeline.thumbnail_generator.generate_thumbnail_variant_b",
+                return_value="/tmp/new_thumb_b.png",
+            ),
+            # Görsel-üreten hiçbir aşama çağrılmamalı -- yanlışlıkla çağrılırsa
+            # bu mock'lar hemen fırlatır, sessizce geçmez.
+            "asset_gen": patch(
+                "app.pipeline.default_pipeline.asset_generator.build_asset_plan",
+                side_effect=AssertionError("asset_generator must not run on script edit"),
+            ),
+            "asset_dl": patch(
+                "app.pipeline.default_pipeline.asset_downloader.download_assets",
+                side_effect=AssertionError("asset_downloader must not run on script edit"),
+            ),
+            "ai_video": patch(
+                "app.pipeline.default_pipeline.ai_video_generator.generate_ai_clips",
+                side_effect=AssertionError("ai_video_generator must not run on script edit"),
+            ),
+            "storyboard": patch(
+                "app.pipeline.default_pipeline.storyboard_generator.generate_storyboard",
+                side_effect=AssertionError("storyboard_generator must not run on script edit"),
+            ),
+        }
+        self.started = {name: m.start() for name, m in self.mocks.items()}
+        for m in self.mocks.values():
+            self.addCleanup(m.stop)
+        self.addCleanup(lambda: shutil.rmtree(utils.task_dir("proj-edit-1"), ignore_errors=True))
 
-        project = DocumentaryProject(project_id=self.task_id, topic="Mars")
-        default_pipeline._save_project_snapshot(project)
+    def test_replaces_script_and_reruns_only_audio_timeline_seo_video(self):
+        result = default_pipeline.regenerate_from_edited_script(self.project, self.edited_script)
 
-        snapshot_path = os.path.join(self.task_directory, "project.json")
+        self.assertIs(result, self.project)
+        self.assertIs(result.script, self.edited_script)
+        self.assertEqual(result.final_video_path, "/tmp/new_final.mp4")
+        self.assertEqual(result.seo.title, "New Title")
+        self.assertEqual(result.timeline.combined_video_path, "/tmp/new_combined.mp4")
+        self.assertEqual(result.thumbnail_path, "/tmp/new_thumb.png")
+        self.assertEqual(result.thumbnail_variant_b_path, "/tmp/new_thumb_b.png")
+
+        self.started["asset_gen"].assert_not_called()
+        self.started["asset_dl"].assert_not_called()
+        self.started["ai_video"].assert_not_called()
+        self.started["storyboard"].assert_not_called()
+
+    def test_reuses_the_same_asset_plan_object_for_the_timeline(self):
+        default_pipeline.regenerate_from_edited_script(self.project, self.edited_script)
+
+        timeline_args, _ = self.started["timeline"].call_args
+        self.assertIs(timeline_args[0], self.asset_plan)
+
+    def test_passes_edited_script_to_audio_and_seo(self):
+        default_pipeline.regenerate_from_edited_script(self.project, self.edited_script)
+
+        audio_args, _ = self.started["audio"].call_args
+        self.assertIs(audio_args[0], self.edited_script)
+        seo_args, _ = self.started["seo"].call_args
+        self.assertIs(seo_args[1], self.edited_script)
+
+    def test_preserves_original_bgm_file_across_the_new_audio_plan(self):
+        default_pipeline.regenerate_from_edited_script(self.project, self.edited_script)
+
+        _, audio_kwargs = self.started["audio"].call_args
+        self.assertEqual(audio_kwargs["bgm_file"], "/tmp/bgm.mp3")
+
+    def test_reuses_original_bgm_type_and_volume_for_video_params(self):
+        default_pipeline.regenerate_from_edited_script(self.project, self.edited_script)
+
+        _, params_kwargs = self.started["video_params"].call_args
+        self.assertEqual(params_kwargs["bgm_type"], "random")
+        self.assertEqual(params_kwargs["bgm_volume"], 0.3)
+
+    def test_persists_the_final_state_to_disk(self):
+        default_pipeline.regenerate_from_edited_script(self.project, self.edited_script)
+
+        snapshot_path = os.path.join(utils.task_dir("proj-edit-1"), "project.json")
         with open(snapshot_path, encoding="utf-8") as f:
             saved = json.load(f)
-        self.assertEqual(saved["project_id"], self.task_id)
-        self.assertEqual(saved["topic"], "Mars")
-
-    @patch("builtins.open", side_effect=OSError("disk full"))
-    def test_never_raises_on_write_failure(self, mock_open):
-        from app.models.documentary_project import DocumentaryProject
-
-        project = DocumentaryProject(project_id=self.task_id, topic="Mars")
-        default_pipeline._save_project_snapshot(project)  # must not raise
+        self.assertEqual(saved["script"]["full_text"], "Edited narration.")
+        self.assertEqual(saved["final_video_path"], "/tmp/new_final.mp4")
 
 
 if __name__ == "__main__":
