@@ -2431,3 +2431,49 @@ Still Baffles the FBI", "He Jumped From a Plane With Ransom Money—and Became
 a Legend"] — üçü de birbirinden gerçekten farklı, hiç tekrar yok. `keywords`
 10 alakalı terim üretti (ör. "D.B. Cooper", "unsolved mysteries", "true crime
 documentary", "FBI cold case").
+
+## ACİL PRODUCTION KESİNTİSİ — stale process/import cache (2026-07-26) + deploy.sh
+
+**Belirti:** Kullanıcı production'ın `AttributeError: food_culture`
+(`webui/Main.py:4178`) ile çöktüğünü bildirdi.
+
+**Teşhis:** Disk üzerindeki kod **hiç bozuk değildi** — `TopicCategory`
+enum'ında `food_culture` gerçekten vardı, `webui/Main.py` onunla birebir
+uyumluydu, taze bir Python süreci ve tam pytest suite (707 test, `AppTest`
+üzerinden gerçekten `webui/Main.py`'yi import/exec ediyor) sorunsuz
+geçiyordu. Gerçek sorun: production servisi (`ai-documentary-studio-webui.service`)
+Cuma 24 Temmuz 00:37'den beri, yani bugünkü GÖREV 1 commit'inden (3 yeni
+kategori) ÖNCE başlayıp kesintisiz çalışıyordu. Python, import edilen
+modülleri process ömrü boyunca `sys.modules`'te cache'liyor; Streamlit'in
+kendi dosya-izleme mekanizması sadece ana script'i (Main.py) her session'da
+yeniden okuyor, `app/` altındaki import edilen modülleri process yeniden
+başlamadan güvenilir şekilde yenilemiyor. Sonuç: process'in belleğindeki
+eski `TopicCategory` nesnesi `food_culture`/`nature`/`netflix_style`'ı hiç
+görmedi — crash-loop yoktu (systemd process'i hiç ölmedi), her kullanıcı
+oturumunun script çalıştırması bu hatayla karşılaşıp tarayıcıda hata
+gösteriyordu.
+
+**Anlık düzeltme:** `systemctl restart` — yeni process, taze import, sorun
+anında çözüldü. Headless Chromium ile production'da hatasız yüklendiğini
+doğruladım.
+
+**Kalıcı çözüm — `deploy.sh` (proje kök dizini, çalıştırılabilir):**
+```bash
+#!/bin/bash
+set -e
+git pull origin main
+systemctl restart ai-documentary-studio-webui.service
+sleep 3
+curl -sf http://localhost:8501/_stcore/health && echo "Deploy OK" || echo "Deploy FAILED - health check başarısız"
+```
+Kullanıcı bunu şimdilik her önemli push sonrası **manuel** çalıştıracak
+(ileride otomatikleştirilebilir). Gerçek çalıştırmayla test edildi (pull +
+restart + health check), servis yeni PID ile sağlıklı ayağa kalktı.
+
+**Ders (genel kural):** Backend Python modüllerini (`webui/Main.py` dışındaki
+`app/` dosyaları -- enum, dict, servis kodu) değiştiren her push, üretimde
+etkili olması için bir **restart gerektirir**. Bu tür bir hatayı test suite
+yapısal olarak yakalayamaz çünkü pytest her zaman taze bir process'te
+çalışır -- bu bir kod-doğruluğu sorunu değil, bir operasyon/deploy sorunu.
+Bundan sonra: her backend değişikliği push edildikten sonra `./deploy.sh`
+çalıştırılmalı.
