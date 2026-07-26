@@ -2629,3 +2629,95 @@ geçirilecek, gerekirse ayrı bir iyileştirme olarak ele alınabilir.
   satır yok) -- kullanıcı ekleyecek. Kullanıcının kendi talimatı gereği,
   gerçek/ücretli bir API çağrısından (tek, ucuz bir test klibi bile olsa)
   önce açık onay bekleniyor -- bu adım kasıtlı olarak durduruldu.
+
+## AI-üretimi video görselleri -- GERÇEK API doğrulaması TAMAMLANDI, 2 gerçek bug bulundu ve düzeltildi
+
+Kullanıcı `config.toml`'a gerçek `fal_api_key` ekledi, gerçek/ücretli ilk
+API çağrısına açık onay verdi. Doğrulama sırasında **iki gerçek bug**
+bulundu ve düzeltildi -- ikisi de sadece gerçek API ile ortaya çıkabilecek
+türden, mock testlerin yakalayamayacağı hatalar.
+
+### Bug 1: Model id typo (`v1.0` yerine `v1` olmalıydı)
+
+Planlama aşamasında doğru araştırılmıştı (`fal-ai/kling-video/v1/standard/
+text-to-video`), ama kodlama sırasında yanlışlıkla `v1.0` yazılmış --
+`app/services/fal_video.py`, `config.example.toml`, `config.toml` ve
+testlerde. İlk gerçek submit çağrısı `request_id` ile "başarılı" göründü
+ama bu geçersiz bir alt-yoldu (fal.ai'nin gateway'i esnek routing yapıyor,
+var olmayan bir alt-yola da bir request_id veriyor) -- iş neredeyse anında
+"COMPLETED" oldu (`inference_time: 0.049s`, gerçek bir 5-6 dakikalık video
+üretimi için imkansız kısa), gerçek bir video hiç üretilmedi. **Muhtemelen
+$0 maliyetli** (gerçek inference hiç çalışmadı) ama fal.ai dashboard'undan
+teyit edilemedi.
+
+### Bug 2: Status/result URL yapısı yanlıştı (subpath dahil edilmemeliydi)
+
+Asıl kök neden buydu -- `poll_job_status()`/`get_job_result()` submit
+URL'iyle AYNI tam model string'ini (`fal-ai/kling-video/v1/standard/
+text-to-video`) kullanıyordu, ama fal.ai'nin queue API'si bu iki
+operasyon için FARKLI URL yapıları bekliyor:
+- **Submit**: tam yol (subpath dahil) -- `POST /{owner}/{app}/{subpath}`
+- **Status/Result**: SADECE `{owner}/{app}` (subpath HARİÇ) -- `GET
+  /{owner}/{app}/requests/{id}/status` ve `GET /{owner}/{app}/requests/{id}`
+
+Gerçek API'de subpath dahil edilince `405 Method Not Allowed` dönüyordu.
+Bunu resmi `fal-client` Python kütüphanesinin GitHub kaynağını okuyarak
+doğruladım (`AppId.from_endpoint_id()` + `RequestHandle.from_request_id()`
+-- ikisi de status/result URL'lerini owner/alias'tan kuruyor, subpath'i
+atıyor). Düzeltme: `FalVideoService._app_id` (yeni property, `self.model`'in
+ilk 2 path segmentini alıyor) eklendi, `poll_job_status`/`get_job_result`
+bunu kullanıyor; `submit_video_job` hâlâ tam `self.model`'i kullanıyor
+(değişmedi, zaten doğruydu).
+
+**Düzeltme sonrası:** 2 yeni/güncellenmiş test (`_app_id` property testi +
+status/result URL assertion'ları kesinleştirildi), tam suite **748 passed,
+11 skipped** (747'den +1, sıfır regresyon).
+
+### Gerçek API doğrulaması -- BAŞARILI
+
+**Tek klip testi (düzeltme sonrası, 2. deneme):** Prompt "aerial view of a
+calm ocean at sunset", `duration=5`, `aspect_ratio=9:16`. Submit → 320
+saniyede (~5.3dk, fal.ai'nin kendi "~6dk" tahminine yakın) COMPLETED →
+gerçek video_url alındı → indirildi (5.764.623 byte). `ffprobe`: h264,
+**720x1280 (9:16 doğru)**, 30fps, **duration=5.1s (doğru)**. Bir kare
+çıkarıldı, görsel olarak gerçekten "gün batımında sakin okyanus havadan
+görünüm" -- prompt'a birebir uyan, yüksek kaliteli bir görüntü.
+
+**Mini uçtan-uca pipeline testi:** Gerçek `run_pipeline()`, konu "The
+Basics of Ocean Tides", `pacing=short` (4 sahne), `video_source=
+"ai_generated"`. **Substage progress callback'i gerçek çalışmada
+doğrulandı**: "1/4 → 2/4 → 3/4 → 4/4 AI clips done" mesajları 383s-431s
+arasında, sadece 48 saniyelik bir pencerede geldi -- bu, 4 klibin GERÇEKTEN
+paralel işlendiğini kanıtlıyor (sıralı olsaydı ~24 dakika sürerdi, paralel
+mimari kararının doğru olduğunu somut olarak doğruluyor). Toplam pipeline
+süresi: 586 saniye (~9.75dk). `final.mp4` `ffprobe` ile doğrulandı: h264+aac,
+1080x1920, 29.07s, 16.1MB. Bir kare çıkarıldı: gerçek, tutarlı, altyazılı
+bir belgesel sahnesi (gelgit havuzu görüntüsü + "pulls tides—the sea's
+restless rise and fall" altyazısı doğru kompoze edilmiş).
+
+**Gerçek toplam maliyet (bu doğrulama turu için):** ~$1.13 (5 gerçek klip:
+1 tekli test @ $0.225 + 4 mini-pipeline klibi @ $0.225 = $1.125) + birkaç
+kuruş gerçek LLM çağrısı maliyeti (intent/research/outline/scene/script/
+storyboard/seo). İlk (bug'lı) deneme muhtemelen $0 (gerçek inference hiç
+çalışmadı).
+
+### Yeni bulunan, dürüstçe not düşülen bir sınırlama (düzeltilmedi)
+
+Mini-pipeline testinde `video.py`'nin `combine_videos()` şu uyarıyı verdi:
+*"video duration (20.40s) is shorter than required duration (29.16s),
+looping clips to match audio length."* -- yani gerçek narration (29.16s)
+4 AI klibinin toplam süresinden (4×5s=20s) uzun çıktı, video bu farkı
+klipleri TEKRARLAYARAK kapattı. **Bu, oturumun daha önce stok-görüntü
+tarafı için çözdüğü aynı "repeated-frame" sorunu** -- ama AI tarafı için
+`_ASSET_DOWNLOAD_DURATION_SAFETY_MULTIPLIER` (stok'ta over-fetch ile
+çözülüyor) doğrudan uygulanamaz, çünkü AI'da "fazladan" klip üretmek
+gerçek ek maliyet demek (stokta ücretsiz). Video yine de başarıyla
+render edildi (crash yok, sadece bazı kareler tekrar ediyor) -- kritik
+bir hata değil ama gerçek bir kalite sınırlaması. **Düzeltilmedi, gelecekte
+değerlendirilecek bir iyileştirme olarak not düşülüyor** (olası çözümler:
+AI sahneleri için her zaman duration="10" istemek -- maliyeti ~2x artırır,
+veya script_generator'ın AI-video seçiliyken daha kısa narration hedeflemesi).
+
+**Durum: özellik tam olarak çalışıyor, production'a hazır.** Test artifact'leri
+(`storage/tasks/ai-video-mini-pipeline-test/`, geçici scratchpad dosyaları)
+temizlendi.

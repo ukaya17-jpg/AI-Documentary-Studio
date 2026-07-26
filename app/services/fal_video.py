@@ -26,7 +26,7 @@ _STATUS_TIMEOUT = 30
 _RESULT_TIMEOUT = 30
 _DOWNLOAD_TIMEOUT = 120
 
-DEFAULT_KLING_MODEL = "fal-ai/kling-video/v1.0/standard/text-to-video"
+DEFAULT_KLING_MODEL = "fal-ai/kling-video/v1/standard/text-to-video"
 
 
 class FalVideoService:
@@ -36,6 +36,19 @@ class FalVideoService:
 
     def is_configured(self) -> bool:
         return bool(self.api_key)
+
+    @property
+    def _app_id(self) -> str:
+        """The "owner/app-name" prefix of self.model, WITHOUT the version/
+        tier subpath (e.g. "fal-ai/kling-video", not ".../v1/standard/
+        text-to-video"). fal.ai's queue status/result/cancel endpoints must
+        be called against this base app id -- the full endpoint (with
+        subpath) is only valid for the initial POST submission. Confirmed
+        empirically against the real API: including the subpath in a
+        status/result GET returns 405 Method Not Allowed.
+        """
+        parts = self.model.split("/")
+        return "/".join(parts[:2])
 
     def _headers(self) -> dict:
         return {
@@ -88,7 +101,7 @@ class FalVideoService:
         """
         try:
             response = requests.get(
-                f"{_QUEUE_BASE}/{self.model}/requests/{request_id}/status",
+                f"{_QUEUE_BASE}/{self._app_id}/requests/{request_id}/status",
                 headers=self._headers(),
                 timeout=_STATUS_TIMEOUT,
             )
@@ -106,7 +119,7 @@ class FalVideoService:
         """Returns {"success": True, "video_url": str} or {"success": False, "error": str}."""
         try:
             response = requests.get(
-                f"{_QUEUE_BASE}/{self.model}/requests/{request_id}",
+                f"{_QUEUE_BASE}/{self._app_id}/requests/{request_id}",
                 headers=self._headers(),
                 timeout=_RESULT_TIMEOUT,
             )

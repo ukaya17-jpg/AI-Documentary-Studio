@@ -9,7 +9,7 @@ from app.services.fal_video import FalVideoService
 
 _CONFIGURED = {
     "fal_api_key": "test-fal-key",
-    "fal_kling_model": "fal-ai/kling-video/v1.0/standard/text-to-video",
+    "fal_kling_model": "fal-ai/kling-video/v1/standard/text-to-video",
 }
 _UNCONFIGURED = {"fal_api_key": "", "fal_kling_model": ""}
 
@@ -34,9 +34,17 @@ class TestIsConfigured(unittest.TestCase):
         self.assertFalse(FalVideoService().is_configured())
 
     @patch("app.services.fal_video.config.app", _CONFIGURED)
+    def test_app_id_strips_version_tier_subpath(self):
+        # fal.ai'nin queue API'sinde status/result endpoint'leri sadece
+        # "owner/app-name" kabul ediyor -- submit URL'indeki tam alt-yolu
+        # (version/tier/endpoint-variant) DEĞİL. Gerçek API doğrulamasında
+        # bulundu: subpath dahil edilirse 405 Method Not Allowed.
+        self.assertEqual(FalVideoService()._app_id, "fal-ai/kling-video")
+
+    @patch("app.services.fal_video.config.app", _CONFIGURED)
     def test_uses_configured_model_and_default_fallback(self):
         self.assertEqual(
-            FalVideoService().model, "fal-ai/kling-video/v1.0/standard/text-to-video"
+            FalVideoService().model, "fal-ai/kling-video/v1/standard/text-to-video"
         )
         with patch("app.services.fal_video.config.app", {"fal_api_key": "k"}):
             # fal_kling_model not set at all -- must fall back to the module default.
@@ -78,7 +86,7 @@ class TestSubmitVideoJob(unittest.TestCase):
         call = mock_post.call_args
         self.assertEqual(
             call.args[0],
-            "https://queue.fal.run/fal-ai/kling-video/v1.0/standard/text-to-video",
+            "https://queue.fal.run/fal-ai/kling-video/v1/standard/text-to-video",
         )
         self.assertEqual(call.kwargs["headers"]["Authorization"], "Key test-fal-key")
         self.assertEqual(call.kwargs["json"]["prompt"], "a wide shot of ancient ruins")
@@ -116,7 +124,15 @@ class TestPollJobStatus(unittest.TestCase):
 
         self.assertTrue(result["success"])
         self.assertEqual(result["status"], "IN_PROGRESS")
-        self.assertIn("req-123/status", mock_get.call_args.args[0])
+        # Gerçek fal.ai API'sinde doğrulandı: status/result URL'leri sadece
+        # "owner/app-name" kullanmalı (ör. "fal-ai/kling-video"), submit
+        # URL'indeki tam alt-yol (v1/standard/text-to-video) DAHİL EDİLMEMELİ
+        # -- dahil edilirse 405 Method Not Allowed dönüyor (gerçek API
+        # doğrulamasında bulunan bir bug, düzeltildi).
+        self.assertEqual(
+            mock_get.call_args.args[0],
+            "https://queue.fal.run/fal-ai/kling-video/requests/req-123/status",
+        )
 
     @patch("app.services.fal_video.config.app", _CONFIGURED)
     @patch("app.services.fal_video.requests.get")
@@ -150,6 +166,10 @@ class TestGetJobResult(unittest.TestCase):
 
         self.assertTrue(result["success"])
         self.assertEqual(result["video_url"], "https://v2.fal.media/files/abc_output.mp4")
+        self.assertEqual(
+            mock_get.call_args.args[0],
+            "https://queue.fal.run/fal-ai/kling-video/requests/req-123",
+        )
 
     @patch("app.services.fal_video.config.app", _CONFIGURED)
     @patch("app.services.fal_video.requests.get")
