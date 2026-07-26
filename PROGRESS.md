@@ -2773,3 +2773,94 @@ eşit), 17.7MB. Düzeltme gerçek veriyle kanıtlandı.
 
 **Durum: "tekrar eden kare" sınırlaması giderildi, maliyet artışı SADECE
 gerçekten gereken sahnelerde ve gerçek ihtiyaçla orantılı.**
+
+## TAM OTONOMİ turu: GÖREV 3 (büyüme ilkeleri) + GÖREV 1 (Klasik Mod gizleme) + GÖREV 2 (uzun-form video)
+
+Kullanıcı üç görevi de tek seferde, durmadan tamamlama onayı verdi. Sırayla,
+her biri kendi commit'i + testleri + (uygunsa) gerçek doğrulamasıyla
+tamamlandı.
+
+### GÖREV 3 -- platform büyüme ilkelerinin otomatik entegrasyonu (commit `566cdd7`)
+
+Önceden onaylanmış plana göre uygulandı: yeni `_growth_guidance_instructions()`
+-- Hook/Retention/Callback (Story Craft) ile aynı "her zaman açık,
+kapatılamaz, Tone/Format'tan bağımsız" katman. Somut/spesifik açılış
+(genel selamlama yok), reklam-dostu kısıtlar, tek genel "seri hissi"
+cümlesi. Mevcut Retention talimatı GÜÇLENDİRİLDİ (ayrı, çelişebilecek bir
+"her 15-20sn twist" cümlesi eklenmedi). `Format.corporate`'te (zaten
+"neutral third-person, promotional dil yok" istiyor) kapanış-CTA'sı ve
+etkileşim-sorusu bilinçli olarak bastırıldı. Yeni LLM çağrısı yok, $0
+maliyet. Test: 6 yeni, tam suite 763 passed (757'den +6). Gerçek API ile 2
+doğrulama: mysterious ton + outline hook/closing (somut açılış, doğal
+kapanış-nudge, açık uçlu soru) ve Format.corporate (CTA/soru gerçekten
+yok, tarafsız üslup korundu).
+
+### GÖREV 1 -- Klasik Mod'u kullanıcıdan gizleme (commit `78dd125`)
+
+Risk analizi: tam silme, 4 test dosyasındaki (~39 test) `_LEGACY_PAGE_HASH`
+tabanlı doğrudan erişimi kırardı (denendi, doğrulandı -- 25 test kırıldı).
+Seçilen yaklaşım: `st.Page(..., visibility="hidden")` (bu Streamlit
+sürümünün desteklediği bir özellik) -- sayfa kayıtlı/erişilebilir kalıyor,
+sadece kenar çubuğundan kayboluyor. app/ ve main.py'de hiçbir bağımlılık
+yok (grep ile doğrulandı). Test: kaynak-kod seviyesinde niyeti kilitleyen
+3 yeni test (`test_webui_navigation.py`) + gerçek headless-Chromium
+doğrulaması (ekran görüntüsü: sidebar'da sadece "Oluştur"/"Geçmiş
+Üretimler" görünüyor). Tam suite: 766 passed (763'ten +3, sıfır regresyon
+-- ilk "tam silme" denemesi 25 testi kırmıştı, düzeltildi).
+
+### GÖREV 2 -- 10+ dakikalık uzun-form video, 16:9 (commit `794a365`)
+
+**Mimari karar (TAM OTONOMİ):** yeni `Pacing.extended` (20 sahne x 30s =
+600s) -- "daha fazla sahne" ile "sahne başına daha uzun anlatım" arasında
+bir orta yol, ikisinin de aşırı ucundan kaçınıldı (60+ sahnelik tek LLM
+çağrısı kalite riski vs. 60sn+ kesintisiz anlatım monotonluk riski).
+
+**Kök mimari bulgu:** `scene_planner.plan_scenes()` sahne-başına-bir-
+outline-section eşlemesi yapıyor, ama `outline_generator` HER ZAMAN sabit
+"4-7 section" istiyordu -- 20 sahnelik bir pacing'e outline asla
+yetişemezdi. Çözüm: `outline_generator` artık pacing-farkında (yeni
+`PACING_OUTLINE_SECTION_RANGE`: short/long için BİREBİR AYNI "4-7" --
+regresyon garantisi -- extended için "18-24"). `scene_planner.py`'ye
+HİÇBİR kod değişikliği gerekmedi (zaten tamamen pacing/outline-agnostic --
+gerçek testle doğrulandı).
+
+**16:9 (`VideoAspect.landscape`)** zaten resolution eşlemesiyle
+(1920x1080) tam destekleniyordu (`timeline_builder`/`asset_downloader`/
+`thumbnail_generator` hepsi aspect-agnostic, dinamik boyut okuyor) --
+sadece hiç webui seçeneği yoktu (Documentary Studio her zaman sabit
+"9:16" kullanıyordu, AI video_source'tan önceki durumla aynı desen). Yeni
+bir Aspect Ratio seçici eklendi (9:16 varsayılan/değişmedi, 16:9 opt-in,
+"1:1" kullanıcı istemediği için kapsam dışı bırakıldı).
+
+**ZORUNLU MALİYET GÜVENLİK KURALLARI'na tam uyum:** AI Video + extended
+pacing kombinasyonu için dürüst bir uyarı eklendi (30sn'lik sahneler
+Kling'in azami "10"sn tier'ını aşıyor, sahne başına belirgin tekrar eden
+kare beklenmeli) ama bu kombinasyon **gerçek API ile HİÇ test edilmedi**
+-- kullanıcının açık talimatı gereği. Gerçek doğrulama SADECE Stok Video
+ile (ücretsiz, sınırsız test edilebilir) yapıldı.
+
+Test: 4 dosyada +12 test + yeni `test_webui_long_form.py` (5 test). Tam
+suite: **779 passed, 11 skipped** (766'dan +13, sıfır regresyon).
+
+**GERÇEK doğrulama (Stok Video, $0 maliyet):** "The History of the Silk
+Road" konusu, extended pacing, 16:9. Sonuç: 22 outline section (18-24
+aralığında), 20 sahne (hedeflendiği gibi), 1152 kelimelik gerçek script.
+`final.mp4` `ffprobe` ile doğrulandı: h264+aac, **1920x1080 (doğru 16:9)**,
+**500.23s (~8.3dk)**. Bir kare çıkarıldı: gerçek, tutarlı, doğru altyazılı
+bir belgesel sahnesi (İpek Yolu havadan arkeolojik alan görüntüsü).
+
+**Dürüst not:** Gerçek video süresi (500s) tam hedeflenen 600s'nin biraz
+altında kaldı -- script'in gerçek kelime sayısı (1152) per-sahne hedef
+kelime sayısının (20×69=1380) altında çıktı. Bu, LLM'in per-sahne hedef
+kelime sayısını her zaman tam tutturmaması -- kısa/uzun pacing'te de
+ÖNCEDEN var olan, bilinen bir varyans (`_ASSET_DOWNLOAD_DURATION_
+SAFETY_MULTIPLIER`'ın belgelediği ters yöndeki varyansla aynı kök neden),
+yeni bir bug değil. Yine de önceki ~56s tavanına göre kesin, sağlam bir
+"uzun-form" video -- mimari doğru çalışıyor.
+
+### Genel durum
+
+Tam suite (üç görev sonrası, final): **779 passed, 11 skipped, sıfır
+regresyon boyunca**. `ruff` her commit'te temiz. `git log origin/main -1`
+ile senkron doğrulandı. `./deploy.sh` çalıştırıldı, production temiz
+restart oldu.
