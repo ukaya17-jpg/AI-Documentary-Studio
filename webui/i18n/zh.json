@@ -462,7 +462,7 @@
     "Documentary Aspect Ratio": "画面比例",
     "Documentary Aspect Ratio: 9:16": "9:16（竖屏 / Shorts）",
     "Documentary Aspect Ratio: 16:9": "16:9（横屏）",
-    "Pacing: extended": "长篇（10 分钟以上）",
+    "Pacing: extended": "纪录片时长（10分钟以上）",
     "Documentary AI Video Extended Pacing Warning": "长篇节奏的每个场景（30秒）远远超过单个 AI 片段（最长 10 秒）所能覆盖的时长——与素材库视频或较短节奏相比，预计每个场景会出现明显更多的重复帧。"
   }
 }

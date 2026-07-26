@@ -435,7 +435,7 @@
     "Documentary Aspect Ratio": "Seitenverhältnis",
     "Documentary Aspect Ratio: 9:16": "9:16 (Hochformat / Shorts)",
     "Documentary Aspect Ratio: 16:9": "16:9 (Querformat)",
-    "Pacing: extended": "Erweitert (10+ Min)",
+    "Pacing: extended": "Dokumentarlänge (10+ Min)",
     "Documentary AI Video Extended Pacing Warning": "Die Szenen des erweiterten Tempos (je 30s) sind viel länger, als ein einzelner KI-Clip (max. 10s) abdecken kann -- erwarten Sie deutlich mehr wiederholte Einzelbilder pro Szene als bei Stockmaterial oder kürzerem Tempo."
   }
 }

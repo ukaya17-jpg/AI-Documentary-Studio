@@ -462,7 +462,7 @@
     "Documentary Aspect Ratio": "Aspect Ratio",
     "Documentary Aspect Ratio: 9:16": "9:16 (Vertical / Shorts)",
     "Documentary Aspect Ratio: 16:9": "16:9 (Horizontal)",
-    "Pacing: extended": "Extended (10+ min)",
+    "Pacing: extended": "Documentary-Length (10+ min)",
     "Documentary AI Video Extended Pacing Warning": "Extended pacing's scenes (30s each) are much longer than a single AI clip (max 10s) can cover -- expect noticeably more repeated frames per scene than with Stock Footage or shorter pacing."
   }
 }

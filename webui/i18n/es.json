@@ -435,7 +435,7 @@
     "Documentary Aspect Ratio": "Relación de Aspecto",
     "Documentary Aspect Ratio: 9:16": "9:16 (Vertical / Shorts)",
     "Documentary Aspect Ratio: 16:9": "16:9 (Horizontal)",
-    "Pacing: extended": "Extendido (10+ min)",
+    "Pacing: extended": "Duración Documental (10+ min)",
     "Documentary AI Video Extended Pacing Warning": "Las escenas del ritmo extendido (30s cada una) son mucho más largas de lo que un solo clip de IA (máx. 10s) puede cubrir -- espera notablemente más fotogramas repetidos por escena que con metraje de stock o un ritmo más corto."
   }
 }
