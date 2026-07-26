@@ -2721,3 +2721,55 @@ veya script_generator'ın AI-video seçiliyken daha kısa narration hedeflemesi)
 **Durum: özellik tam olarak çalışıyor, production'a hazır.** Test artifact'leri
 (`storage/tasks/ai-video-mini-pipeline-test/`, geçici scratchpad dosyaları)
 temizlendi.
+
+## "Tekrar eden kare" düzeltmesi -- maliyeti artırmadan, sahne-bazlı Kling süre seçimi
+
+Önceki gerçek mini-pipeline testinde bulunan sınırlama (4 AI klip × 5s = 20s
+footage, gerçek narration 29.16s -- video klipleri tekrarlayarak doldurdu)
+kullanıcı onayıyla **sahne-bazlı** çözümle giderildi (plan raporunda sunulan
+3 seçenekten -- global, sahne-bazlı, hibrit -- en isabetlisi/en az maliyetlisi).
+
+**Kök neden ve çözüm:** Stage 8 (asset download), TTS'ten (stage 9) önce
+çalışıyor ama script'ten (stage 5) SONRA -- yani gerçek script metni zaten
+biliniyor, sadece gerçek TTS çıktısı bilinmiyor. Önceki kod Pacing'in
+üretim-öncesi hedef süresini (5s/8s) kullanıyordu; artık her sahnenin
+GERÇEK script metninden (`Script.lines[i].text`, scene_index eşleşmesiyle)
+gerçek kelime sayısı hesaplanıyor, `script_generator._WORDS_PER_SECOND=2.3`
+ile süreye çevriliyor, Kling'in iki sabit tier'ından (`"5"`/`"10"`) hangisi
+yeterliyse SADECE O sahnenin klibi için isteniyor -- diğer sahneler
+gereksiz yere "10"a yükselmiyor.
+
+**Değişiklikler:**
+- `app/models/asset.py`: yeni `AssetCandidate.ai_duration: str = "5"` alanı
+  (mevcut, kullanılmayan `duration: float` alanıyla karışmasın diye farklı
+  isimlendirildi).
+- `app/departments/production/asset_generator.py`: yeni
+  `_kling_duration_for_word_count()` + `build_asset_plan()`'a opsiyonel
+  `script` parametresi. `script=None` ise davranış birebir eskisi gibi
+  (hep `"5"`) -- regresyon garantisi.
+- `app/departments/production/ai_video_generator.py`: `generate_ai_clips()`
+  artık global `duration` parametresi almıyor, her candidate'in KENDİ
+  `ai_duration`'ını kullanıyor.
+- `app/pipeline/default_pipeline.py`: stage 7 çağrısına `script=project.script`
+  eklendi; artık gereksiz olan `_kling_duration_for_scene_seconds()` helper'ı
+  ve stage 8'deki global duration hesaplaması kaldırıldı.
+
+Test: 9 yeni test (sınır durumları: tam bütçe altı/üstü kelime sayısı,
+sahne-bazı bağımsız seçim, script=None regresyonu, eşleşen script satırı
+olmayan sahne, stok yolunun script'i tamamen görmezden gelmesi). Tam suite:
+**757 passed, 11 skipped** (748'den +9, sıfır regresyon).
+
+**Gerçek API doğrulaması (aynı "The Basics of Ocean Tides" konusu, short
+pacing, ikinci mini-pipeline çalıştırması):** Script'in gerçek sahne başı
+kelime sayıları (13/12/12/14 kelime, ~5.2-6.1s) hesaplandı, 4 sahnenin
+4'ü de 5s sınırını gerçekten aştığı için hepsi "10"a yuvarlandı (bu
+senaryoda maliyet üst sınırı: 4×10×$0.045=**$1.80** -- bu spesifik
+script gerçekten bu kadar süreye ihtiyaç duyduğu için, israf değil).
+Sonuç: 40s toplam AI footage vs 23.78s gerçek narration -- **bol payla
+yeterli**. `video.py`'nin log'unda **hiç "looping" uyarısı çıkmadı**
+(önceki testte kesinlikle vardı) -- `ffprobe` ile doğrulandı: `final.mp4`
+h264+aac, 1080x1920, **23.8s** (gerçek narration'a neredeyse birebir
+eşit), 17.7MB. Düzeltme gerçek veriyle kanıtlandı.
+
+**Durum: "tekrar eden kare" sınırlaması giderildi, maliyet artışı SADECE
+gerçekten gereken sahnelerde ve gerçek ihtiyaçla orantılı.**

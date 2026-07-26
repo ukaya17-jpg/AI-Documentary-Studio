@@ -10,6 +10,12 @@ class AssetCandidate(BaseModel):
     # as opposed to search_term's short keyword phrase for a stock-footage
     # search index. The two are not interchangeable inputs.
     prompt: str = ""
+    # Only meaningful for the ai_generated provider -- the Kling "duration"
+    # tier ("5" or "10" seconds) to request for THIS scene's clip. Named
+    # distinctly from the existing (currently unused) `duration: float`
+    # field below to avoid type/semantic confusion: this is a fal.ai request
+    # parameter (a string enum), not a measured clip length.
+    ai_duration: str = "5"
     url: str = ""
     local_path: str = ""
     duration: float = 0.0

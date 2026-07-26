@@ -58,17 +58,6 @@ _ASSET_DOWNLOAD_DURATION_SAFETY_MULTIPLIER = 2.0
 AI_GENERATED_VIDEO_SOURCE = "ai_generated"
 
 
-def _kling_duration_for_scene_seconds(scene_duration: float) -> str:
-    """Kling's duration parameter only accepts "5" or "10" (seconds) -- our
-    own scene-duration spec (5.0 for short pacing, 8.0 for long) doesn't map
-    exactly onto that, so anything over 5s rounds UP to "10" rather than
-    under-requesting and needing the timeline builder to pad/loop the gap
-    (the repeated-frame bug _ASSET_DOWNLOAD_DURATION_SAFETY_MULTIPLIER above
-    was introduced to avoid, for the stock-footage path).
-    """
-    return "5" if scene_duration <= 5.0 else "10"
-
-
 def _save_project_snapshot(project: DocumentaryProject) -> None:
     """Persist the current project state to storage/tasks/<id>/project.json.
 
@@ -203,7 +192,10 @@ def run_pipeline(
 
         stage(7, "asset")
         project.asset_plan = asset_generator.build_asset_plan(
-            project.storyboard, provider=video_source, topic_category=project.topic_category
+            project.storyboard,
+            provider=video_source,
+            topic_category=project.topic_category,
+            script=project.script,
         )
         _save_project_snapshot(project)
 
@@ -215,9 +207,6 @@ def run_pipeline(
                 project.asset_plan,
                 task_id=project.project_id,
                 aspect_ratio=video_aspect,
-                duration=_kling_duration_for_scene_seconds(
-                    PACING_SCENE_SPEC[resolved_pacing]["scene_duration"]
-                ),
                 on_substage_progress=on_substage_progress,
             )
         else:

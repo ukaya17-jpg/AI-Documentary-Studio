@@ -236,12 +236,15 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
             ],
         )
 
-        # asset_generator receives the storyboard and the resolved topic
+        # asset_generator receives the storyboard, the resolved topic
         # category (needed for the film_highlights AI-video likeness guard --
-        # harmless for every other category/provider).
+        # harmless for every other category/provider), and the real script
+        # (needed for per-scene AI clip duration selection -- harmless for
+        # the stock path, which ignores it).
         asset_gen_args, asset_gen_kwargs = self.started["asset_gen"].call_args
         self.assertIs(asset_gen_args[0], self.storyboard)
         self.assertEqual(asset_gen_kwargs["topic_category"], TopicCategory.history)
+        self.assertIs(asset_gen_kwargs["script"], self.script)
 
         # asset_downloader receives the asset plan and a safety-padded scene
         # budget as the audio-duration estimate (TTS hasn't run yet at that
@@ -341,14 +344,24 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         self.assertIs(args[0], self.asset_plan)
         self.assertEqual(kwargs["task_id"], "proj-1")
         self.assertEqual(kwargs["aspect_ratio"], "9:16")
-        # Pacing.long's scene_duration is 8.0s -- Kling only accepts "5" or
-        # "10", so this must round UP to "10", not silently truncate to "5"
-        # and leave every clip too short for its scene.
-        self.assertEqual(kwargs["duration"], "10")
+        # generate_ai_clips() no longer takes a single global duration --
+        # each candidate's own ai_duration (set per-scene by asset_generator
+        # from real script word counts, see the "tekrar eden kare" fix) is
+        # used instead. That per-scene selection is asset_generator's own
+        # responsibility/tests; here we only confirm no stray "duration"
+        # kwarg is passed anymore (would be a silent no-op/TypeError risk).
+        self.assertNotIn("duration", kwargs)
         # Actually invoke the passed-through callback to prove it's the same
         # one given to run_pipeline(), not a lost/dropped reference.
         kwargs["on_substage_progress"](3, 7)
         self.assertEqual(progress_calls, [(3, 7)])
+
+        # asset_generator now also receives the real script (stage 5 already
+        # ran by stage 7) so it can compute per-scene AI clip durations from
+        # real narration word counts instead of the pre-generation Pacing
+        # target -- the root cause of the "repeated frame" bug this fixes.
+        _, asset_gen_kwargs = self.started["asset_gen"].call_args
+        self.assertIs(asset_gen_kwargs["script"], self.script)
 
     def test_on_stage_change_called_for_all_12_stages_in_order(self):
         # Modernizasyon B: on_stage_change purely additive, must not change

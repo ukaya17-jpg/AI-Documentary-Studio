@@ -151,9 +151,29 @@ class TestGenerateAiClips(unittest.TestCase):
 
     @patch("app.departments.production.ai_video_generator.time.sleep")
     @patch("app.departments.production.ai_video_generator.fal_video_service")
-    def test_passes_duration_and_aspect_ratio_through_to_submit(self, mock_service, mock_sleep):
-        plan = _plan({0: "wide shot of ancient ruins"})
-        mock_service.submit_video_job.return_value = {"success": True, "request_id": "req-0"}
+    def test_passes_aspect_ratio_and_each_candidates_own_ai_duration_to_submit(
+        self, mock_service, mock_sleep
+    ):
+        # Yüzyıl/binyıl... hayır, bu "tekrar eden kare" düzeltmesi: her
+        # candidate'in KENDİ ai_duration'ı kullanılmalı, tek bir global
+        # değer değil -- sadece gerçekten ihtiyacı olan sahne "10" ödesin.
+        plan = AssetPlan(
+            candidates=[
+                AssetCandidate(
+                    scene_index=0,
+                    provider="ai_generated",
+                    prompt="wide shot of ancient ruins",
+                    ai_duration="5",
+                ),
+                AssetCandidate(
+                    scene_index=1,
+                    provider="ai_generated",
+                    prompt="close-up of stone carvings",
+                    ai_duration="10",
+                ),
+            ]
+        )
+        mock_service.submit_video_job.return_value = {"success": True, "request_id": "req-x"}
         mock_service.poll_job_status.return_value = {"success": True, "status": "COMPLETED"}
         mock_service.get_job_result.return_value = {
             "success": True,
@@ -161,12 +181,13 @@ class TestGenerateAiClips(unittest.TestCase):
         }
         mock_service.download_video.return_value = True
 
-        ai_video_generator.generate_ai_clips(
-            plan, self.task_id, aspect_ratio="9:16", duration="10"
-        )
+        ai_video_generator.generate_ai_clips(plan, self.task_id, aspect_ratio="9:16")
 
-        mock_service.submit_video_job.assert_called_once_with(
-            "wide shot of ancient ruins", duration="10", aspect_ratio="9:16"
+        mock_service.submit_video_job.assert_any_call(
+            "wide shot of ancient ruins", duration="5", aspect_ratio="9:16"
+        )
+        mock_service.submit_video_job.assert_any_call(
+            "close-up of stone carvings", duration="10", aspect_ratio="9:16"
         )
 
 

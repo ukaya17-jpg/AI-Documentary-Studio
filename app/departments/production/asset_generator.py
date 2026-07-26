@@ -8,6 +8,7 @@ the actual download/generation.
 
 from app.config.profile_dimensions import TopicCategory
 from app.models.asset import AssetCandidate, AssetPlan
+from app.models.script import Script
 from app.models.storyboard import Storyboard
 
 # film_highlights prompts can reasonably reference real films/actors (that's
@@ -21,20 +22,61 @@ _FILM_HIGHLIGHTS_LIKENESS_GUARD = (
     "generic, representative imagery instead."
 )
 
+# Must match app.departments.creative.script_generator._WORDS_PER_SECOND --
+# duplicated locally (not imported) since it's that module's private target
+# rate, same pattern already used elsewhere in this codebase for a fallback
+# constant that can't be cleanly imported (see webui/Main.py's
+# DEFAULT_SUBTITLE_SETTINGS history).
+_WORDS_PER_SECOND = 2.3
+
+
+def _kling_duration_for_word_count(word_count: int) -> str:
+    """Real per-scene word count (from the ALREADY-GENERATED script, not a
+    pre-generation Pacing target) -> the Kling duration tier ("5" or "10",
+    the only two values Kling accepts) needed to cover it without looping.
+
+    Rounds UP (never down) for the same reason
+    _ASSET_DOWNLOAD_DURATION_SAFETY_MULTIPLIER over-fetches on the stock
+    path: under-provisioning causes combine_videos() to loop/repeat clips
+    to fill the gap (the "repeated frame" defect this function exists to
+    avoid) -- but unlike the stock path, generating extra AI clips costs
+    real money, so this only bumps the SPECIFIC scenes that actually need
+    it to "10", instead of a blanket policy applied to every scene.
+    """
+    estimated_seconds = word_count / _WORDS_PER_SECOND
+    return "5" if estimated_seconds <= 5.0 else "10"
+
 
 def build_asset_plan(
     storyboard: Storyboard,
     provider: str = "pexels",
     topic_category: TopicCategory | None = None,
+    script: Script | None = None,
 ) -> AssetPlan:
+    narration_by_scene = {line.scene_index: line.text for line in script.lines} if script else {}
+
     candidates = []
     for shot in storyboard.shots:
         if provider == "ai_generated":
             prompt = f"{shot.shot_type}: {shot.description}" if shot.shot_type else shot.description
             if topic_category == TopicCategory.film_highlights:
                 prompt += _FILM_HIGHLIGHTS_LIKENESS_GUARD
+            # script=None (no real narration text available yet, e.g. an
+            # isolated/unit-test call) preserves the old, always-"5"
+            # behavior exactly -- no regression.
+            narration_text = narration_by_scene.get(shot.scene_index, "")
+            ai_duration = (
+                _kling_duration_for_word_count(len(narration_text.split()))
+                if narration_text
+                else "5"
+            )
             candidates.append(
-                AssetCandidate(scene_index=shot.scene_index, provider=provider, prompt=prompt)
+                AssetCandidate(
+                    scene_index=shot.scene_index,
+                    provider=provider,
+                    prompt=prompt,
+                    ai_duration=ai_duration,
+                )
             )
         else:
             candidates.append(

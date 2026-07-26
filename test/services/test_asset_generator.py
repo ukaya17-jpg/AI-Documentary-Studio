@@ -5,8 +5,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from app.config.profile_dimensions import TopicCategory
+from app.models.script import Script, ScriptLine
 from app.models.storyboard import Storyboard, StoryboardShot
 from app.departments.production import asset_generator
+
+
+def _words(n: int) -> str:
+    return " ".join(["word"] * n)
 
 
 class TestBuildAssetPlan(unittest.TestCase):
@@ -86,6 +91,101 @@ class TestBuildAssetPlan(unittest.TestCase):
         )
 
         self.assertNotIn("Avoid recreating the likeness", plan.candidates[0].prompt)
+
+    # "Tekrar eden kare" düzeltmesi: her sahnenin GERÇEK script metninden
+    # (Pacing'in üretim-öncesi hedefinden değil) hesaplanan, sahne-bazlı
+    # Kling duration seçimi.
+
+    def test_ai_generated_defaults_to_5_when_no_script_given(self):
+        # Regresyon garantisi: script=None -> mevcut davranış (hep "5")
+        # hiç değişmemeli.
+        storyboard = Storyboard(
+            shots=[StoryboardShot(scene_index=0, description="a lone ruin")]
+        )
+        plan = asset_generator.build_asset_plan(storyboard, provider="ai_generated")
+
+        self.assertEqual(plan.candidates[0].ai_duration, "5")
+
+    def test_ai_generated_uses_5_for_a_scene_within_word_budget(self):
+        # 11 kelime / 2.3 kelime-sn ~= 4.78s -- 5s sınırının altında.
+        storyboard = Storyboard(
+            shots=[StoryboardShot(scene_index=0, description="a lone ruin")]
+        )
+        script = Script(lines=[ScriptLine(scene_index=0, text=_words(11))])
+
+        plan = asset_generator.build_asset_plan(storyboard, provider="ai_generated", script=script)
+
+        self.assertEqual(plan.candidates[0].ai_duration, "5")
+
+    def test_ai_generated_rounds_up_to_10_for_a_scene_over_word_budget(self):
+        # 12 kelime / 2.3 kelime-sn ~= 5.22s -- 5s sınırını aşıyor, "10"a
+        # yuvarlanmalı (aşağı yuvarlarsak tekrar eden kare riski geri gelir).
+        storyboard = Storyboard(
+            shots=[StoryboardShot(scene_index=0, description="a lone ruin")]
+        )
+        script = Script(lines=[ScriptLine(scene_index=0, text=_words(12))])
+
+        plan = asset_generator.build_asset_plan(storyboard, provider="ai_generated", script=script)
+
+        self.assertEqual(plan.candidates[0].ai_duration, "10")
+
+    def test_ai_generated_selects_duration_independently_per_scene(self):
+        # Sadece GERÇEKTEN ihtiyacı olan sahne "10" ödesin -- kısa kalan
+        # sahne "5"te kalmalı (maliyet artışı sadece gereken yerde).
+        storyboard = Storyboard(
+            shots=[
+                StoryboardShot(scene_index=0, description="short scene"),
+                StoryboardShot(scene_index=1, description="long scene"),
+            ]
+        )
+        script = Script(
+            lines=[
+                ScriptLine(scene_index=0, text=_words(11)),
+                ScriptLine(scene_index=1, text=_words(12)),
+            ]
+        )
+
+        plan = asset_generator.build_asset_plan(storyboard, provider="ai_generated", script=script)
+
+        self.assertEqual(plan.candidates[0].ai_duration, "5")
+        self.assertEqual(plan.candidates[1].ai_duration, "10")
+
+    def test_ai_generated_falls_back_to_5_when_scene_has_no_matching_script_line(self):
+        # script verilmiş ama bu sahne için hiç satır yoksa (kenar durum) --
+        # çökmemeli, güvenli varsayılan "5"e düşmeli.
+        storyboard = Storyboard(
+            shots=[StoryboardShot(scene_index=5, description="an orphan scene")]
+        )
+        script = Script(lines=[ScriptLine(scene_index=0, text=_words(20))])
+
+        plan = asset_generator.build_asset_plan(storyboard, provider="ai_generated", script=script)
+
+        self.assertEqual(plan.candidates[0].ai_duration, "5")
+
+    def test_stock_provider_ignores_script_entirely(self):
+        # script verilse bile stok yolu bundan hiç etkilenmemeli -- ai_duration
+        # zaten stok candidate'lerinde anlamsız, search_term davranışı da
+        # değişmemeli.
+        storyboard = Storyboard(
+            shots=[StoryboardShot(scene_index=0, description="ruins", search_terms=["ancient ruins"])]
+        )
+        script = Script(lines=[ScriptLine(scene_index=0, text=_words(50))])
+
+        plan = asset_generator.build_asset_plan(storyboard, provider="pexels", script=script)
+
+        self.assertEqual(plan.candidates[0].search_term, "ancient ruins")
+        self.assertEqual(plan.candidates[0].ai_duration, "5")
+
+
+class TestKlingDurationForWordCount(unittest.TestCase):
+    def test_stays_at_5_within_budget(self):
+        self.assertEqual(asset_generator._kling_duration_for_word_count(11), "5")
+
+    def test_rounds_up_to_10_over_budget(self):
+        self.assertEqual(asset_generator._kling_duration_for_word_count(12), "10")
+
+    def test_zero_words_stays_at_5(self):
+        self.assertEqual(asset_generator._kling_duration_for_word_count(0), "5")
 
 
 if __name__ == "__main__":

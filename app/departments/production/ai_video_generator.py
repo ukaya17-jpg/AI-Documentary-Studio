@@ -67,10 +67,16 @@ def generate_ai_clips(
     asset_plan: AssetPlan,
     task_id: str,
     aspect_ratio: str = "9:16",
-    duration: str = "5",
     on_substage_progress: Callable[[int, int], None] | None = None,
 ) -> AssetPlan:
     """Generate one AI video clip per asset_plan candidate via fal.ai/Kling.
+
+    Each candidate's OWN `ai_duration` ("5" or "10", set per-scene by
+    asset_generator.build_asset_plan() from that scene's real narration word
+    count) is used -- not a single duration shared by every clip. This way
+    only the specific scenes whose real narration actually needs the extra
+    seconds get billed for "10"; scenes that fit in "5" stay at "5" (see
+    asset_generator._kling_duration_for_word_count for the cost rationale).
 
     Submits every candidate's job up front, then polls all still-pending
     jobs together each iteration until each one completes, fails, or the
@@ -101,7 +107,7 @@ def generate_ai_clips(
     failures: list[tuple[int, str]] = []
     for candidate in candidates:
         result = fal_video_service.submit_video_job(
-            candidate.prompt, duration=duration, aspect_ratio=aspect_ratio
+            candidate.prompt, duration=candidate.ai_duration, aspect_ratio=aspect_ratio
         )
         if result["success"]:
             jobs[candidate.scene_index] = result["request_id"]
