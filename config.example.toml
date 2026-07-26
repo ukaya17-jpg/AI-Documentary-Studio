@@ -49,6 +49,16 @@ pixabay_api_keys = []
 # Register at https://coverr.co/developers?ctx=header_navigation
 coverr_api_keys = []
 
+# Optional: AI-generated video clips (fal.ai / Kling) instead of stock
+# footage -- real cost per video, opt-in only (video_source must be set to
+# "ai_generated"), default stock behavior is unaffected.
+# Get a key at https://fal.ai/dashboard/keys
+fal_api_key = ""
+# Model tier is configurable since fal.ai's Kling pricing/versions change
+# over time -- see PROGRESS.md for the pricing comparison this default was
+# chosen from.
+fal_kling_model = "fal-ai/kling-video/v1.0/standard/text-to-video"
+
 # Optional TwelveLabs integration for semantic material ranking and video QA.
 # Install the optional dependency with: uv sync --extra twelvelabs
 # Create an API key at https://playground.twelvelabs.io/
