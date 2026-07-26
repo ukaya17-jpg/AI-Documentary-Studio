@@ -2535,3 +2535,97 @@ projesinin) zaten kaydedilmiş `seo.description`'ı otomatik düzelmiyor, sadece
 BUNDAN SONRA üretilecek yeni belgeseller doğru grounding ile üretilecek.
 Commit sonrası `./deploy.sh` çalıştırıldı (backend değişikliği -- production
 restart gerektirir, önceki operasyonel dersin uygulanması).
+
+## Yeni özellik: AI-üretimi video görselleri (fal.ai/Kling) -- kodlama tamamlandı, gerçek API çağrısı BEKLİYOR
+
+Stok video (Pexels/Pixabay) yerine gerçek para harcayan bir AI video-üretim
+sağlayıcısı (fal.ai üzerinden Kling) opsiyonel bir provider olarak eklendi.
+Önce kapsamlı bir plan raporu sunuldu (fal.ai REST API araştırması,
+mimari karar, maliyet/hata yönetimi önerileri), kullanıcı onayladı, sonra
+6 parça hâlinde, her biri kendi commit'i + mock testleriyle kodlandı.
+
+**Planlama aşamasında bulunan gerçek fiyat tutarsızlığı:** Kullanıcının
+başlangıç tahmini (~$0,029/sn) fal.ai'nin GÜNCEL hiçbir Kling tier'ına
+uymuyordu -- gerçek, doğrulanmış fiyatlar $0,045/sn (Kling 1.0 standard,
+en ucuz) ile $0,168/sn (Kling 3.0 Pro, sesli) arasında. Kullanıcı **Kling
+1.0 standard**'ı (`fal-ai/kling-video/v1.0/standard/text-to-video`,
+$0,045/sn) seçti, config'te değiştirilebilir bırakıldı (`fal_kling_model`)
+çünkü bu tier/fiyatlar zamanla değişebiliyor. Ayrıca fal.ai'nin kendi model
+sayfası tek bir klip için **~6 dakika** üretim süresi belirtiyor -- bu,
+mimari kararları (paralel gönderim, alt-ilerleme göstergesi) doğrudan
+şekillendirdi.
+
+### Mimari kararlar (özet)
+
+1. **Yeni, izole modüller** (mevcut fonksiyonlara "mod" parametresi
+   gömülmedi) -- `app/services/fal_video.py` (generic fal.ai queue client:
+   submit/poll/result/download, `upload_post.py` deseniyle tutarlı, asla
+   exception fırlatmaz) + `app/departments/production/ai_video_generator.py`
+   (documentary-özel: `asset_downloader.py` ile aynı AssetPlan-in/-out
+   şekli, ama sahne başına bir fal.ai işi gönderip round-robin polling
+   yapıyor). Gerekçe: stok (senkron/saniyeler/ücretsiz) ile AI
+   (asenkron/dakikalar/gerçek-para/politika-reddi-riski) operasyonel
+   profilleri kökten farklı -- tek fonksiyona gömmek bu farkı gizlerdi.
+2. **`AssetCandidate.prompt`** (yeni, opsiyonel alan) -- `search_terms`
+   (stok arama anahtar kelimesi) yerine `shot.description` (tam betimleyici
+   cümle) AI prompt'u olarak kullanılıyor; ikisi birbirinin yerine geçemez.
+3. **`default_pipeline.py` stage 8 dallanması**: `video_source ==
+   "ai_generated"` ise `ai_video_generator.generate_ai_clips()`, değilse
+   mevcut `asset_downloader.download_assets()` -- her stok kaynak (pexels/
+   pixabay/coverr/local) birebir eskisi gibi çalışıyor. Kling'in
+   `duration` parametresi sadece "5"/"10" kabul ettiği için (bizim
+   scene_duration'larımız 5.0/8.0), 8s sahne "10"a YUKARI yuvarlanıyor
+   (aşağı yuvarlarsak repeated-frame riski -- `_ASSET_DOWNLOAD_DURATION_
+   SAFETY_MULTIPLIER`'ın stok tarafı için çözdüğü aynı sorun).
+4. **`on_substage_progress(completed, total)`** (yeni, opsiyonel
+   `run_pipeline()` parametresi) -- 12 aşamalık sabit mesaj, ~6dk/klip süren
+   bu aşamada dakikalarca donuk kalmasın diye "N/M klip tamamlandı" canlı
+   göstergesi (Modernizasyon B'nin doğal uzantısı).
+5. **`AIVideoGenerationError`** (yapılandırılmış özel exception) -- hangi
+   sahnenin neden başarısız olduğunu (`failures`) VE zaten üretilmiş/
+   ücretlendirilmiş klipleri (`completed_paths`) taşıyor. **Sessiz stok
+   fallback YOK** (kullanıcının kendi ADIM 0/geçmiş-ders talimatına göre) --
+   webui net bir hata + "Stok Video'ya çevirip tekrar deneyin" rehberliği
+   gösteriyor. **Bilinçli kapsam sınırlaması:** otomatik/tek-tıkla
+   sahne-bazlı retry (kısmi pipeline resume) v1'e DAHİL EDİLMEDİ -- böyle
+   bir altyapı (belirli bir aşamadan devam etme) bu kod tabanında hiçbir
+   yerde yok, şimdi eklemek riski/kapsamı ciddi büyütürdü. Gelecekte
+   değerlendirilebilir bir iyileştirme olarak not düşülüyor.
+6. **`film_highlights` telif/kişilik-hakları koruması**: AI-video prompt'u
+   bu kategori için ek bir talimatla ("gerçek oyuncu/kamu figürünün
+   görünüşünü yeniden üretmeye çalışma") genişletildi -- bu kategorinin
+   narration için zaten sahip olduğu "gerçek diyalog asla alıntılama"
+   korumasıyla aynı prensip, yeni AI-video yüzeyine taşındı.
+7. **webui**: Documentary Studio'da **ilk kez** bir Video Source seçici
+   (`Stok Görüntü` varsayılan/değişmedi, `AI Üretimi` opt-in). Maliyet
+   şeffaflığı `publisher.py`'nin "geri alınamaz/ücretli eylem -> manuel
+   onay" ilkesiyle tutarlı, hatta daha erken (maliyet üretimin KENDİSİ
+   sırasında oluşuyor): tahmini maliyet + "tahmindir, kesin fatura değil"
+   uyarısı + onay kutusu olmadan buton aktifleşmiyor. fal.ai
+   yapılandırılmamışsa net bir uyarı gösteriliyor.
+
+### Bilinen sınırlama (dürüstçe not düşülüyor, düzeltilmedi)
+
+`shot.description` (AI prompt kaynağı) belgeselin kendi dilinde üretiliyor
+(ör. Türkçe bir üretimde description Türkçe) -- `search_terms` gibi
+İngilizceye zorlanmıyor. Kling gibi modellerin çok-dilli prompt kalitesi
+İngilizceden düşük olabilir. Bu oturumda bir çeviri adımı EKLENMEDİ (kapsam
+dışı, plan onayında da yoktu) -- gerçek API doğrulamasında kalite gözden
+geçirilecek, gerekirse ayrı bir iyileştirme olarak ele alınabilir.
+
+### Doğrulama durumu
+
+- **Test:** 6 commit, her biri kendi mock'lu testleriyle (fal_video: 16,
+  ai_video_generator: 8, asset_generator: +4, default_pipeline: +1,
+  webui: +5 = toplam **+34 yeni test**). Tam suite: **747 passed, 11
+  skipped** (713'ten +34, sıfır regresyon boyunca). `ruff` her commit'te
+  temiz.
+- **Gerçek tarayıcı doğrulaması** (headless Chromium, geçici port 8577,
+  production'a dokunulmadı): Video Source seçici doğru render oluyor,
+  "AI Üretimi" seçilince (fal.ai yapılandırılmamışken) uyarı + devre dışı
+  buton doğru gösteriliyor, konsol/traceback hatası yok.
+- **GERÇEK fal.ai API çağrısı henüz yapılmadı.** `config.toml`'da
+  `fal_api_key` hâlâ yok (doğrulandı: dosyada `fal`/`Fal` içeren hiçbir
+  satır yok) -- kullanıcı ekleyecek. Kullanıcının kendi talimatı gereği,
+  gerçek/ücretli bir API çağrısından (tek, ucuz bir test klibi bile olsa)
+  önce açık onay bekleniyor -- bu adım kasıtlı olarak durduruldu.
