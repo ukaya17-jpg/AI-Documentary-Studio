@@ -24,6 +24,7 @@ from app.models.schema import VideoAspect, VideoConcatMode
 from app.departments.creative import scene_planner, script_generator, storyboard_generator
 from app.departments.growth import seo_generator, thumbnail_generator
 from app.departments.production import (
+    ai_video_generator,
     asset_downloader,
     asset_generator,
     audio_renderer,
@@ -49,6 +50,23 @@ TOTAL_STAGES = 12
 # duration estimate instead of the raw (frequently-undershot) scene total.
 # Worst case if this is too generous is a few extra free Pexels downloads.
 _ASSET_DOWNLOAD_DURATION_SAFETY_MULTIPLIER = 2.0
+
+# Real-money AI-generated video clips (fal.ai/Kling) -- opt-in only, must be
+# explicitly selected via video_source, default stock behavior (pexels/
+# pixabay/coverr/local) is completely unaffected. See PROGRESS.md for the
+# full architectural rationale from planning.
+AI_GENERATED_VIDEO_SOURCE = "ai_generated"
+
+
+def _kling_duration_for_scene_seconds(scene_duration: float) -> str:
+    """Kling's duration parameter only accepts "5" or "10" (seconds) -- our
+    own scene-duration spec (5.0 for short pacing, 8.0 for long) doesn't map
+    exactly onto that, so anything over 5s rounds UP to "10" rather than
+    under-requesting and needing the timeline builder to pad/loop the gap
+    (the repeated-frame bug _ASSET_DOWNLOAD_DURATION_SAFETY_MULTIPLIER above
+    was introduced to avoid, for the stock-footage path).
+    """
+    return "5" if scene_duration <= 5.0 else "10"
 
 
 def _save_project_snapshot(project: DocumentaryProject) -> None:
@@ -87,6 +105,7 @@ def run_pipeline(
     bgm_file: str = "",
     bgm_volume: float = 0.2,
     on_stage_change: Callable[[int, str], None] | None = None,
+    on_substage_progress: Callable[[int, int], None] | None = None,
 ) -> DocumentaryProject:
     """Run the full Intent->...->VideoRenderer pipeline for one documentary.
 
@@ -96,6 +115,14 @@ def run_pipeline(
     live progress indicator. `None` (the default) preserves every existing
     caller's behavior exactly: this hook does not change what the pipeline
     does, only what it reports while doing it.
+
+    `on_substage_progress`, if given, is called as
+    `on_substage_progress(completed, total)` during stage 8 ONLY when
+    `video_source` is `AI_GENERATED_VIDEO_SOURCE` -- a single stage-level
+    message ("asset download") isn't enough feedback when that stage can
+    take many minutes (each AI clip takes ~6min to generate). Unused (never
+    called) for every stock video_source, exactly like on_stage_change,
+    `None` changes nothing.
     """
     resolved_pacing = resolve_pacing(pacing)
     # Unlike tone, format doesn't depend on topic_category -- it can be
@@ -175,29 +202,42 @@ def run_pipeline(
         _save_project_snapshot(project)
 
         stage(7, "asset")
-        project.asset_plan = asset_generator.build_asset_plan(project.storyboard, provider=video_source)
+        project.asset_plan = asset_generator.build_asset_plan(
+            project.storyboard, provider=video_source, topic_category=project.topic_category
+        )
         _save_project_snapshot(project)
 
         stage(8, "asset download")
         aspect_enum = VideoAspect(video_aspect)
         max_clip_duration = int(PACING_SCENE_SPEC[resolved_pacing]["scene_duration"])
-        # TTS hasn't run yet at this point, so the scene duration budget is used as
-        # the audio-duration estimate for how much footage to fetch -- padded by
-        # _ASSET_DOWNLOAD_DURATION_SAFETY_MULTIPLIER since real narration audio
-        # commonly runs much longer than this estimate (see the constant's
-        # docstring above for the measured numbers).
-        estimated_footage_duration = (
-            project.scene_plan.total_duration * _ASSET_DOWNLOAD_DURATION_SAFETY_MULTIPLIER
-        )
-        project.asset_plan = asset_downloader.download_assets(
-            project.asset_plan,
-            task_id=project.project_id,
-            audio_duration=estimated_footage_duration,
-            video_source=video_source,
-            video_aspect=aspect_enum,
-            video_concat_mode=VideoConcatMode.random,
-            max_clip_duration=max_clip_duration,
-        )
+        if video_source == AI_GENERATED_VIDEO_SOURCE:
+            project.asset_plan = ai_video_generator.generate_ai_clips(
+                project.asset_plan,
+                task_id=project.project_id,
+                aspect_ratio=video_aspect,
+                duration=_kling_duration_for_scene_seconds(
+                    PACING_SCENE_SPEC[resolved_pacing]["scene_duration"]
+                ),
+                on_substage_progress=on_substage_progress,
+            )
+        else:
+            # TTS hasn't run yet at this point, so the scene duration budget is used as
+            # the audio-duration estimate for how much footage to fetch -- padded by
+            # _ASSET_DOWNLOAD_DURATION_SAFETY_MULTIPLIER since real narration audio
+            # commonly runs much longer than this estimate (see the constant's
+            # docstring above for the measured numbers).
+            estimated_footage_duration = (
+                project.scene_plan.total_duration * _ASSET_DOWNLOAD_DURATION_SAFETY_MULTIPLIER
+            )
+            project.asset_plan = asset_downloader.download_assets(
+                project.asset_plan,
+                task_id=project.project_id,
+                audio_duration=estimated_footage_duration,
+                video_source=video_source,
+                video_aspect=aspect_enum,
+                video_concat_mode=VideoConcatMode.random,
+                max_clip_duration=max_clip_duration,
+            )
         _save_project_snapshot(project)
 
         stage(9, "audio (TTS)")

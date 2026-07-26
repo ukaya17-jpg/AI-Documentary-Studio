@@ -236,9 +236,12 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
             ],
         )
 
-        # asset_generator receives the storyboard.
-        asset_gen_args, _ = self.started["asset_gen"].call_args
+        # asset_generator receives the storyboard and the resolved topic
+        # category (needed for the film_highlights AI-video likeness guard --
+        # harmless for every other category/provider).
+        asset_gen_args, asset_gen_kwargs = self.started["asset_gen"].call_args
         self.assertIs(asset_gen_args[0], self.storyboard)
+        self.assertEqual(asset_gen_kwargs["topic_category"], TopicCategory.history)
 
         # asset_downloader receives the asset plan and a safety-padded scene
         # budget as the audio-duration estimate (TTS hasn't run yet at that
@@ -307,6 +310,45 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         self.assertEqual(thumb_b_args[0], self.timeline.combined_video_path)
         self.assertIs(thumb_b_args[1], self.seo)
         self.assertEqual(thumb_b_args[2], "proj-1")
+
+    def test_ai_generated_video_source_calls_ai_video_generator_not_asset_downloader(self):
+        # Opt-in AI-generated video clips (fal.ai/Kling) branch at stage 8:
+        # asset_downloader (the free/instant stock path) must not run at
+        # all, and ai_video_generator gets the resolved aspect_ratio/duration
+        # plus the on_substage_progress passthrough -- a single stage-level
+        # message isn't enough feedback for a stage that can take many
+        # minutes (real fal.ai generation time, not stock-download seconds).
+        progress_calls = []
+        with patch(
+            "app.pipeline.default_pipeline.ai_video_generator.generate_ai_clips",
+            return_value=self.downloaded_asset_plan,
+        ) as mock_generate_ai_clips:
+            project = default_pipeline.run_pipeline(
+                project_id="proj-1",
+                topic="The Fall of Rome",
+                language="auto",
+                pacing=Pacing.long,
+                voice_name="en-US-JennyNeural",
+                video_source="ai_generated",
+                video_aspect="9:16",
+                on_substage_progress=lambda done, total: progress_calls.append((done, total)),
+            )
+
+        self.assertIs(project.asset_plan, self.downloaded_asset_plan)
+        self.started["asset_dl"].assert_not_called()
+        mock_generate_ai_clips.assert_called_once()
+        args, kwargs = mock_generate_ai_clips.call_args
+        self.assertIs(args[0], self.asset_plan)
+        self.assertEqual(kwargs["task_id"], "proj-1")
+        self.assertEqual(kwargs["aspect_ratio"], "9:16")
+        # Pacing.long's scene_duration is 8.0s -- Kling only accepts "5" or
+        # "10", so this must round UP to "10", not silently truncate to "5"
+        # and leave every clip too short for its scene.
+        self.assertEqual(kwargs["duration"], "10")
+        # Actually invoke the passed-through callback to prove it's the same
+        # one given to run_pipeline(), not a lost/dropped reference.
+        kwargs["on_substage_progress"](3, 7)
+        self.assertEqual(progress_calls, [(3, 7)])
 
     def test_on_stage_change_called_for_all_12_stages_in_order(self):
         # Modernizasyon B: on_stage_change purely additive, must not change
