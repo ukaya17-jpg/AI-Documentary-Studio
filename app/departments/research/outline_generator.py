@@ -1,6 +1,6 @@
 """Outline stage: turn a topic + research plan into a structured documentary outline."""
 
-from app.config.profile_dimensions import Tone
+from app.config.profile_dimensions import PACING_OUTLINE_SECTION_RANGE, Pacing, Tone
 from app.config.templates import get_template
 from app.models.outline import Outline, OutlineSection
 from app.models.research_plan import ResearchPlan
@@ -28,6 +28,7 @@ def build_outline_prompt(
     research_plan: ResearchPlan | None = None,
     tone: Tone | None = None,
     language: str = "",
+    pacing: Pacing = Pacing.short,
 ) -> str:
     template = get_template(tone)
     prompt = (
@@ -43,16 +44,17 @@ def build_outline_prompt(
         prompt += f"\n\nResearch brief:\n{brief}"
     if language and language != "auto":
         prompt += f"\n\nRespond in language: {language}"
-    prompt += """
+    min_sections, max_sections = PACING_OUTLINE_SECTION_RANGE[pacing]
+    prompt += f"""
 
 Produce a documentary outline as a single JSON object with exactly this shape:
-{
+{{
   "title": "...",
   "hook": "...",
-  "sections": [{"title": "...", "summary": "...", "key_points": ["..."], "importance": 1}],
+  "sections": [{{"title": "...", "summary": "...", "key_points": ["..."], "importance": 1}}],
   "closing": "..."
-}
-Produce 4-7 sections ordered narratively. Rate each section's "importance" from
+}}
+Produce {min_sections}-{max_sections} sections ordered narratively. Rate each section's "importance" from
 1 (skippable) to 5 (essential) so a downstream step can trim sections for a
 shorter cut. Do not include any other text."""
     return prompt
@@ -89,8 +91,9 @@ def generate_outline(
     research_plan: ResearchPlan | None = None,
     tone: Tone | None = None,
     language: str = "",
+    pacing: Pacing = Pacing.short,
 ) -> Outline:
-    prompt = build_outline_prompt(topic, research_plan, tone, language)
+    prompt = build_outline_prompt(topic, research_plan, tone, language, pacing)
     data = generate_json(prompt)
     return Outline(
         title=str(data.get("title", "")).strip() or topic,

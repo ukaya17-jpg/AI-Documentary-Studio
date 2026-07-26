@@ -431,6 +431,11 @@
     "Documentary AI Video Scene": "Szene",
     "Documentary AI Video Partial Success": "Hinweis",
     "Documentary AI Video Clips Generated Suffix": "Clip(s) wurden vor diesem Fehler bereits erstellt (und in Rechnung gestellt), aber die Dokumentation konnte nicht abgeschlossen werden.",
-    "Documentary AI Video Retry Guidance": "Sie können die Videoquelle oben auf Stockmaterial umstellen und erneut auf Generate Documentary klicken."
+    "Documentary AI Video Retry Guidance": "Sie können die Videoquelle oben auf Stockmaterial umstellen und erneut auf Generate Documentary klicken.",
+    "Documentary Aspect Ratio": "Seitenverhältnis",
+    "Documentary Aspect Ratio: 9:16": "9:16 (Hochformat / Shorts)",
+    "Documentary Aspect Ratio: 16:9": "16:9 (Querformat)",
+    "Pacing: extended": "Erweitert (10+ Min)",
+    "Documentary AI Video Extended Pacing Warning": "Die Szenen des erweiterten Tempos (je 30s) sind viel länger, als ein einzelner KI-Clip (max. 10s) abdecken kann -- erwarten Sie deutlich mehr wiederholte Einzelbilder pro Szene als bei Stockmaterial oder kürzerem Tempo."
   }
 }

@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from app.config.profile_dimensions import Tone, TopicCategory, resolve_tone
+from app.config.profile_dimensions import Pacing, Tone, TopicCategory, resolve_tone
 from app.models.research_plan import ResearchPlan, ResearchQuestion
 from app.departments.research import outline_generator
 
@@ -15,6 +15,23 @@ class TestBuildOutlinePrompt(unittest.TestCase):
         prompt = outline_generator.build_outline_prompt("The Fall of Rome", tone=Tone.credibility)
         self.assertIn("The Fall of Rome", prompt)
         self.assertIn("chronological", prompt.lower())
+
+    def test_defaults_to_4_7_sections_when_no_pacing_given(self):
+        prompt = outline_generator.build_outline_prompt("The Fall of Rome")
+        self.assertIn("Produce 4-7 sections", prompt)
+
+    def test_short_and_long_pacing_both_request_4_7_sections(self):
+        # GÖREV 2 (TAM OTONOMİ): pacing-farkında hâle getirilmeden ÖNCEki
+        # sabit-kodlu davranışla birebir aynı -- regresyon garantisi.
+        for pacing in (Pacing.short, Pacing.long):
+            prompt = outline_generator.build_outline_prompt("Topic", pacing=pacing)
+            self.assertIn("Produce 4-7 sections", prompt)
+
+    def test_extended_pacing_requests_many_more_sections(self):
+        # 20 sahnelik bir extended scene_plan'a yetecek kadar outline
+        # section'ı olmadan scene_planner'ın seçebileceği bir şey kalmaz.
+        prompt = outline_generator.build_outline_prompt("Topic", pacing=Pacing.extended)
+        self.assertIn("Produce 18-24 sections", prompt)
 
     def test_includes_research_brief_when_present(self):
         plan = ResearchPlan(

@@ -431,6 +431,11 @@
     "Documentary AI Video Scene": "Adegan",
     "Documentary AI Video Partial Success": "Catatan",
     "Documentary AI Video Clips Generated Suffix": "klip sudah dibuat (dan ditagih) sebelum kegagalan ini, tetapi dokumenter tidak dapat diselesaikan.",
-    "Documentary AI Video Retry Guidance": "Anda dapat mengubah Sumber Video di atas ke Rekaman Stok dan klik Generate Documentary lagi."
+    "Documentary AI Video Retry Guidance": "Anda dapat mengubah Sumber Video di atas ke Rekaman Stok dan klik Generate Documentary lagi.",
+    "Documentary Aspect Ratio": "Rasio Aspek",
+    "Documentary Aspect Ratio: 9:16": "9:16 (Vertikal / Shorts)",
+    "Documentary Aspect Ratio: 16:9": "16:9 (Horizontal)",
+    "Pacing: extended": "Diperpanjang (10+ menit)",
+    "Documentary AI Video Extended Pacing Warning": "Adegan pada pacing diperpanjang (30 detik masing-masing) jauh lebih panjang daripada yang bisa dicakup satu klip AI (maks. 10 detik) -- perkirakan lebih banyak frame yang berulang per adegan dibandingkan dengan Rekaman Stok atau pacing yang lebih pendek."
   }
 }

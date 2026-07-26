@@ -431,6 +431,11 @@
     "Documentary AI Video Scene": "Cena",
     "Documentary AI Video Partial Success": "Nota",
     "Documentary AI Video Clips Generated Suffix": "clipe(s) já foram gerados (e cobrados) antes desta falha, mas o documentário não pôde ser concluído.",
-    "Documentary AI Video Retry Guidance": "Você pode alterar a Fonte de Vídeo acima para Imagens de Banco e clicar em Generate Documentary novamente."
+    "Documentary AI Video Retry Guidance": "Você pode alterar a Fonte de Vídeo acima para Imagens de Banco e clicar em Generate Documentary novamente.",
+    "Documentary Aspect Ratio": "Proporção",
+    "Documentary Aspect Ratio: 9:16": "9:16 (Vertical / Shorts)",
+    "Documentary Aspect Ratio: 16:9": "16:9 (Horizontal)",
+    "Pacing: extended": "Estendido (10+ min)",
+    "Documentary AI Video Extended Pacing Warning": "As cenas do ritmo estendido (30s cada) são muito mais longas do que um único clipe de IA (máx. 10s) pode cobrir -- espere consideravelmente mais quadros repetidos por cena do que com Imagens de Banco ou ritmo mais curto."
   }
 }

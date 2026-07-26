@@ -162,6 +162,7 @@ def run_pipeline(
             research_plan=project.research_plan,
             tone=resolved_tone,
             language=project.language,
+            pacing=resolved_pacing,
         )
         _save_project_snapshot(project)
 

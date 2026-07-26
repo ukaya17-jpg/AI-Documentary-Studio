@@ -458,6 +458,11 @@
     "Documentary AI Video Scene": "Scene",
     "Documentary AI Video Partial Success": "Note",
     "Documentary AI Video Clips Generated Suffix": "clip(s) were already generated (and billed) before this failure, but the documentary could not be completed.",
-    "Documentary AI Video Retry Guidance": "You can switch Video Source to Stock Footage above and click Generate Documentary again."
+    "Documentary AI Video Retry Guidance": "You can switch Video Source to Stock Footage above and click Generate Documentary again.",
+    "Documentary Aspect Ratio": "Aspect Ratio",
+    "Documentary Aspect Ratio: 9:16": "9:16 (Vertical / Shorts)",
+    "Documentary Aspect Ratio: 16:9": "16:9 (Horizontal)",
+    "Pacing: extended": "Extended (10+ min)",
+    "Documentary AI Video Extended Pacing Warning": "Extended pacing's scenes (30s each) are much longer than a single AI clip (max 10s) can cover -- expect noticeably more repeated frames per scene than with Stock Footage or shorter pacing."
   }
 }

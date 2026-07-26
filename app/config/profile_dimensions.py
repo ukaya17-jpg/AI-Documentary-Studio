@@ -84,6 +84,13 @@ class Format(str, Enum):
 class Pacing(str, Enum):
     short = "short"
     long = "long"
+    # GÖREV 2 (TAM OTONOMİ): uzun-form video (10+ dakika). "Daha fazla sahne"
+    # (short'un 4 sahnesinden) VE "sahne başına daha uzun anlatım" (short'un
+    # 5sn'sinden) arasında bir orta yol seçildi -- ne LLM'e tek seferde 60+
+    # sahne üretme yükü bindiriliyor (kalite riski), ne de tek bir sahneye
+    # 60sn+ kesintisiz anlatım yükleniyor (monoton akış riski, GROWTH_
+    # GUIDANCE'ın "her birkaç sahnede yeni detay" ilkesiyle çelişirdi).
+    extended = "extended"
 
 
 class Language(str, Enum):
@@ -99,9 +106,23 @@ class Language(str, Enum):
 
 
 # Scene count / per-scene duration budget used by ScenePlanner, keyed by pacing.
+# extended: 20 scenes x 30s = 600s (10 minutes) exactly.
 PACING_SCENE_SPEC = {
     Pacing.short: {"scene_count": 4, "scene_duration": 5.0},
     Pacing.long: {"scene_count": 7, "scene_duration": 8.0},
+    Pacing.extended: {"scene_count": 20, "scene_duration": 30.0},
+}
+
+# outline_generator asks the LLM for a range of sections, not an exact count,
+# so scene_planner's importance-based trimming has real material to work
+# with. short/long values are the EXACT hardcoded range outline_generator
+# used before this became pacing-aware -- byte-identical behavior, zero
+# regression. extended needs a much wider range since its scene_count (20)
+# is far beyond what a single "4-7" outline could ever supply.
+PACING_OUTLINE_SECTION_RANGE = {
+    Pacing.short: (4, 7),
+    Pacing.long: (4, 7),
+    Pacing.extended: (18, 24),
 }
 
 

@@ -66,6 +66,24 @@ class TestPlanScenes(unittest.TestCase):
         plan = scene_planner.plan_scenes(outline, Pacing.short)
         self.assertEqual(plan.total_duration, 20.0)
 
+    def test_extended_pacing_yields_twenty_scenes_of_thirty_seconds(self):
+        # GÖREV 2 (TAM OTONOMİ): uzun-form video -- scene_planner'a HİÇBİR
+        # kod değişikliği gerekmedi (zaten tamamen pacing/outline-agnostic),
+        # sadece outline'ın yeterince section sağlaması gerekiyordu.
+        outline = _outline_with_sections(list(range(1, 6)) * 5)  # 25 section
+        plan = scene_planner.plan_scenes(outline, Pacing.extended)
+        self.assertEqual(len(plan.scenes), 20)
+        self.assertTrue(all(s.duration_seconds == 30.0 for s in plan.scenes))
+        self.assertEqual(plan.total_duration, 600.0)
+
+    def test_extended_pacing_uses_fewer_scenes_when_outline_is_short(self):
+        # 20 hedeflense de outline daha az section sağlarsa (ör. LLM alt
+        # sınırın altında kaldıysa) mevcut davranış korunuyor -- gerçekte
+        # olabilecek kaç section varsa o kadar sahne.
+        outline = _outline_with_sections([3, 4, 5])
+        plan = scene_planner.plan_scenes(outline, Pacing.extended)
+        self.assertEqual(len(plan.scenes), 3)
+
 
 if __name__ == "__main__":
     unittest.main()

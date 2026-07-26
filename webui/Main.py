@@ -4409,7 +4409,7 @@ def _render_documentary_studio_page():
                     st.session_state.pop("documentary_idea_suggestion", None)
                     st.rerun()
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         language = st.selectbox(
             tr("Documentary Language"),
@@ -4434,6 +4434,20 @@ def _render_documentary_studio_page():
             key="documentary_format",
             help=tr("Documentary Format Help"),
             format_func=_documentary_format_label,
+        )
+    with col4:
+        # GÖREV 2 (TAM OTONOMİ): Documentary Studio'da run_pipeline() zaten
+        # bir video_aspect parametresi alıyordu ama hiç webui seçeneği yoktu
+        # (her zaman sabit varsayılan "9:16") -- VideoAspect enum'ı 16:9'u
+        # zaten resolution eşlemesiyle (1920x1080) destekliyordu, sadece
+        # hiç yüzeye çıkarılmamıştı. "1:1" (square) kullanıcı tarafından
+        # istenmediği için bilinçli olarak eklenmedi (kapsam dışı).
+        video_aspect = st.selectbox(
+            tr("Documentary Aspect Ratio"),
+            options=[VideoAspect.portrait.value, VideoAspect.landscape.value],
+            index=0,
+            key="documentary_video_aspect",
+            format_func=lambda v: tr(f"Documentary Aspect Ratio: {v}"),
         )
 
     # Kategori ve Ton, seçim ANINDA kısa, çevrilmiş bir stil önizlemesi
@@ -4499,6 +4513,13 @@ def _render_documentary_studio_page():
             estimated_cost = _estimate_ai_video_cost_usd(pacing)
             st.info(f"{tr('Documentary AI Video Cost Estimate')}: ~${estimated_cost:.2f}")
             st.caption(tr("Documentary AI Video Cost Disclaimer"))
+            if pacing == Pacing.extended.value:
+                # GÖREV 2 (TAM OTONOMİ, dürüst bir sınırlama): extended
+                # pacing'in 30sn'lik sahneleri Kling'in azami "10"sn tier'ını
+                # ciddi şekilde aşıyor -- her sahne için tek bir AI klibi,
+                # sahnenin geri kalanını dolduramayıp döngüye girecek (bilinen
+                # "tekrar eden kare" davranışı, bu ölçekte tam çözülemiyor).
+                st.warning(tr("Documentary AI Video Extended Pacing Warning"))
             ai_video_cost_confirmed = st.checkbox(
                 tr("Documentary AI Video Cost Confirm"),
                 key="documentary_ai_video_cost_confirmed",
@@ -4559,6 +4580,7 @@ def _render_documentary_studio_page():
                     pacing=pacing,
                     voice_name=voice_name.strip(),
                     video_source=resolved_video_source,
+                    video_aspect=video_aspect,
                     on_stage_change=_update_documentary_stage_status,
                     on_substage_progress=_update_documentary_ai_video_progress,
                 )

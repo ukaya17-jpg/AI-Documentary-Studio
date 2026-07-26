@@ -200,10 +200,13 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         self.assertEqual(research_kwargs["tone"], Tone.credibility)
 
         # outline_generator receives the research plan produced by research_planner,
-        # plus the same resolved tone.
+        # the same resolved tone, and the resolved pacing (GÖREV 2 -- needed
+        # so extended pacing's outline actually requests enough sections for
+        # its 20-scene budget instead of the short/long default "4-7").
         _, outline_kwargs = self.started["outline"].call_args
         self.assertIs(outline_kwargs["research_plan"], self.research_plan)
         self.assertEqual(outline_kwargs["tone"], Tone.credibility)
+        self.assertEqual(outline_kwargs["pacing"], Pacing.short)
 
         # scene_planner receives the outline and the resolved pacing.
         scene_args, scene_kwargs = self.started["scene"].call_args

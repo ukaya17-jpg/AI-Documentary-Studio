@@ -6,6 +6,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from app.config.profile_dimensions import (
     DEFAULT_TONE_BY_CATEGORY,
+    PACING_OUTLINE_SECTION_RANGE,
     PACING_SCENE_SPEC,
     Format,
     Pacing,
@@ -47,6 +48,27 @@ class TestProfileDimensions(unittest.TestCase):
         self.assertIn(Pacing.long, PACING_SCENE_SPEC)
         self.assertEqual(PACING_SCENE_SPEC[Pacing.short]["scene_count"], 4)
         self.assertEqual(PACING_SCENE_SPEC[Pacing.long]["scene_count"], 7)
+
+    def test_extended_pacing_totals_ten_minutes(self):
+        # GÖREV 2 (TAM OTONOMİ): uzun-form video -- 20 sahne x 30s = 600s.
+        spec = PACING_SCENE_SPEC[Pacing.extended]
+        self.assertEqual(spec["scene_count"] * spec["scene_duration"], 600.0)
+
+    def test_resolve_pacing_accepts_extended(self):
+        self.assertEqual(resolve_pacing("extended"), Pacing.extended)
+
+    def test_outline_section_range_covers_every_pacing(self):
+        for pacing in Pacing:
+            self.assertIn(pacing, PACING_OUTLINE_SECTION_RANGE)
+        # short/long: outline_generator'ın pacing-farkında olmadan önceki
+        # sabit-kodlu "4-7" metniyle birebir aynı -- regresyon garantisi.
+        self.assertEqual(PACING_OUTLINE_SECTION_RANGE[Pacing.short], (4, 7))
+        self.assertEqual(PACING_OUTLINE_SECTION_RANGE[Pacing.long], (4, 7))
+        # extended: scene_count=20'nin altında kalmaması için geniş bir üst
+        # sınır (importance-bazlı elemeye yer bırakıyor).
+        min_sections, max_sections = PACING_OUTLINE_SECTION_RANGE[Pacing.extended]
+        self.assertGreaterEqual(min_sections, PACING_SCENE_SPEC[Pacing.extended]["scene_count"] - 2)
+        self.assertGreater(max_sections, min_sections)
 
     def test_default_tone_by_category_matches_original_hard_locked_mapping(self):
         # This mapping IS the regression contract: resolve_tone() with no

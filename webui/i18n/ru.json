@@ -431,6 +431,11 @@
     "Documentary AI Video Scene": "Сцена",
     "Documentary AI Video Partial Success": "Примечание",
     "Documentary AI Video Clips Generated Suffix": "клип(ы) уже были созданы (и оплачены) до этой ошибки, но документальный фильм не удалось завершить.",
-    "Documentary AI Video Retry Guidance": "Вы можете переключить Источник видео выше на Стоковые кадры и снова нажать Generate Documentary."
+    "Documentary AI Video Retry Guidance": "Вы можете переключить Источник видео выше на Стоковые кадры и снова нажать Generate Documentary.",
+    "Documentary Aspect Ratio": "Соотношение сторон",
+    "Documentary Aspect Ratio: 9:16": "9:16 (Вертикально / Shorts)",
+    "Documentary Aspect Ratio: 16:9": "16:9 (Горизонтально)",
+    "Pacing: extended": "Расширенный (10+ мин)",
+    "Documentary AI Video Extended Pacing Warning": "Сцены расширенного темпа (по 30с каждая) намного длиннее, чем может покрыть один клип ИИ (макс. 10с) -- ожидайте заметно больше повторяющихся кадров на сцену, чем при использовании стоковых кадров или более короткого темпа."
   }
 }
