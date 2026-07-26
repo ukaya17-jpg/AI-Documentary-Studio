@@ -65,6 +65,36 @@ class TestBuildEngagementPrompt(unittest.TestCase):
         self.assertIn('"Why Rome Really Fell"', prompt)
         self.assertIn("genuinely different from the main title", prompt)
 
+    def test_omits_verified_facts_block_when_no_key_facts_given(self):
+        prompt = seo_generator.build_engagement_prompt(
+            "The Fall of Rome", Script(full_text="Rome fell.")
+        )
+        self.assertNotIn("Verified facts", prompt)
+
+    def test_includes_verified_facts_and_time_scale_instruction_when_given(self):
+        # Truva prod bugı: script sayısal bir zaman ölçeği vermiyordu, SEO da
+        # "yüzyıllar" diye uydurdu -- oysa research_plan.key_facts doğru
+        # ölçeği ("~3.000 yıl") zaten biliyordu. Bu test, o fact buraya
+        # verildiğinde prompt'ta gerçekten göründüğünü ve model'e ölçek
+        # tutarlılığı talimatı verildiğini kilitliyor.
+        prompt = seo_generator.build_engagement_prompt(
+            "Troy",
+            Script(full_text="Layers of time rise here."),
+            key_facts=[
+                "The site has roughly 3,000 years of continuous settlement.",
+                "  ",
+                "",
+            ],
+        )
+        self.assertIn("Verified facts", prompt)
+        self.assertIn(
+            "roughly 3,000 years of continuous settlement", prompt
+        )
+        self.assertIn("century", prompt)
+        self.assertIn("millennium", prompt)
+        # boş/whitespace fact'ler filtrelenmeli
+        self.assertNotIn("- \n", prompt)
+
 
 class TestGenerateEngagementMetadata(unittest.TestCase):
     @patch("app.departments.growth.seo_generator.generate_json")
@@ -160,6 +190,7 @@ class TestGenerateSeoMetadata(unittest.TestCase):
             video_script="Rome fell in 476 AD.",
             language="en",
             platform="youtube_shorts",
+            key_facts=None,
         )
         # generate_engagement_metadata'ya gönderilen prompt'un, social_
         # metadata'nın ürettiği başlığı context olarak içerdiğini doğrula --
@@ -167,6 +198,36 @@ class TestGenerateSeoMetadata(unittest.TestCase):
         # düzeltmenin gerçekten uçtan uca bağlandığını kanıtlıyor.
         engagement_prompt = mock_generate_json.call_args[0][0]
         self.assertIn('main title is already: "The Fall of Rome"', engagement_prompt)
+
+    @patch("app.departments.growth.seo_generator.generate_json")
+    @patch("app.departments.growth.seo_generator.llm.generate_social_metadata")
+    def test_forwards_key_facts_to_both_social_metadata_and_engagement_calls(
+        self, mock_generate_social_metadata, mock_generate_json
+    ):
+        # Yüzyıl/binyıl grounding düzeltmesi: araştırma aşamasında doğrulanmış
+        # key_facts, hem caption/title'ı üreten paylaşılan
+        # generate_social_metadata çağrısına HEM DE title_variants/keywords'ü
+        # üreten generate_engagement_metadata çağrısına ulaşmalı -- ikisi de
+        # aynı script'ten (kendi başına sayısal bir zaman ölçeği vermeyebilir)
+        # bağımsız olarak yanlış bir ölçek uydurabilir.
+        mock_generate_social_metadata.return_value = {
+            "title": "T", "caption": "C", "hashtags": []
+        }
+        mock_generate_json.return_value = {}
+        facts = ["The site has roughly 3,000 years of continuous settlement."]
+        seo_generator.generate_seo_metadata(
+            "Troy", Script(full_text="Layers of time rise here."), key_facts=facts
+        )
+
+        mock_generate_social_metadata.assert_called_once_with(
+            video_subject="Troy",
+            video_script="Layers of time rise here.",
+            language="auto",
+            platform="youtube_shorts",
+            key_facts=facts,
+        )
+        engagement_prompt = mock_generate_json.call_args[0][0]
+        self.assertIn("roughly 3,000 years of continuous settlement", engagement_prompt)
 
     @patch("app.departments.growth.seo_generator.generate_json")
     @patch("app.departments.growth.seo_generator.llm.generate_social_metadata")

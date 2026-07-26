@@ -37,7 +37,11 @@ def generate_chapters(scene_plan: ScenePlan | None) -> list[str]:
 
 
 def build_engagement_prompt(
-    topic: str, script: Script, language: str = "", existing_title: str = ""
+    topic: str,
+    script: Script,
+    language: str = "",
+    existing_title: str = "",
+    key_facts: list[str] | None = None,
 ) -> str:
     # OTONOM KARAR (GÖREV 2, SEO Engine genişletmesi): title_variants/keywords
     # bilinçli olarak burada, MEVCUT engagement çağrısına eklendi --
@@ -52,6 +56,20 @@ def build_engagement_prompt(
         "to drive engagement, alternative title ideas, and broader SEO keywords."
         f'\n\nTopic: "{topic}"\n\nNarration:\n{script.full_text}'
     )
+    # OTONOM KARAR (yüzyıl/binyıl grounding düzeltmesi): storyboard'daki
+    # topic+key_facts[:3] deseniyle tutarlı -- script anlatımı sayısal bir
+    # zaman ölçeğini hiç vermeyebiliyor (bilinçli olarak şiirsel/genel
+    # kalabiliyor), araştırma aşamasında doğrulanmış facts burada olmazsa bu
+    # çağrı da script kadar belirsiz kalır.
+    facts = [str(f).strip() for f in (key_facts or []) if f and str(f).strip()]
+    if facts:
+        facts_lines = "\n".join(f"- {fact}" for fact in facts)
+        prompt += (
+            f"\n\nVerified facts:\n{facts_lines}\n"
+            "Verify time-scale words (e.g. \"century\" vs \"millennium\" vs "
+            "\"decade\") against these facts before writing -- do not restate "
+            "a different order of magnitude than what the facts establish."
+        )
     if existing_title:
         # OTONOM KARAR (gerçek API doğrulamasında bulundu): title ve
         # title_variants iki AYRI LLM çağrısından geliyor (generate_social_
@@ -84,11 +102,17 @@ Do not include any other text."""
 
 
 def generate_engagement_metadata(
-    topic: str, script: Script, language: str = "auto", existing_title: str = ""
+    topic: str,
+    script: Script,
+    language: str = "auto",
+    existing_title: str = "",
+    key_facts: list[str] | None = None,
 ) -> dict:
     try:
         data = generate_json(
-            build_engagement_prompt(topic, script, language, existing_title)
+            build_engagement_prompt(
+                topic, script, language, existing_title, key_facts=key_facts
+            )
         )
         return {
             "end_screen_suggestion": str(data.get("end_screen_suggestion", "")).strip(),
@@ -116,15 +140,21 @@ def generate_seo_metadata(
     language: str = "auto",
     platform: str = "youtube_shorts",
     scene_plan: ScenePlan | None = None,
+    key_facts: list[str] | None = None,
 ) -> SeoMetadata:
     result = llm.generate_social_metadata(
         video_subject=topic,
         video_script=script.full_text,
         language=language,
         platform=platform,
+        key_facts=key_facts,
     )
     engagement = generate_engagement_metadata(
-        topic, script, language, existing_title=result.get("title", "")
+        topic,
+        script,
+        language,
+        existing_title=result.get("title", ""),
+        key_facts=key_facts,
     )
     return SeoMetadata(
         title=result.get("title", ""),

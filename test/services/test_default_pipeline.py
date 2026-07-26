@@ -258,11 +258,24 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         self.assertIs(timeline_args[0], self.downloaded_asset_plan)
         self.assertIs(timeline_args[1], self.narration)
 
-        # seo_generator receives the topic, script, and scene plan (for chapters).
+        # seo_generator receives the topic, script, scene plan (for chapters),
+        # and the same bounded slice of research key_facts as storyboard --
+        # without this, the SEO caption/description has no grounding for
+        # facts the script itself may state only vaguely (e.g. a site's
+        # exact settlement timescale), and can invent a wrong one (real prod
+        # bug: caption said "centuries" when key_facts said "~3,000 years").
         seo_args, seo_kwargs = self.started["seo"].call_args
         self.assertEqual(seo_args[0], "The Fall of Rome")
         self.assertIs(seo_args[1], self.script)
         self.assertIs(seo_kwargs["scene_plan"], self.scene_plan)
+        self.assertEqual(
+            seo_kwargs["key_facts"],
+            [
+                "Rome was founded in 753 BC.",
+                "The Senate governed the Republic.",
+                "The empire split into east and west in 395 CE.",
+            ],
+        )
 
         # video_renderer receives the timeline and the narration track.
         video_args, video_kwargs = self.started["video"].call_args

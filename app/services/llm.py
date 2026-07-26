@@ -813,6 +813,7 @@ def build_social_metadata_prompt(
     video_script: str = "",
     language: str = DEFAULT_SOCIAL_LANGUAGE,
     platform: str = DEFAULT_SOCIAL_PLATFORM,
+    key_facts: list[str] | None = None,
 ) -> str:
     video_subject = _limit_social_text(
         video_subject, MAX_SOCIAL_SUBJECT_LENGTH, "video_subject"
@@ -824,6 +825,26 @@ def build_social_metadata_prompt(
     spec = SOCIAL_PLATFORMS[platform]
     label = SOCIAL_PLATFORM_LABELS.get(platform, platform)
     language_instruction = _social_language_instruction(language)
+
+    # OTONOM KARAR (SEO Engine -- yüzyıl/binyıl grounding düzeltmesi): bu
+    # parametre opsiyonel ve varsayılan None -- legacy tekil-video pipeline'ı
+    # (ResearchPlan/key_facts kavramı hiç olmayan) bunu hiç geçirmiyor, o
+    # yüzden davranışı hiç değişmiyor. Documentary Studio (seo_generator.py)
+    # araştırma aşamasında doğrulanmış key_facts'i buraya geçirerek, script'in
+    # kendisinde geçmeyen (ör. tam zaman ölçeği) ama araştırmada bilinen
+    # gerçekleri caption/title üretimine kadar taşıyor.
+    facts = [str(f).strip() for f in (key_facts or []) if f and str(f).strip()]
+    facts_block = ""
+    if facts:
+        facts_lines = "\n".join(f"- {fact}" for fact in facts)
+        facts_block = f"""
+
+### Verified Facts
+{facts_lines}
+Use these facts to keep the title/caption accurate. In particular, verify
+time-scale words (e.g. "century" vs "millennium" vs "decade") against these
+facts before writing -- do not restate a different order of magnitude than
+what the facts establish."""
 
     prompt = f"""
 # Role: Short-Video Social Media Copywriter
@@ -847,7 +868,7 @@ Write engaging publishing metadata for a short video that will be posted on {lab
 {video_subject}
 
 ### Video Script
-{video_script}
+{video_script}{facts_block}
 """.strip()
     return prompt
 
@@ -902,6 +923,7 @@ def generate_social_metadata(
     video_script: str = "",
     language: str = DEFAULT_SOCIAL_LANGUAGE,
     platform: str = DEFAULT_SOCIAL_PLATFORM,
+    key_facts: list[str] | None = None,
 ) -> dict:
     """
     生成短视频发布文案元数据。
@@ -923,6 +945,7 @@ def generate_social_metadata(
         video_script=video_script,
         language=language,
         platform=platform,
+        key_facts=key_facts,
     )
     logger.info(f"generating social metadata: platform={platform}, language={language}")
 

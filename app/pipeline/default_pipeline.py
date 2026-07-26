@@ -224,7 +224,11 @@ def run_pipeline(
 
         stage(11, "seo")
         project.seo = seo_generator.generate_seo_metadata(
-            topic, project.script, language=project.language, scene_plan=project.scene_plan
+            topic,
+            project.script,
+            language=project.language,
+            scene_plan=project.scene_plan,
+            key_facts=project.research_plan.key_facts[:3],
         )
         _save_project_snapshot(project)
 

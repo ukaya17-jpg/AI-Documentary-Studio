@@ -1384,6 +1384,34 @@ class TestSocialMetadata(unittest.TestCase):
 
         self.assertIn("TikTok", prompt)
 
+    def test_build_prompt_omits_verified_facts_block_when_key_facts_not_given(self):
+        # Legacy tekil-video pipeline'ı key_facts hiç geçirmiyor -- prompt
+        # eskisiyle birebir aynı kalmalı (regresyon yok).
+        prompt = llm.build_social_metadata_prompt(video_subject="Coffee tips")
+
+        self.assertNotIn("Verified Facts", prompt)
+
+    def test_build_prompt_includes_verified_facts_and_time_scale_instruction(self):
+        # Truva prod bugı: caption "yüzyıllar" dedi ama gerçek yerleşim süresi
+        # ~3.000 yıl (binyıllar) idi -- research_plan.key_facts bu doğru
+        # ölçeği zaten biliyordu ama bu prompt'a hiç ulaşmıyordu. Bu test, bir
+        # key_facts verildiğinde gerçekten prompt'ta göründüğünü ve ölçek
+        # tutarlılığı talimatının eklendiğini kilitliyor.
+        prompt = llm.build_social_metadata_prompt(
+            video_subject="Troy",
+            video_script="Layers of time rise here.",
+            key_facts=[
+                "The site has roughly 3,000 years of continuous settlement.",
+                "  ",
+                "",
+            ],
+        )
+
+        self.assertIn("Verified Facts", prompt)
+        self.assertIn("roughly 3,000 years of continuous settlement", prompt)
+        self.assertIn("century", prompt)
+        self.assertIn("millennium", prompt)
+
     def test_normalize_hashtags_from_string_dedupes_and_clamps(self):
         tags = llm._normalize_hashtags("#fyp fyp, trending #Trending viral", count=2)
 
@@ -1439,6 +1467,26 @@ class TestSocialMetadata(unittest.TestCase):
         self.assertEqual(result["caption"], "Save these three coffee tips.")
         self.assertEqual(len(result["hashtags"]), 8)
         self.assertEqual(result["hashtags"][0], "#shorts")
+
+    def test_generate_social_metadata_forwards_key_facts_to_prompt(self):
+        payload = '{"title":"T","caption":"C","hashtags":["#x"]}'
+        captured = {}
+        original_build = llm.build_social_metadata_prompt
+
+        def _spy(*args, **kwargs):
+            captured["key_facts"] = kwargs.get("key_facts")
+            return original_build(*args, **kwargs)
+
+        with patch.object(llm, "_generate_response", return_value=payload), patch.object(
+            llm, "build_social_metadata_prompt", side_effect=_spy
+        ):
+            llm.generate_social_metadata(
+                video_subject="Troy",
+                video_script="Layers of time.",
+                key_facts=["~3,000 years of settlement"],
+            )
+
+        self.assertEqual(captured["key_facts"], ["~3,000 years of settlement"])
 
     def test_request_model_defaults_to_auto_language_tiktok(self):
         body = VideoSocialMetadataRequest(video_subject="Test")

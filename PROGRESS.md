@@ -2477,3 +2477,61 @@ yapısal olarak yakalayamaz çünkü pytest her zaman taze bir process'te
 çalışır -- bu bir kod-doğruluğu sorunu değil, bir operasyon/deploy sorunu.
 Bundan sonra: her backend değişikliği push edildikten sonra `./deploy.sh`
 çalıştırılmalı.
+
+## Kalite düzeltmesi: SEO açıklamasında zaman-ölçeği hatası (yüzyıl/binyıl)
+
+**Belirti (kullanıcı bildirdi):** Gerçek bir Truva/Troy üretiminde
+(`storage/tasks/cfed55f0.../project.json`) SEO açıklaması "yüzyılların
+izlerini taşıyan" dedi, ama gerçek yerleşim süresi ~3.000 yıl (binyıl
+ölçeği).
+
+**Teşhis:** `seo_generator.py` (`generate_seo_metadata`/
+`generate_engagement_metadata`) ve altındaki paylaşılan
+`llm.generate_social_metadata`/`build_social_metadata_prompt`, `research_plan.key_facts`'i
+HİÇ görmüyordu -- sadece `topic`+`script` alıyordu. Gerçek prod verisinde
+doğrulandı: `research_plan.key_facts` doğru bilgiyi ("yaklaşık 3.000 yıllık
+yerleşim tarihi") zaten içeriyordu, `outline` de bunu tekrarlıyordu, ama
+üretilen `script.full_text` bilinçli olarak şiirsel/sayısız kalmıştı ("katman
+katman yükselen zaman", rakam yok). SEO'nun eline hiçbir sayısal referans
+verilmediği için "yüzyıllar" gibi makul duran ama yanlış bir ölçek uydurdu.
+**Kök neden storyboard'da daha önce bulunan grounding eksikliğiyle birebir
+aynı sınıf** -- storyboard call site'ı zaten `key_facts=project.research_plan.key_facts[:3]`
+geçiriyordu (`default_pipeline.py:173`), SEO call site'ı hiç geçirmiyordu.
+
+**Düzeltme (yeni LLM çağrısı yok, $0 ek maliyet):**
+- `app/services/llm.py`: `build_social_metadata_prompt()`/`generate_social_metadata()`'a
+  opsiyonel `key_facts: list[str] | None = None` eklendi -- legacy tekil-video
+  pipeline'ı bunu hiç geçirmediği için davranışı birebir aynı kalıyor
+  (regresyon testiyle kilitlendi). Verilirse prompt'a "Verified Facts" bloğu
+  + "century vs millennium vs decade ölçeğini bu facts'e göre doğrula"
+  talimatı ekleniyor.
+- `app/departments/growth/seo_generator.py`: `generate_seo_metadata()` ve
+  `generate_engagement_metadata()`/`build_engagement_prompt()` aynı
+  `key_facts`'i her iki alt-çağrıya da (title/caption/hashtags VE
+  title_variants/keywords/end_screen/pinned_comment) geçiriyor -- ikisi de
+  aynı script'ten bağımsız olarak yanlış bir ölçek uydurabilirdi.
+- `app/pipeline/default_pipeline.py`: SEO çağrısına `key_facts=project.research_plan.key_facts[:3]`
+  eklendi -- storyboard'daki satırın birebir kopyası.
+
+Testler: `test_llm.py` (3 yeni: facts bloğu var/yok, `generate_social_metadata`'nın
+facts'i prompt builder'a gerçekten ilettiği), `test_seo_generator.py` (3 yeni:
+`build_engagement_prompt`'ta facts bloğu var/yok, `generate_seo_metadata`'nın
+facts'i HER İKİ alt-çağrıya da ilettiği), `test_default_pipeline.py`
+(mevcut wiring testine `seo_kwargs["key_facts"]` assertion'ı eklendi, storyboard'ın
+`[:3]` slice testiyle aynı sahte 4. fact'i kullanarak).
+
+Doğrulama: tam pytest suite **713 passed, 11 skipped** (707'den +6, sıfır
+regresyon), `ruff` temiz. **Gerçek API doğrulaması** -- aynı gerçek Truva
+projesinin gerçek `topic`/`script`/`key_facts[:3]`'ü ile `generate_seo_metadata()`
+yeniden çalıştırıldı (sadece SEO aşaması, tam üretim değil): yeni açıklama
+*"...yaklaşık 3.000 yıllık bir yerleşim hafızasını da fısıldıyor..."* diyor --
+"yüzyıl" kelimesi hiç geçmiyor, doğru ölçek ("3.000 yıl") açıkça var. Bir
+`title_variant` de aynı doğru ölçeği ("3.000 Yıllık Sırrı") bağımsız olarak
+tekrarladı.
+
+**Not (production etkisi):** Bu değişiklik sadece `default_pipeline.py`'nin
+SEO aşamasını etkiliyor -- geçmişte üretilmiş projelerin (ör. bu Truva
+projesinin) zaten kaydedilmiş `seo.description`'ı otomatik düzelmiyor, sadece
+BUNDAN SONRA üretilecek yeni belgeseller doğru grounding ile üretilecek.
+Commit sonrası `./deploy.sh` çalıştırıldı (backend değişikliği -- production
+restart gerektirir, önceki operasyonel dersin uygulanması).
