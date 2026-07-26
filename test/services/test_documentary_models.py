@@ -17,6 +17,7 @@ from app.config.profile_dimensions import (
     resolve_topic_category,
 )
 from app.config.templates import PROFILE_PROMPTS, get_template
+from app.prompts.storyboard import SHOT_GUIDANCE
 from app.models.asset import AssetCandidate, AssetPlan
 from app.models.audio import AudioPlan, AudioTrack
 from app.models.documentary_project import DocumentaryProject
@@ -71,6 +72,9 @@ class TestProfileDimensions(unittest.TestCase):
         self.assertEqual(
             DEFAULT_TONE_BY_CATEGORY[TopicCategory.personal_development], Tone.motivational
         )
+        self.assertEqual(DEFAULT_TONE_BY_CATEGORY[TopicCategory.food_culture], Tone.savory)
+        self.assertEqual(DEFAULT_TONE_BY_CATEGORY[TopicCategory.nature], Tone.majestic)
+        self.assertEqual(DEFAULT_TONE_BY_CATEGORY[TopicCategory.netflix_style], Tone.gripping)
 
     def test_resolve_tone_defaults_to_category_tone_when_no_override(self):
         for category, expected_tone in DEFAULT_TONE_BY_CATEGORY.items():
@@ -128,6 +132,19 @@ class TestTemplates(unittest.TestCase):
         style = PROFILE_PROMPTS[Tone.cinephile]["style"]
         self.assertIn("without quoting dialogue verbatim", style)
         self.assertIn("fabricating quotes attributed to real", style)
+
+    def test_gripping_template_never_names_a_real_streaming_brand(self):
+        # netflix_style (kullanıcının kendi verdiği Python tanımlayıcısı) bir
+        # ÜRETİM STİLİ tanımı -- LLM'e giden gerçek prompt metninde
+        # (PROFILE_PROMPTS) veya storyboard SHOT_GUIDANCE'ında hiçbir gerçek
+        # marka/platform adı geçmemeli, sadece jenerik bir stil tarifi
+        # ("premium, high-production-value") olmalı.
+        style = PROFILE_PROMPTS[Tone.gripping]["style"]
+        guidance = SHOT_GUIDANCE[TopicCategory.netflix_style]
+        for text in (style, guidance):
+            self.assertNotIn("Netflix", text)
+            self.assertNotIn("netflix", text.lower())
+        self.assertIn("never fabricate claims about real people", style)
 
 
 class TestModels(unittest.TestCase):

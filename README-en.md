@@ -149,13 +149,16 @@ generator above it.
 - **Topic Category** — `auto` (detected from your topic) or a manual
   override: `history`, `space`, `psychology`, `travel`, `marine`,
   `spiritual`, `film_highlights`, `sports`, `healthy_living`,
-  `mysterious_discoveries`, `personal_development`. Each category has a
-  matched research/outline style.
+  `mysterious_discoveries`, `personal_development`, `food_culture`,
+  `nature`, `netflix_style` (a production-style category -- high-production-
+  value, suspenseful pacing -- not affiliated with or endorsed by any
+  streaming service). Each category has a matched research/outline style.
 - **Tone** — how the narration *sounds*: `auto` (the category's default,
   e.g. history defaults to a measured, credible voice; space defaults to
   epic/awe-struck), or an explicit override (`cinematic`, `credibility`,
   `epic`, `scientific`, `neutral`, `wondrous`, `reflective`, `cinephile`,
-  `dynamic`, `encouraging`, `mysterious`, `motivational`).
+  `dynamic`, `encouraging`, `mysterious`, `motivational`, `savory`,
+  `majestic`, `gripping`).
 - **Format** — what structural job the video does, independent of tone:
   `standard` (no extra structure), `educational` (defines technical terms
   on first use, closes each scene with a spoken recap), or `corporate`

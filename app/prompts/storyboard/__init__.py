@@ -54,6 +54,20 @@ SHOT_GUIDANCE = {
         "studying, or practicing a skill, journaling or planning, quiet "
         "focused moments, and everyday environments (home, office, gym)."
     ),
+    TopicCategory.food_culture: (
+        "Favor close-up culinary footage: food preparation, cooking "
+        "techniques, plating, ingredients, and bustling kitchens or markets."
+    ),
+    TopicCategory.nature: (
+        "Favor sweeping nature footage: landscapes, forests, mountains, "
+        "wildlife in their habitat, and weather or seasonal timelapses."
+    ),
+    TopicCategory.netflix_style: (
+        "Favor moody, high-contrast footage: dim interiors, close-ups with "
+        "shallow depth of field, slow push-ins, and atmospheric night or "
+        "low-light scenes -- avoid search terms referencing any specific "
+        "streaming platform or real production by name."
+    ),
 }
 
 

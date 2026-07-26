@@ -15,6 +15,9 @@ class TopicCategory(str, Enum):
     healthy_living = "healthy_living"
     mysterious_discoveries = "mysterious_discoveries"
     personal_development = "personal_development"
+    food_culture = "food_culture"
+    nature = "nature"
+    netflix_style = "netflix_style"
 
 
 class Tone(str, Enum):
@@ -30,6 +33,9 @@ class Tone(str, Enum):
     encouraging = "encouraging"
     mysterious = "mysterious"
     motivational = "motivational"
+    savory = "savory"
+    majestic = "majestic"
+    gripping = "gripping"
 
 
 # One default tone per topic category, chosen to match each category's
@@ -48,6 +54,19 @@ DEFAULT_TONE_BY_CATEGORY = {
     TopicCategory.healthy_living: Tone.encouraging,
     TopicCategory.mysterious_discoveries: Tone.mysterious,
     TopicCategory.personal_development: Tone.motivational,
+    # OTONOM KARAR (gündüz oturumu): her yeni kategori kendi özel tonunu
+    # alıyor, mevcut bir tonu paylaşmıyor -- aksi halde alakasız bir stil
+    # metni (ör. "Sports documentary...") o kategoriye gider (bkz. bugünkü
+    # 7 kategori genişlemesinde aynı gerekçe). food_culture -> savory (yeni
+    # tone, duyusal/lezzet odaklı); nature -> majestic (yeni tone, marine'in
+    # "wondrous"undan kasıtlı olarak ayrı -- marine su altına özel,
+    # nature kara/orman/dağ ölçeğine odaklanıyor); netflix_style -> gripping
+    # (yeni tone, premium/suspenseful prodüksiyon stili -- "cinephile"
+    # (film_highlights, filmleri ANALİZ eden) ile karıştırılmasın diye
+    # kasıtlı olarak ayrı).
+    TopicCategory.food_culture: Tone.savory,
+    TopicCategory.nature: Tone.majestic,
+    TopicCategory.netflix_style: Tone.gripping,
 }
 
 

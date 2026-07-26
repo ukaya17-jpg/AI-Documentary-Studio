@@ -36,6 +36,9 @@ TONE_VOICE_GUIDANCE = {
     Tone.encouraging: "warm, practical, and supportive -- like a knowledgeable friend giving grounded health advice",
     Tone.mysterious: "hushed and intriguing, building curiosity without sensationalizing -- like a narrator walking through an unsolved case",
     Tone.motivational: "direct, energizing, and practical -- like a coach giving advice you can act on immediately",
+    Tone.savory: "warm and sensory, lingering on taste and texture -- like a food documentary narrator savoring every bite",
+    Tone.majestic: "grand and reverent, awed by scale -- like a nature documentary narrator standing before something vast",
+    Tone.gripping: "tense and controlled, building suspense -- like a premium streaming documentary narrator withholding just enough",
 }
 
 # Format is orthogonal to Tone: Tone shapes how the narration sounds (voice),

@@ -45,6 +45,9 @@ class TestBuildStoryboardPrompt(unittest.TestCase):
             TopicCategory.healthy_living: "everyday wellness footage",
             TopicCategory.mysterious_discoveries: "atmospheric, intriguing footage",
             TopicCategory.personal_development: "human-centered, aspirational footage",
+            TopicCategory.food_culture: "close-up culinary footage",
+            TopicCategory.nature: "sweeping nature footage",
+            TopicCategory.netflix_style: "moody, high-contrast footage",
         }
         for category, keyword in expectations.items():
             prompt = storyboard_generator.build_storyboard_prompt(_scene_plan(), _script(), category)

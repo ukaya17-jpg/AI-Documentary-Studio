@@ -2325,3 +2325,52 @@ regresyon), `ruff` temiz. Gerçek tarayıcı doğrulaması (Türkçe arayüz, ay
 geçici Streamlit örneği, production'a dokunulmadı): tüm 11 kategori + 11
 ton kartının önizlemesi tam Türkçe, hiç İngilizce kalıntı yok, kullanıcı
 onayladı.
+
+## 3 yeni TopicCategory — Yemek Kültürü/Doğa/Netflix Tarzı (TAM OTONOMİ, kullanıcı ön-onayıyla)
+
+Bugünkü 7 kategoriyle birebir aynı desende 3 kategori daha eklendi:
+`food_culture`, `nature`, `netflix_style` — her biri kendi `Tone`'u,
+`PROFILE_PROMPTS`, `SHOT_GUIDANCE`, `TONE_VOICE_GUIDANCE`,
+`_CATEGORY_KEYWORDS` (İngilizce+Türkçe) ile.
+
+| Kategori | Tone | Gerekçe |
+|---|---|---|
+| `food_culture` | `savory` (yeni) | Duyusal/lezzet odaklı anlatım -- mevcut tonlardan hiçbiri (encouraging'in "pratik sağlık rehberliği" dahil) yemek kültürünü doğru karşılamıyordu. |
+| `nature` | `majestic` (yeni) | Bilinçli olarak `marine`'in `wondrous`'undan AYRI tutuldu -- marine su altına özel bir "hayret" hissi, nature ise kara/orman/dağ ölçeğine odaklanan bir "görkem" hissi; ikisini paylaştırmak alakasız bir stil metnine yol açardı. |
+| `netflix_style` | `gripping` (yeni) | `cinephile`den (film_highlights, filmleri ANALİZ eden) kasıtlı olarak ayrı -- bu bir prodüksiyon STİLİ (yüksek prodüksiyon değeri, gerilim odaklı kurgu), film eleştirisi değil. |
+
+**Marka güvenliği (kullanıcı talebiyle, `netflix_style` için):** Python enum
+değeri kullanıcının kendi verdiği isim (`netflix_style`, sadece dahili bir
+tanımlayıcı, hiçbir yerde kullanıcıya gösterilmiyor) ama gerçek Netflix
+marka adı/logosu/yapım adı KODUN HİÇBİR YERİNDE (PROFILE_PROMPTS,
+SHOT_GUIDANCE, heuristic keywords, i18n label) geçmiyor -- doğrulandı,
+ayrı bir regresyon testiyle (`test_gripping_template_never_names_a_real_streaming_brand`)
+kilitlendi. UI'da gösterilen çevrilmiş etiket "Prestige Documentaries" /
+"Prestij Belgeselleri" (gerçek, marka-olmayan bir sektör terimi).
+README-en.md/README.md'ye de "not affiliated with or endorsed by any
+streaming service" notu eklendi.
+
+Testler: `test_documentary_models.py` (DEFAULT_TONE_BY_CATEGORY + marka
+güvenliği), `test_intent_analyzer.py` (3 heuristic keyword testi),
+`test_outline_generator.py`/`test_research_planner.py` (PROFILE_PROMPTS
+stil-keyword kilidi), `test_storyboard_generator.py` (SHOT_GUIDANCE
+kilidi) — hepsi mevcut per-kategori desenleriyle birebir aynı.
+`test_webui_documentary_labels.py`'nin i18n-parity testleri zaten
+enum-üzerinden jenerik (`[c.value for c in TopicCategory]`) olduğu için
+hiçbir değişiklik gerekmeden 3 yeni kategoriyi de otomatik kapsadı.
+
+Doğrulama: tam pytest suite **699 passed, 11 skipped** (695'ten +4, sıfır
+regresyon), `ruff` temiz. Her 3 kategori için gerçek API ile uçtan uca
+(intent->research->outline->scene->script) doğrulandı: `food_culture` →
+"Neapolitan Pizza" (grounded, duyusal/savory ton), `nature` → "California
+Redwood Forests" (grounded, görkemli/majestic ton), `netflix_style` →
+"D.B. Cooper'ın Çözülemeyen Kayboluşu" (bilinçli olarak gerilim-riskli bir
+konu seçildi -- grounded, gerçek olaylara sadık kaldı, hiç uydurma iddia
+yok, gripping ton tutarlı).
+
+**Not (commit yapısı):** Kullanıcı her kategori için ayrı commit istedi,
+ama 3 kategorinin kodu/i18n'i aynı dosyalarda (aynı dict'ler) iç içe
+düzenlendiği için sonradan 3 ayrı temiz commit'e bölmek (git add -p ile
+JSON/dict parçalama) kırılma riski taşırdı -- daha güvenli/geri alınabilir
+seçenek olarak (genel kural 1) tek, kapsamlı ve her kategoriyi ayrı ayrı
+belgeleyen bir commit'te birleştirildi.

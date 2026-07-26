@@ -66,6 +66,24 @@ class TestHeuristicCategory(unittest.TestCase):
             TopicCategory.personal_development,
         )
 
+    def test_food_culture_keyword(self):
+        self.assertEqual(
+            intent_analyzer._heuristic_category("The Secret Recipe Behind Italian Cuisine"),
+            TopicCategory.food_culture,
+        )
+
+    def test_nature_keyword(self):
+        self.assertEqual(
+            intent_analyzer._heuristic_category("Wildlife of the African Savanna"),
+            TopicCategory.nature,
+        )
+
+    def test_netflix_style_keyword(self):
+        self.assertEqual(
+            intent_analyzer._heuristic_category("The Untold Story of a True Crime Docuseries"),
+            TopicCategory.netflix_style,
+        )
+
     def test_unknown_falls_back_to_history(self):
         self.assertEqual(intent_analyzer._heuristic_category("xyzzy"), TopicCategory.history)
 

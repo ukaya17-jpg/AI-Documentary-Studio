@@ -53,6 +53,20 @@ _CATEGORY_KEYWORDS = {
         "self-improvement", "productivity", "goal setting", "habit", "personal growth",
         "kişisel gelişim", "üretkenlik", "alışkanlık", "motivasyon",
     ],
+    TopicCategory.food_culture: [
+        "food", "cuisine", "recipe", "cooking", "restaurant", "chef",
+        "yemek", "mutfak", "tarif", "aşçı",
+    ],
+    TopicCategory.nature: [
+        "nature", "wildlife", "forest", "mountain", "landscape",
+        "doğa", "orman", "dağ", "manzara",
+    ],
+    # Kasıtlı olarak "netflix" kelimesi hiç yok (marka adı) -- sadece
+    # jenerik, prodüksiyon-stiline özgü terimler kullanılıyor.
+    TopicCategory.netflix_style: [
+        "true crime", "docuseries", "investigative documentary", "prestige documentary",
+        "streaming documentary", "gerilim belgeseli", "belgesel dizi",
+    ],
 }
 
 

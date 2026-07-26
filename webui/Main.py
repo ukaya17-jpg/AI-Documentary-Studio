@@ -4157,6 +4157,9 @@ _CATEGORY_ICONS = {
     TopicCategory.healthy_living.value: "🥗",
     TopicCategory.mysterious_discoveries.value: "🔍",
     TopicCategory.personal_development.value: "🌱",
+    TopicCategory.food_culture.value: "🍽️",
+    TopicCategory.nature.value: "🏞️",
+    TopicCategory.netflix_style.value: "🍿",
 }
 
 _TONE_ICONS = {
@@ -4173,6 +4176,9 @@ _TONE_ICONS = {
     Tone.encouraging.value: "🤝",
     Tone.mysterious.value: "🕵️",
     Tone.motivational.value: "💪",
+    Tone.savory.value: "😋",
+    Tone.majestic.value: "🏔️",
+    Tone.gripping.value: "😲",
 }
 
 _CATEGORY_CARDS_PER_ROW = 4

@@ -195,6 +195,60 @@ PROFILE_PROMPTS = {
         ),
         "closing": "End with a direct, actionable call to apply one specific idea from the video.",
     },
+    Tone.savory: {
+        "style": (
+            "Food and culinary documentary. Ground the narration in sensory, "
+            "appetizing detail (taste, aroma, texture) and the cultural "
+            "stories behind a dish or cuisine."
+        ),
+        "opening_hook": (
+            "Open with a vivid sensory moment -- a specific smell, taste, or "
+            "the sizzle of cooking -- not a generic 'food is important' "
+            "statement."
+        ),
+        "section_guidance": (
+            "Cover the dish or cuisine's origin, what makes it distinctive, "
+            "the people or techniques behind it, and its place in the "
+            "culture today."
+        ),
+        "closing": "End by connecting the specific dish to the broader culture or tradition it comes from.",
+    },
+    Tone.majestic: {
+        "style": (
+            "Nature documentary. Favor sweeping, majestic imagery and a "
+            "sense of scale in describing landscapes, wildlife, and natural "
+            "phenomena."
+        ),
+        "opening_hook": (
+            "Open with a striking natural image or moment, not a generic "
+            "'nature is beautiful' statement."
+        ),
+        "section_guidance": (
+            "Cover the featured landscape or phenomenon, how it formed or "
+            "functions, its role in the wider ecosystem, and why it matters "
+            "to protect."
+        ),
+        "closing": "End by connecting the specific place or species to the broader fragility and grandeur of the natural world.",
+    },
+    Tone.gripping: {
+        "style": (
+            "Premium, high-production-value documentary style. Favor a "
+            "suspenseful, cliffhanger-driven structure with escalating "
+            "stakes, regardless of subject matter -- never fabricate claims "
+            "about real people or events to heighten drama."
+        ),
+        "opening_hook": (
+            "Open with a striking, specific unanswered question or moment "
+            "of tension that withholds the full picture to pull the viewer "
+            "in."
+        ),
+        "section_guidance": (
+            "Cover the central hook or conflict, escalating revelations "
+            "building tension scene by scene, a credible turn or twist, and "
+            "the stakes of the outcome."
+        ),
+        "closing": "End on a resonant, open note that lingers rather than a tidy, fully-resolved conclusion.",
+    },
 }
 
 
