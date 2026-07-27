@@ -46,7 +46,11 @@ class TestProfileDimensions(unittest.TestCase):
     def test_pacing_scene_spec_has_both_pacings(self):
         self.assertIn(Pacing.short, PACING_SCENE_SPEC)
         self.assertIn(Pacing.long, PACING_SCENE_SPEC)
-        self.assertEqual(PACING_SCENE_SPEC[Pacing.short]["scene_count"], 4)
+        # short.scene_count was 4 until a real content-dropping bug was
+        # diagnosed and fixed (PROGRESS.md "Video-anlatım uyumsuzluğu") --
+        # raised to 7 to match short's own outline ceiling, same pattern
+        # long already had (that's why long never showed the bug).
+        self.assertEqual(PACING_SCENE_SPEC[Pacing.short]["scene_count"], 7)
         self.assertEqual(PACING_SCENE_SPEC[Pacing.long]["scene_count"], 7)
 
     def test_extended_pacing_totals_ten_minutes(self):

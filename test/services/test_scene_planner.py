@@ -20,10 +20,16 @@ def _outline_with_sections(importances: list[int]) -> Outline:
 
 
 class TestPlanScenes(unittest.TestCase):
-    def test_short_pacing_yields_four_scenes_of_five_seconds(self):
-        outline = _outline_with_sections([1, 2, 3, 4, 5, 2])
+    def test_short_pacing_yields_seven_scenes_of_five_seconds(self):
+        # scene_count 4->7 (kullanıcı onaylı gerçek düzeltme, bkz.
+        # PROGRESS.md "Video-anlatım uyumsuzluğu") -- 3 gerçek üretimde
+        # outline HER ZAMAN 6-7 section üretti ama eski scene_count=4
+        # bunların 2-3'ünü sessizce siliyordu. Artık short'un kendi
+        # outline tavanıyla (4-7) eşleşiyor, long'un zaten sahip olduğu
+        # aynı desen -- bu yüzden long hiç bu bugu göstermedi.
+        outline = _outline_with_sections([1, 2, 3, 4, 5, 2, 4, 3])
         plan = scene_planner.plan_scenes(outline, Pacing.short)
-        self.assertEqual(len(plan.scenes), 4)
+        self.assertEqual(len(plan.scenes), 7)
         self.assertTrue(all(s.duration_seconds == 5.0 for s in plan.scenes))
 
     def test_long_pacing_yields_seven_scenes_of_eight_seconds(self):
@@ -33,16 +39,31 @@ class TestPlanScenes(unittest.TestCase):
         self.assertTrue(all(s.duration_seconds == 8.0 for s in plan.scenes))
 
     def test_keeps_highest_importance_sections(self):
-        outline = _outline_with_sections([1, 5, 2, 4, 1, 3])
+        # 8 section, scene_count=7 -- tam olarak 1 tanesi elenmeli (en düşük
+        # önemli olan, index 4, importance=1).
+        outline = _outline_with_sections([1, 5, 2, 4, 1, 3, 5, 2])
         plan = scene_planner.plan_scenes(outline, Pacing.short)
         kept_importances = sorted(s.importance for s in plan.scenes)
-        self.assertEqual(kept_importances, [2, 3, 4, 5])
+        self.assertEqual(kept_importances, [1, 2, 2, 3, 4, 5, 5])
 
     def test_preserves_original_narrative_order(self):
-        outline = _outline_with_sections([5, 1, 4, 1, 3, 2])
+        # Aynı 8-section kurulumu -- sadece index 4 elenir, kalan 7'si
+        # orijinal sırasını korumalı (importance'a göre yeniden sıralanmamalı).
+        outline = _outline_with_sections([1, 5, 2, 4, 1, 3, 5, 2])
         plan = scene_planner.plan_scenes(outline, Pacing.short)
         titles = [s.title for s in plan.scenes]
-        self.assertEqual(titles, ["Section 0", "Section 2", "Section 4", "Section 5"])
+        self.assertEqual(
+            titles,
+            [
+                "Section 0",
+                "Section 1",
+                "Section 2",
+                "Section 3",
+                "Section 5",
+                "Section 6",
+                "Section 7",
+            ],
+        )
 
     def test_uses_fewer_scenes_when_outline_is_shorter_than_budget(self):
         outline = _outline_with_sections([3, 4])

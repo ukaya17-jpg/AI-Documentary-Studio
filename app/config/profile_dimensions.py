@@ -107,8 +107,17 @@ class Language(str, Enum):
 
 # Scene count / per-scene duration budget used by ScenePlanner, keyed by pacing.
 # extended: 20 scenes x 30s = 600s (10 minutes) exactly.
+#
+# short.scene_count was 4 until a real production bug was diagnosed
+# (PROGRESS.md "Video-anlatım uyumsuzluğu" -- three real generations, ALL
+# of them lost 33-43% of their outline sections to scene_planner's
+# importance-based trimming, since outline_generator routinely produces
+# 6-7 sections for "short" but only 4 scenes were ever kept). Raised to 7
+# to match short's OWN outline ceiling (PACING_OUTLINE_SECTION_RANGE below),
+# the exact same pattern long already had (its scene_count=7 already equals
+# its own outline ceiling) -- this is why long never showed the bug.
 PACING_SCENE_SPEC = {
-    Pacing.short: {"scene_count": 4, "scene_duration": 5.0},
+    Pacing.short: {"scene_count": 7, "scene_duration": 5.0},
     Pacing.long: {"scene_count": 7, "scene_duration": 8.0},
     Pacing.extended: {"scene_count": 20, "scene_duration": 30.0},
 }

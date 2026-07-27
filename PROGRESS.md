@@ -3304,3 +3304,66 @@ olarak `fal_ai_video_model = "hailuo"` yazan bir kullanıcı bunu
 kullanabilir (ve o zaman bile sadece 16:9 için mantıklı). Bu, "gerçek
 tüketicisi olmayan süs katman" riskinden kaçınıyor -- webui hiçbir yerde
 Hailuo'yu önermiyor/tanıtmıyor, sadece backend'de config-seviyesinde var.
+
+## Video-anlatım uyumsuzluğu -- kök neden teşhisi + acil kalite düzeltmesi
+
+Kullanıcı, "videolar konuyla uyumsuz" şikayetinin gerçek teknik açıklamasını
+istedi. `storage/tasks/`'taki 3 gerçek üretim (arda kural x2, Efes Antik
+Kenti -- hepsi `pacing="short"`) incelendi: **üçünde de outline 6-7 section
+üretti, ama scene_planner sadece 4'ünü tuttu** -- %33-43 içerik, hiçbir
+hata/uyarı vermeden sessizce kayboldu. `quality_critic`'in tekrar eden
+"narration skips major outline elements" şikayetinin gerçek nedeni buydu --
+LLM'in "kötü yazması" değil, içeriğin script_generator'a ULAŞMADAN önce
+silinmesi.
+
+**Kök neden:** `app/config/profile_dimensions.py`'deki iki sabit arasındaki
+uyumsuzluk:
+- `PACING_OUTLINE_SECTION_RANGE[short] = (4, 7)` -- outline'dan 4-7 section istiyor.
+- `PACING_SCENE_SPEC[short]["scene_count"]` eskiden **4**'tü -- bu aralığın
+  TABANI, tavanı değil. `scene_planner._select_sections_by_importance()`
+  (kasıtlı, dokümante edilmiş davranış) sadece en önemli `scene_count`
+  kadar section'ı tutuyor, gerisini atıyor.
+
+`long` pacing'in AYNI (4,7) outline aralığına sahip olmasına rağmen hiç bu
+şikayeti almamasının nedeni: `long`'un `scene_count`u zaten **7** (kendi
+aralığının tavanı) -- bu yüzden `long` hiçbir zaman içerik kaybetmiyor.
+`short` bu simetriden yoksundu.
+
+**Düzeltme (kullanıcı onaylı, acil/bağımsız):** `PACING_SCENE_SPEC[Pacing.
+short]["scene_count"]`: **4 → 7** -- `long` ile aynı deseni tekrarlıyor, tek
+sabit değişikliği, sıfır yeni mantık.
+
+**Regresyon testleri güncellendi:**
+- `test_documentary_models.py::test_pacing_scene_spec_has_both_pacings` --
+  beklenti 4→7.
+- `test_scene_planner.py` -- 3 test yeniden tasarlandı (`test_short_pacing_
+  yields_seven_scenes_of_five_seconds`, `test_keeps_highest_importance_
+  sections`, `test_preserves_original_narrative_order`), artık 7'den fazla
+  section'lı outline'larla gerçek trimming davranışını doğruluyor (eskiden
+  6 section'lı outline'larla scene_count=4'ü test ediyorlardı -- yeni
+  scene_count=7 ile hiç trimming olmuyordu, testler anlamsız kalırdı).
+- `test_webui_ai_video_source.py` -- AI video maliyet tahmini testi
+  "$0.90"dan **"$1.57"**e güncellendi (7 sahne x 5s x $0.045/s = $1.575,
+  `:.2f}` formatlaması float temsili nedeniyle "1.57" veriyor, "1.58"
+  değil -- gerçek testle doğrulandı, varsayılmadı).
+
+**GERÇEK öncesi/sonrası karşılaştırma (kullanıcının istediği gibi, AYNI
+konuyla -- "Efes Antik Kenti"):**
+
+| | Önce (9e5963b2, önceki oturum) | Sonra (bu doğrulama) |
+|---|---|---|
+| Outline section | 6 | 7 |
+| Tutulan sahne | 4 | **7** |
+| Atlanan | 2 (%33) | **0** |
+| Gerçek anlatım süresi | 35.7s | 84.5s |
+| quality_critic şikayeti | "Narration is highly compressed and skips most outline points" | **YOK** -- kalan tek şikayetler çok daha küçük (bazı geçişler "biraz sıkışık", açılış cümlesi "biraz abartılı") |
+| quality_verdict | -- | overall=4.33/5, passed=True |
+
+`final.mp4` `ffprobe` ile doğrulandı: 1080x1920, h264/aac, 85.4s. Test
+görev klasörü temizlendi. Tam suite: **839 passed, 11 skipped**, sıfır
+regresyon. `ruff` temiz.
+
+**Not:** Bu düzeltme "short" pacing'in AI-video maliyetini artırıyor
+(4→7 sahne, en kötü senaryoda +3 x $0.045x5s ≈ +$0.68/video) -- ama Stok
+Video (varsayılan, ücretsiz) için maliyet etkisi sıfır, ve düzeltme
+olmadan üretilen içerik zaten kullanıcıya vaat edilen kalitede değildi.

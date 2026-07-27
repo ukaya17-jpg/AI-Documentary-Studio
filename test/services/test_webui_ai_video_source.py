@@ -55,8 +55,11 @@ def test_ai_generated_with_fal_configured_shows_cost_estimate_and_requires_confi
     app.run()
 
     assert not app.exception
-    # short pacing: 4 scenes x 5s billed x $0.045/s = $0.90
-    assert any("0.90" in w.value for w in app.info)
+    # short pacing: scene_count raised 4->7 (content-dropping fix, see
+    # PROGRESS.md "Video-anlatım uyumsuzluğu") -- 7 scenes x 5s billed x
+    # $0.045/s = $1.575, which the f"{...:.2f}" formatting renders as
+    # "1.57" (float representation, not a rounding bug).
+    assert any("1.57" in w.value for w in app.info)
     generate_button = _button_by_key(app, "documentary_generate_button")
     assert generate_button.disabled  # checkbox not confirmed yet
     assert not any("fal.ai" in w.value for w in app.warning)
