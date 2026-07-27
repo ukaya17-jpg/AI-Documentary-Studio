@@ -146,7 +146,17 @@ def build_script_prompt(
         )
     scenes_block = "\n".join(scene_lines)
 
-    prompt = custom_system_prompt or DEFAULT_SCRIPT_SYSTEM_PROMPT
+    # GÖREV F takibi (kullanıcı bulgusu): custom_system_prompt eskiden
+    # DEFAULT_SCRIPT_SYSTEM_PROMPT'un YERİNE geçiyordu -- gerçek doğrulamada
+    # "Write like a noir detective." gibi zararsız görünen bir stil isteği
+    # bile "no markdown, no scene labels, no narrator says" korumasını
+    # sessizce siliyordu. custom_requirements ile TUTARSIZ bir asimetriydi
+    # (o zaten ek/additive). Artık custom_system_prompt de additive: temel
+    # talimat HER ZAMAN kalıyor, kullanıcının isteği onun yanına ek stil
+    # rehberliği olarak ekleniyor.
+    prompt = DEFAULT_SCRIPT_SYSTEM_PROMPT
+    if custom_system_prompt.strip():
+        prompt += f"\n\nAdditional style guidance:\n{custom_system_prompt.strip()}"
     prompt += f"""
 
 Topic: "{topic}"

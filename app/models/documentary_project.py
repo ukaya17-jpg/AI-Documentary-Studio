@@ -40,10 +40,13 @@ class DocumentaryProject(BaseModel):
     # için burada saklanıyor.
     bgm_type: str = "random"
     bgm_volume: float = 0.2
-    # GÖREV F (kullanıcı onaylı): kullanıcının script_generator'a giden
-    # sistem promptunu/ek talimatlarını override edebilmesi -- boş string
-    # "hiç override yok" anlamına gelir (script_generator kendi
-    # DEFAULT_SCRIPT_SYSTEM_PROMPT'una düşer). Sadece kayıt/şeffaflık için
+    # GÖREV F (kullanıcı onaylı): kullanıcının script_generator'a giden ek
+    # stil rehberliğini/talimatlarını belirtebilmesi -- boş string "ek stil
+    # rehberliği yok" anlamına gelir. ADDITIVE: script_generator'ın
+    # DEFAULT_SCRIPT_SYSTEM_PROMPT'unun (no markdown/scene labels vb.) YERİNE
+    # geçmez, onun yanına eklenir (kullanıcı bulgusuyla düzeltildi -- eskiden
+    # tam bir override'dı, zararsız bir stil isteği bile formatı koruyan
+    # talimatları sessizce silebiliyordu). Sadece kayıt/şeffaflık için
     # projede saklanıyor, run_pipeline() zaten bunları doğrudan alıyor.
     custom_system_prompt: str = ""
     custom_requirements: str = ""

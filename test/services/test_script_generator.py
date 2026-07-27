@@ -28,12 +28,26 @@ class TestBuildScriptPrompt(unittest.TestCase):
         self.assertIn("scene 1", prompt)
         self.assertIn("words", prompt)
 
-    def test_custom_system_prompt_replaces_default(self):
+    def test_custom_system_prompt_is_additive_not_replacing(self):
+        # Kullanıcı bulgusu: eskiden custom_system_prompt DEFAULT_SCRIPT_
+        # SYSTEM_PROMPT'un yerine geçiyordu -- zararsız görünen bir stil
+        # isteği bile "no markdown, no scene labels" korumasını sessizce
+        # siliyordu. custom_requirements ile tutarlı olacak şekilde artık
+        # additive: temel talimat HER ZAMAN kalıyor.
         prompt = script_generator.build_script_prompt(
             _scene_plan(), "Topic", custom_system_prompt="Custom voice instructions."
         )
         self.assertIn("Custom voice instructions.", prompt)
-        self.assertNotIn(script_generator.DEFAULT_SCRIPT_SYSTEM_PROMPT, prompt)
+        self.assertIn(script_generator.DEFAULT_SCRIPT_SYSTEM_PROMPT, prompt)
+
+    def test_blank_custom_system_prompt_adds_no_extra_block(self):
+        prompt = script_generator.build_script_prompt(_scene_plan(), "Topic", custom_system_prompt="   ")
+        self.assertNotIn("Additional style guidance:", prompt)
+
+    def test_omitting_custom_system_prompt_leaves_base_prompt_unchanged(self):
+        without = script_generator.build_script_prompt(_scene_plan(), "Topic")
+        self.assertTrue(without.startswith(script_generator.DEFAULT_SCRIPT_SYSTEM_PROMPT))
+        self.assertNotIn("Additional style guidance:", without)
 
     def test_omits_hook_and_callback_without_outline(self):
         # Retention is independent of the outline and still applies to a

@@ -3011,3 +3011,32 @@ settings()` artık `config.save_config()` çağırıyor (içerik değişmediyse
 zaten no-op, her rerun'da çağırmak güvenli). Ayrı commit + yeni test
 (`test_font_settings_are_persisted_via_save_config`) + push + deploy.sh.
 Tam suite: **816 passed, 11 skipped**.
+
+**Kullanıcı bulgusu ve düzeltmesi -- custom_system_prompt artık additive:**
+Kullanıcı, `script_generator.py`'nin bir hedef tasarımını paylaştı (HARD
+RULES bloğu her zaman kalıcı, custom_system_prompt sadece ek stil
+rehberliği). Gerçek kod tabanıyla karşılaştırıldı: önerilen bazı tipler
+(`Format.standard`, `Language` enum parametresi, `PROFILE_PROMPTS[category]`)
+mevcut kod tabanıyla uyuşmuyordu (`Format`'ta `standard` yok,
+`PROFILE_PROMPTS` `Tone`'a göre anahtarlanıyor `TopicCategory`'ye değil,
+`language` her yerde `str`) -- bunlar birebir kopyalanmadı. Ama asıl,
+somut bulgu doğrulandı ve düzeltildi: `custom_system_prompt` eskiden
+`DEFAULT_SCRIPT_SYSTEM_PROMPT`'un YERİNE geçiyordu -- GÖREV F'nin kendi
+gerçek doğrulamasında bile "Write like a noir detective." gibi zararsız
+bir istek, "no markdown, no scene labels, no narrator says" korumasını
+sessizce siliyordu. `custom_requirements` ile TUTARSIZ bir asimetriydi
+(o zaten additive). Düzeltme: `custom_system_prompt` artık
+`DEFAULT_SCRIPT_SYSTEM_PROMPT`'un yanına ek stil rehberliği olarak
+ekleniyor, temel talimatlar hiçbir zaman kaldırılmıyor -- diğer tüm
+blokların (Tone/Format/Story craft/Growth guidance) sırası/metni
+DOKUNULMADI (zaten test kilitli, gereksiz risk almamak için).
+
+Mevcut `test_custom_system_prompt_replaces_default` testi (eski davranışı
+kilitleyen) tersine çevrilip `test_custom_system_prompt_is_additive_not_
+replacing` oldu + 2 yeni test. webui'nin "Sistem Promptu" yardım metni
+("overrides" diyordu) 9 dilde düzeltildi. Tam suite: **818 passed, 11
+skipped** (816'dan +2, sıfır regresyon). `ruff` temiz. Bu, saf bir prompt-
+metni değişikliği olduğu ve GÖREV F'nin gerçek doğrulaması zaten aynı kod
+yolunu (custom_system_prompt + gerçek LLM çağrısı) uçtan uca test ettiği
+için, ayrı bir ücretli gerçek çalıştırma tekrarlanmadı -- yeni/değişen
+testler (`test_script_generator.py`) yeterli görüldü.

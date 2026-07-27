@@ -457,7 +457,7 @@
     "Documentary Tone Select": "Nada",
     "Documentary Advanced Settings": "Pengaturan Lanjutan",
     "Documentary System Prompt": "Prompt Sistem",
-    "Documentary System Prompt Help": "Menggantikan instruksi dasar penulis narasi. Biarkan kosong untuk menggunakan default yang ditampilkan sebagai placeholder di bawah.",
+    "Documentary System Prompt Help": "Panduan gaya/persona tambahan, ditambahkan berdampingan dengan instruksi dasar penulis narasi (ditampilkan sebagai placeholder di bawah) -- instruksi dasar selalu tetap berlaku dan tidak dapat dihapus.",
     "Documentary Custom Requirements": "Persyaratan Skenario Kustom",
     "Documentary Custom Requirements Help": "Instruksi tambahan untuk narasi ini, ditambahkan di atas persyaratan pertumbuhan/kualitas otomatis (tidak menggantikannya)."
   }

@@ -484,7 +484,7 @@
     "Documentary Tone Select": "Tone",
     "Documentary Advanced Settings": "Advanced Settings",
     "Documentary System Prompt": "System Prompt",
-    "Documentary System Prompt Help": "Overrides the narration writer's base instructions. Leave empty to use the default shown as a placeholder below.",
+    "Documentary System Prompt Help": "Additional style/persona guidance, added alongside the narration writer's base instructions (shown as a placeholder below) -- the base instructions always stay in effect and cannot be removed.",
     "Documentary Custom Requirements": "Custom Scenario Requirements",
     "Documentary Custom Requirements Help": "Extra instructions for this narration, added on top of the automatic growth/quality requirements (they are not replaced)."
   }

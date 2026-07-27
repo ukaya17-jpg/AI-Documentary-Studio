@@ -457,7 +457,7 @@
     "Documentary Tone Select": "Tonfall",
     "Documentary Advanced Settings": "Erweiterte Einstellungen",
     "Documentary System Prompt": "System-Prompt",
-    "Documentary System Prompt Help": "Überschreibt die Basisanweisungen des Erzähltext-Autors. Leer lassen, um die unten als Platzhalter gezeigte Standardeinstellung zu verwenden.",
+    "Documentary System Prompt Help": "Zusätzliche Stil-/Persona-Anweisungen, die neben den Basisanweisungen des Erzähltext-Autors (unten als Platzhalter gezeigt) hinzugefügt werden -- die Basisanweisungen bleiben immer in Kraft und können nicht entfernt werden.",
     "Documentary Custom Requirements": "Individuelle Szenario-Anforderungen",
     "Documentary Custom Requirements Help": "Zusätzliche Anweisungen für diese Erzählung, ergänzend zu den automatischen Wachstums-/Qualitätsanforderungen (diese werden nicht ersetzt)."
   }

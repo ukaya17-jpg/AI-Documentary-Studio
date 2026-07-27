@@ -457,7 +457,7 @@
     "Documentary Tone Select": "Giọng Điệu",
     "Documentary Advanced Settings": "Cài Đặt Nâng Cao",
     "Documentary System Prompt": "System Prompt",
-    "Documentary System Prompt Help": "Ghi đè hướng dẫn cơ bản của người viết lời dẫn. Để trống để dùng mặc định hiển thị bên dưới dưới dạng placeholder.",
+    "Documentary System Prompt Help": "Hướng dẫn phong cách/nhân vật bổ sung, được thêm bên cạnh hướng dẫn cơ bản của người viết lời dẫn (hiển thị bên dưới dưới dạng placeholder) -- hướng dẫn cơ bản luôn có hiệu lực và không thể bị xóa.",
     "Documentary Custom Requirements": "Yêu Cầu Kịch Bản Tùy Chỉnh",
     "Documentary Custom Requirements Help": "Hướng dẫn bổ sung cho lời dẫn này, được thêm vào bên cạnh các yêu cầu tăng trưởng/chất lượng tự động (không thay thế chúng)."
   }

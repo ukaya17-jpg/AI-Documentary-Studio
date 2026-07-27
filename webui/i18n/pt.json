@@ -457,7 +457,7 @@
     "Documentary Tone Select": "Tom",
     "Documentary Advanced Settings": "Configurações Avançadas",
     "Documentary System Prompt": "Prompt do Sistema",
-    "Documentary System Prompt Help": "Substitui as instruções base do redator da narração. Deixe em branco para usar o padrão mostrado como espaço reservado abaixo.",
+    "Documentary System Prompt Help": "Orientação adicional de estilo/persona, adicionada ao lado das instruções base do redator da narração (mostradas como espaço reservado abaixo) -- as instruções base permanecem sempre em vigor e não podem ser removidas.",
     "Documentary Custom Requirements": "Requisitos de Cenário Personalizados",
     "Documentary Custom Requirements Help": "Instruções extras para esta narração, adicionadas além dos requisitos automáticos de crescimento/qualidade (eles não são substituídos)."
   }
