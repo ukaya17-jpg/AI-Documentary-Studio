@@ -459,6 +459,10 @@
     "Documentary System Prompt": "Sistem Promptu",
     "Documentary System Prompt Help": "Anlatım metni yazarının temel talimatlarının (aşağıda yer tutucu olarak gösterilir) YANINA eklenen ek stil/persona rehberliği -- temel talimatlar her zaman geçerli kalır, kaldırılamaz.",
     "Documentary Custom Requirements": "Özel Senaryo Gereksinimleri",
-    "Documentary Custom Requirements Help": "Bu anlatım için ek talimatlar -- otomatik büyüme/kalite gereksinimlerinin ÜZERİNE eklenir (onların yerini almaz)."
+    "Documentary Custom Requirements Help": "Bu anlatım için ek talimatlar -- otomatik büyüme/kalite gereksinimlerinin ÜZERİNE eklenir (onların yerini almaz).",
+    "Documentary Stock Provider": "Stok Sağlayıcı",
+    "Documentary Stock Provider: pexels": "Pexels",
+    "Documentary Stock Provider: pixabay": "Pixabay",
+    "Documentary Stock Provider: coverr": "Coverr"
   }
 }

@@ -459,6 +459,10 @@
     "Documentary System Prompt": "Prompt del Sistema",
     "Documentary System Prompt Help": "Guía adicional de estilo/persona, añadida junto a las instrucciones base del redactor de la narración (mostradas como marcador de posición abajo) -- las instrucciones base siempre permanecen vigentes y no se pueden eliminar.",
     "Documentary Custom Requirements": "Requisitos de Escenario Personalizados",
-    "Documentary Custom Requirements Help": "Instrucciones adicionales para esta narración, añadidas sobre los requisitos automáticos de crecimiento/calidad (no los reemplazan)."
+    "Documentary Custom Requirements Help": "Instrucciones adicionales para esta narración, añadidas sobre los requisitos automáticos de crecimiento/calidad (no los reemplazan).",
+    "Documentary Stock Provider": "Proveedor de Stock",
+    "Documentary Stock Provider: pexels": "Pexels",
+    "Documentary Stock Provider: pixabay": "Pixabay",
+    "Documentary Stock Provider: coverr": "Coverr"
   }
 }

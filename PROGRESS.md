@@ -3040,3 +3040,56 @@ metni değişikliği olduğu ve GÖREV F'nin gerçek doğrulaması zaten aynı k
 yolunu (custom_system_prompt + gerçek LLM çağrısı) uçtan uca test ettiği
 için, ayrı bir ücretli gerçek çalıştırma tekrarlanmadı -- yeni/değişen
 testler (`test_script_generator.py`) yeterli görüldü.
+
+## Provider Sistemi -- keşif raporu + TAM OTONOMİ 3 adım (ADIM 1/2/3)
+
+Önce kapsamlı bir keşif raporu istendi: kodun tamamı tarandı ve **kullanıcının
+öncülü kısmen yanlış çıktı** -- LLM sağlayıcısı (`LLM_PROVIDER_REGISTRY`,
+19 sağlayıcı, `app/models/llm_provider.py`) ve TTS sağlayıcısı
+(`voice.tts()`, 7 sağlayıcı, voice_name önekine göre dispatch) servis
+katmanında ZATEN tam soyutlanmıştı ve Documentary Studio zaten AYNI paylaşılan
+kodu (`documentary_llm_utils.generate_json()` → `llm._generate_response()`,
+`audio_renderer.render_audio_plan()` → `voice.tts()`) kullanıyordu --
+`grep -rn "openai" app/departments app/pipeline` SIFIR sonuç verdi. LLM
+için üstelik global "Ayarlar" diyaloğunda (Klasik Mod'un dışında, her zaman
+erişilebilir) 19 sağlayıcının tamamı zaten seçilebiliyordu -- yapılacak iş
+yoktu. Gerçek boşluklar: (1) Documentary Studio'nun stok video seçici hiç
+sunmaması (backend `material.download_videos()` zaten pexels/pixabay/coverr
+destekliyordu), (2) TTS için kullanıcı dostu bir seçici yerine düz metin
+girdisi olması, (3) AI-video'nun gerçekten tek sağlayıcıya (Kling) kilitli
+olması. Yeni bir Protocol/ABC katmanı ÖNERİLMEDİ (zaten çalışan desenlerin
+üzerine saf ritüel/süs katman olurdu) -- kullanıcı da bunu onayladı.
+
+Kullanıcı üç adımı TAM OTONOMİ ile onayladı: ADIM 1 (Pixabay/Coverr stok
+seçici), ADIM 2 (TTS provider+voice seçici), ADIM 3 (Hailuo/MiniMax,
+önceden planlanmış ÖZELLİK C'ye göre).
+
+### ADIM 1 -- Pixabay/Coverr stok video seçici
+
+`material.download_videos(source=...)` zaten pexels/pixabay/coverr'ı tam
+destekliyordu (Klasik Mod'un test edilmiş kodu) -- Documentary Studio'nun
+webui'si hiç seçenek sunmuyordu, her zaman `"pexels"`e sabitti. Eklenen:
+"Stok Görüntü" seçiliyken açılan iç içe (nested) bir "Stok Sağlayıcı"
+selectbox'ı (Pexels/Pixabay/Coverr -- "Local file" bilinçli olarak kapsam
+dışı, kullanıcı sadece Pixabay/Coverr istedi). Klasik Mod'daki AYNI ön-
+kontrol deseni: eksik API key ile pipeline'ı başlatıp aşamalar ortasında
+çökmek yerine (`material.get_api_key()` `ValueError` fırlatır), üretim
+başlamadan net bir hata gösteriliyor -- Klasik Mod'un hazır çevrilmiş
+"Please Enter the {Provider} API Key" metinleri yeniden kullanıldı.
+
+Test: yeni `test_webui_stock_provider.py` (6 test: i18n parity, varsayılan
+render, AI-video seçiliyken gizlenme, run_pipeline'a doğru provider
+geçmesi, eksik key ile net hata + pipeline'ın hiç çağrılmaması, varsayılan
+pexels davranışının bozulmadığı regresyon kilidi). Tam suite: **824
+passed, 11 skipped** (818'den +6, sıfır regresyon). `ruff` temiz.
+
+**Gerçek doğrulama:** Pixabay için gerçek API key config'te zaten mevcuttu
+-- "The Great Barrier Reef" konusu, `video_source="pixabay"` ile uçtan uca
+çalıştırıldı: 9 gerçek Pixabay klibi indirildi (log'da gerçek
+çözünürlükler: 3840x2160, 1920x1080 vb.), `final.mp4` `ffprobe` ile
+doğrulandı (1080x1920, h264/aac, 24.3s). Test görev klasörü temizlendi.
+**Dürüst not:** Coverr için config'te gerçek API key YOK -- bu yüzden
+Coverr'ın kendisi gerçek bir API çağrısıyla doğrulanamadı (aynı kod yolu
+olduğu için mimari olarak çalışması beklenir, ama bu iddia edilmiyor,
+sadece ön-kontrolün doğru çalıştığı -- eksik key'de net hata, pipeline hiç
+başlamıyor -- unit testle kanıtlandı).

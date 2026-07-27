@@ -486,6 +486,10 @@
     "Documentary System Prompt": "System Prompt",
     "Documentary System Prompt Help": "Additional style/persona guidance, added alongside the narration writer's base instructions (shown as a placeholder below) -- the base instructions always stay in effect and cannot be removed.",
     "Documentary Custom Requirements": "Custom Scenario Requirements",
-    "Documentary Custom Requirements Help": "Extra instructions for this narration, added on top of the automatic growth/quality requirements (they are not replaced)."
+    "Documentary Custom Requirements Help": "Extra instructions for this narration, added on top of the automatic growth/quality requirements (they are not replaced).",
+    "Documentary Stock Provider": "Stock Provider",
+    "Documentary Stock Provider: pexels": "Pexels",
+    "Documentary Stock Provider: pixabay": "Pixabay",
+    "Documentary Stock Provider: coverr": "Coverr"
   }
 }

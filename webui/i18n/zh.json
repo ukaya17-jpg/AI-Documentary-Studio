@@ -486,6 +486,10 @@
     "Documentary System Prompt": "系统提示词",
     "Documentary System Prompt Help": "附加的风格/人设指引，添加在旁白撰写者的基础指令（下方以占位符显示）旁边——基础指令始终有效，无法被移除。",
     "Documentary Custom Requirements": "自定义脚本要求",
-    "Documentary Custom Requirements Help": "此旁白的附加说明，附加在自动增长/质量要求之上（不会替换它们）。"
+    "Documentary Custom Requirements Help": "此旁白的附加说明，附加在自动增长/质量要求之上（不会替换它们）。",
+    "Documentary Stock Provider": "素材来源",
+    "Documentary Stock Provider: pexels": "Pexels",
+    "Documentary Stock Provider: pixabay": "Pixabay",
+    "Documentary Stock Provider: coverr": "Coverr"
   }
 }

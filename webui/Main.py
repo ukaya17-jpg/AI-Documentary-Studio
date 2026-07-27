@@ -4336,6 +4336,26 @@ _DOCUMENTARY_TOTAL_STAGES = 12
 _FAL_KLING_PRICE_PER_SECOND_USD = 0.045
 _DOCUMENTARY_STOCK_VIDEO_SOURCE = "stock"
 
+# ADIM 1 (Provider Sistemi keşif raporu, kullanıcı onaylı, TAM OTONOMİ):
+# material.download_videos() zaten pexels/pixabay/coverr'ı tam destekliyor
+# (Klasik Mod'un yıllardır kullandığı, test edilmiş kod) -- Documentary
+# Studio'da sadece webui hiç seçenek sunmuyordu, her zaman "pexels"e
+# sabitti. "local" (dosya yükleme) bilinçli olarak kapsam dışı -- kullanıcı
+# sadece Pixabay/Coverr istedi, yükleme akışı ayrı bir karmaşıklık sınıfı.
+_DOCUMENTARY_STOCK_PROVIDERS = ("pexels", "pixabay", "coverr")
+# Klasik Mod'un aynı 3 sağlayıcı için kullandığı config anahtarları + hazır
+# çevrilmiş uyarı metinleri -- yeni bir key eklemek yerine yeniden kullanılıyor.
+_DOCUMENTARY_STOCK_PROVIDER_API_KEY_CONFIG = {
+    "pexels": "pexels_api_keys",
+    "pixabay": "pixabay_api_keys",
+    "coverr": "coverr_api_keys",
+}
+_DOCUMENTARY_STOCK_PROVIDER_MISSING_KEY_LABEL = {
+    "pexels": "Please Enter the Pexels API Key",
+    "pixabay": "Please Enter the Pixabay API Key",
+    "coverr": "Please Enter the Coverr API Key",
+}
+
 
 def _estimate_ai_video_cost_usd(pacing_value: str) -> float:
     try:
@@ -4823,6 +4843,20 @@ def _render_documentary_studio_page():
         format_func=lambda v: tr(f"Documentary Video Source: {v}"),
     )
 
+    # ADIM 1 (Provider Sistemi keşif raporu, kullanıcı onaylı): stok seçiliyken
+    # hangi sağlayıcının kullanılacağını gösteren, iç içe (nested) bir seçici
+    # -- BGM kaynağı/AI video maliyet onayı gibi bu sayfada zaten kurulu olan
+    # "üst seçime göre alt seçenek açılıyor" deseniyle tutarlı.
+    stock_provider = _DOCUMENTARY_STOCK_PROVIDERS[0]
+    if video_source_choice == _DOCUMENTARY_STOCK_VIDEO_SOURCE:
+        stock_provider = st.selectbox(
+            tr("Documentary Stock Provider"),
+            options=list(_DOCUMENTARY_STOCK_PROVIDERS),
+            index=0,
+            key="documentary_stock_provider",
+            format_func=lambda v: tr(f"Documentary Stock Provider: {v}"),
+        )
+
     ai_video_cost_confirmed = True
     if video_source_choice == default_pipeline.AI_GENERATED_VIDEO_SOURCE:
         if not fal_video_service.is_configured():
@@ -4866,10 +4900,20 @@ def _render_documentary_studio_page():
 
         project_id = str(uuid4())
         resolved_video_source = (
-            "pexels"
+            stock_provider
             if video_source_choice == _DOCUMENTARY_STOCK_VIDEO_SOURCE
             else video_source_choice
         )
+        # Klasik Mod'daki AYNI ön-kontrol: eksik API key ile pipeline'ı
+        # başlatıp aşamalar sonra çökmek yerine (get_api_key() ValueError
+        # fırlatır), üretim başlamadan net bir hata gösteriliyor.
+        if video_source_choice == _DOCUMENTARY_STOCK_VIDEO_SOURCE and not config.app.get(
+            _DOCUMENTARY_STOCK_PROVIDER_API_KEY_CONFIG[stock_provider], ""
+        ):
+            st.error(
+                tr(_DOCUMENTARY_STOCK_PROVIDER_MISSING_KEY_LABEL[stock_provider])
+            )
+            st.stop()
         # Klasik Mod'daki AYNI desen: yükleme sadece render-anında değil
         # gerçekten "Generate" tıklanınca kalıcı hale getiriliyor, iptal
         # edilen/hiç gönderilmeyen yüklemeler storage'da yetim dosya
