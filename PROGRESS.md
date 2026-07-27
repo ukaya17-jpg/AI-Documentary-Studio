@@ -3201,3 +3201,51 @@ patch'lerken artık ayrıca `config.save_config()`'i mock'lamak GEREKMİYOR
 mock, testin "save_config çağrıldı mı" gibi kendi assertion'ları için
 faydalı olabilir) -- gerçek dosya güvenliği artık HİÇBİR testin bunu
 hatırlamasına bağlı değil.
+
+### ⚠️ İKİNCİ KÖK NEDEN: yetim bir arka plan süreci config.toml'u tekrar bozdu
+
+conftest.py düzeltmesi ve kullanıcının Pexels key'ini yeniden girmesinden
+SONRA bile, `pexels_api_keys` disk üzerinde tekrar `"test-pexels-key"`e
+döndü -- bu sefer test suite çalışmıyorken, ADIM 2 deploy'undan SONRA.
+mtime deploy'un restart'ından ~17 saniye ÖNCEYE işaret ediyordu, bu da
+"restart sırasında bozuldu" teorisini çürüttü.
+
+**Gerçek kök neden:** `ps aux` ile `port=8595`de, systemd'nin YÖNETMEDİĞİ,
+**Cmt 25 Temmuz 22:27:45'ten beri (neredeyse 2 gün) kesintisiz çalışan**,
+tamamen unutulmuş ikinci bir `streamlit run webui/Main.py` süreci
+bulundu -- muhtemelen bu projenin çok daha önceki bir oturumunda manuel
+başlatılıp hiç kapatılmamış bir geliştirme/önizleme örneği. Bu süreç
+GERÇEK production'la (8501, systemd) AYNI `config.toml`'u paylaşıyordu.
+Streamlit'in dosya izleyicisi, `config.toml` (veya izlenen herhangi bir
+`.py` dosyası -- ADIM 2 geliştirmesi boyunca sürekli düzenlenen
+`webui/Main.py` dahil) her değiştiğinde bu sürecin de script'ini yeniden
+çalıştırıyor, bu da GÖREV G'nin koşulsuz `config.save_config()`'ini bu
+sürecin KENDİ bayat (stale) bellek durumuyla tekrar tetikliyordu --
+kullanıcının veya benim yaptığım düzeltmeleri sessizce eziyordu. Bu,
+yeni bir test hatası değildi -- ortamda gerçekten var olan, gerçekten
+zararlı, unutulmuş bir süreçti.
+
+**Düzeltme (kullanıcı onayıyla):** `kill 157638` (production 8501'i HİÇ
+etkilemedi, ayrı systemd birimi). Doğrulama, varsayımla değil ölçülerek:
+1. `ss -tlnp | grep 8595` -- boş (süreç gerçekten öldü, port artık dinlenmiyor).
+2. `curl .../_stcore/health` -- production (8501, systemd MainPID
+   değişmedi) hâlâ sağlıklı, bu olaydan hiç etkilenmedi.
+3. Pexels key'i disk'te tekrar doğru değere (bu sefer benim önceki bir
+   `grep` çıktımdan kurtarılan gerçek değerle) manuel düzeltildi.
+4. **Ekstra önlem:** yetim süreç öldürüldükten sonra bile, GERÇEK
+   production süreci (231583) config.toml düzeltmemden ÖNCE (19:40:10)
+   başlamıştı -- kendi belleğinde hâlâ bayat değeri taşıyor olabilirdi.
+   Bunu varsaymak yerine `./deploy.sh` ile TEMİZ bir restart yapıldı
+   (yeni MainPID 232211, 19:52:49) -- restart sonrası mtime/değer
+   DEĞİŞMEDEN kaldı, bu da artık doğru değerin belleğe yüklendiğini
+   kanıtlıyor.
+
+**Ders:** Bu proje boyunca birden fazla oturumda "gerçek tarayıcı
+doğrulaması" için `streamlit run` manuel başlatılmış olabilir --
+sistemin GERÇEK tek giriş noktası `systemctl`/`ai-documentary-studio-
+webui.service`'tir (port 8501). Gelecekte manuel bir Streamlit süreci
+başlatılırsa (test/önizleme amaçlı bile olsa), iş bitince MUTLAKA
+durdurulmalı -- aksi halde bu SINIFTA bir hata (paylaşılan config.toml'a
+sessiz, gecikmeli, kaynağı belirsiz yazmalar) tekrarlanabilir.
+`ps aux | grep streamlit` periyodik olarak kontrol edilip beklenmedik
+süreç olup olmadığı doğrulanabilir.
