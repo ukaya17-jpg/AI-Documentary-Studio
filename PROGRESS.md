@@ -3093,3 +3093,57 @@ Coverr'ın kendisi gerçek bir API çağrısıyla doğrulanamadı (aynı kod yol
 olduğu için mimari olarak çalışması beklenir, ama bu iddia edilmiyor,
 sadece ön-kontrolün doğru çalıştığı -- eksik key'de net hata, pipeline hiç
 başlamıyor -- unit testle kanıtlandı).
+
+### ⚠️ OLAY: ADIM 1'in testleri gerçek production config.toml'unu bozdu
+
+**Kök neden:** `test_webui_stock_provider.py`'deki iki test,
+`patch.object(config, "app", <sahte test dict'i>)` ile config'i geçici
+olarak sahteliyordu ama `config.save_config()`'i MOCK'LAMAYI unuttu.
+GÖREV G'nin `_render_documentary_advanced_settings()`'e eklediği
+`config.save_config()` çağrısı HER sayfa render'ında koşulsuz çalışıyor
+(font ayarlarını kalıcı hale getirmek için) -- test, Documentary
+Studio'nun TAM sayfasını render ettiği için (sadece kendi ilgilendiği
+widget'ı değil), bu çağrı da testin sahte `config.app`'i ile tetiklendi
+ve sahte `pexels_api_keys = "test-pexels-key"` değerini GERÇEK
+`config.toml`'a yazdı. Streamlit'in dosya izleyicisi bu değişikliği
+algılayıp CANLI production sürecini de yeniden yükledi -- bu yüzden hem
+diskteki hem bellekteki gerçek Pexels API key'i geri alınamaz şekilde
+kayboldu (kullanıcı yeni bir key girerek düzeltti).
+
+**Neden "3 testi düzelt" yeterli değildi:** Aynı riskli örüntü (config.app/
+config.ui/vb.'yi patch'leyip save_config()'i mock'lamayı unutmak)
+gelecekte YAZILACAK herhangi bir teste de bulaşabilirdi -- tek tek
+hatırlamaya güvenmek kırılgan.
+
+**Yapısal düzeltme (kullanıcı talebiyle):** Yeni `test/conftest.py` --
+autouse, tüm suite'e uygulanan bir fixture (`_never_write_the_real_
+config_toml`), `config.config_file`/`config.root_dir`'ı HER testte
+otomatik olarak geçici bir `tmp_path`'e yönlendiriyor. Artık
+`config.save_config()` HANGİ testte, hangi sebeple, mock'lanmadan
+çağrılırsa çağrılsın, gerçek dosyaya asla yazamıyor -- tek tek testi
+hatırlamaya değil, yapısal bir garantiye dayanıyor.
+`test_save_config_uses_parseable_atomic_output` (save_config()'in GERÇEK
+yazma davranışını test eden tek test) hâlâ çalışıyor çünkü kendi
+`patch.object(config, "config_file"/"root_dir", ...)`'ını fixture'ın
+üzerine (kendi geçici dosyasına) uyguluyor -- çakışma yok.
+
+**Doğrulama (varsayımla değil, ÖLÇEREK):**
+1. Tam suite öncesi/sonrası `config.toml`'un mtime + md5sum'u alındı --
+   **833 passed, 11 skipped** çalıştıktan sonra byte-byte AYNI
+   (`8a6d1b48edd65de6e8282280278dacc0`, mtime değişmedi).
+2. Orijinal hatayı BİLEREK yeniden üreten bir tek-seferlik test yazıldı
+   (`config.app`'i sahteleyip `save_config()`'i mock'lamadan tam sayfa
+   render) -- test zaman aşımına uğrayıp öldürülse bile, `config.toml`
+   mtime/md5 DEĞİŞMEDİ ve sahte "REPRO-BUG-MARKER" değeri dosyada HİÇ
+   görünmedi. Doğrulama testi silindi (kalıcı test suite'in parçası
+   değil, sadece kanıt amaçlı).
+
+**Ders (gelecekte benzer test yazacaklar için):** Documentary Studio
+sayfasını (tamamını veya bir kısmını) render eden HERHANGİ bir webui
+testi, `config.save_config()`'i dolaylı olarak tetikleyebilir --
+`config.app`/`config.ui`/`config.azure`/`config.elevenlabs`/vb.'yi
+patch'lerken artık ayrıca `config.save_config()`'i mock'lamak GEREKMİYOR
+(conftest.py zaten koruyor) ama best-practice olarak hâlâ önerilir (o
+mock, testin "save_config çağrıldı mı" gibi kendi assertion'ları için
+faydalı olabilir) -- gerçek dosya güvenliği artık HİÇBİR testin bunu
+hatırlamasına bağlı değil.

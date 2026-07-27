@@ -84,9 +84,17 @@ def _fake_project():
 
 
 def test_generate_passes_selected_stock_provider_to_run_pipeline():
+    # UYARI (gerçek bir prod olayından öğrenildi): _render_documentary_
+    # advanced_settings() HER sayfa render'ında config.save_config()
+    # çağırıyor (GÖREV G) -- config.app'i mock'lu bir test değeriyle
+    # patch'leyip save_config()'i MOCK'LAMAZSAK, bu test'in sahte değeri
+    # gerçek config.toml'a yazılır (bir kez tam olarak bu yüzden production
+    # pexels_api_keys'i "test-pexels-key" ile ezilmişti). Her ikisi de
+    # HER ZAMAN birlikte patch'lenmeli.
     test_config = dict(config.app, pixabay_api_keys="test-pixabay-key")
     with (
         patch.object(config, "app", test_config),
+        patch.object(config, "save_config"),
         patch.object(
             default_pipeline, "run_pipeline", return_value=_fake_project()
         ) as run_mock,
@@ -110,6 +118,7 @@ def test_generate_blocked_with_clear_error_when_provider_api_key_missing():
 
     with (
         patch.object(config, "app", test_config),
+        patch.object(config, "save_config"),
         patch.object(default_pipeline, "run_pipeline") as run_mock,
     ):
         app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
@@ -133,6 +142,7 @@ def test_generate_with_default_pexels_provider_still_works_without_new_keys():
     test_config = dict(config.app, pexels_api_keys="test-pexels-key")
     with (
         patch.object(config, "app", test_config),
+        patch.object(config, "save_config"),
         patch.object(
             default_pipeline, "run_pipeline", return_value=_fake_project()
         ) as run_mock,
