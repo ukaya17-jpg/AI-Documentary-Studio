@@ -451,6 +451,14 @@
     "Documentary Custom Tags Save": "Simpan Tag",
     "Documentary Custom Tags Saved": "Tag disimpan.",
     "Documentary History Filter By Tags": "Filter berdasarkan tag",
-    "Documentary History No Match For Tags": "Tidak ada produksi yang cocok dengan tag yang dipilih."
+    "Documentary History No Match For Tags": "Tidak ada produksi yang cocok dengan tag yang dipilih.",
+    "Documentary Audio Settings": "Pengaturan Audio",
+    "Documentary Topic Category Select": "Kategori Topik",
+    "Documentary Tone Select": "Nada",
+    "Documentary Advanced Settings": "Pengaturan Lanjutan",
+    "Documentary System Prompt": "Prompt Sistem",
+    "Documentary System Prompt Help": "Menggantikan instruksi dasar penulis narasi. Biarkan kosong untuk menggunakan default yang ditampilkan sebagai placeholder di bawah.",
+    "Documentary Custom Requirements": "Persyaratan Skenario Kustom",
+    "Documentary Custom Requirements Help": "Instruksi tambahan untuk narasi ini, ditambahkan di atas persyaratan pertumbuhan/kualitas otomatis (tidak menggantikannya)."
   }
 }

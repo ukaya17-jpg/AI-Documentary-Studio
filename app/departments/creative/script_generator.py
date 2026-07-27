@@ -135,6 +135,7 @@ def build_script_prompt(
     outline: Outline | None = None,
     tone: Tone | None = None,
     format: Format | None = None,
+    custom_requirements: str = "",
 ) -> str:
     scene_lines = []
     for scene in scene_plan.scenes:
@@ -162,6 +163,12 @@ closely as possible so the timing lines up with the scene's on-screen duration:
             prompt += f"\n\nFormat: {format_guidance}."
     prompt += _story_craft_instructions(scene_plan, outline)
     prompt += _growth_guidance_instructions(format)
+    # GÖREV F (kullanıcı onaylı): kullanıcının kendi ek talimatları --
+    # otomatik büyüme ilkelerinin (yukarıdaki _growth_guidance_instructions)
+    # YERİNE değil, onun HEMEN ARDINA ek bir blok olarak ekleniyor, böylece
+    # ikisi çakışmıyor/birbirini ezmiyor.
+    if custom_requirements.strip():
+        prompt += f"\n\nAdditional requirements:\n{custom_requirements.strip()}"
     if language and language != "auto":
         prompt += f"\n\nRespond in language: {language}"
     prompt += """
@@ -196,6 +203,7 @@ def generate_script(
     outline: Outline | None = None,
     tone: Tone | None = None,
     format: Format | None = None,
+    custom_requirements: str = "",
 ) -> Script:
     if not scene_plan.scenes:
         return Script(full_text="", lines=[], language=language)
@@ -208,6 +216,7 @@ def generate_script(
         outline=outline,
         tone=tone,
         format=format,
+        custom_requirements=custom_requirements,
     )
     data = generate_json(prompt)
     lines_by_index = _parse_lines(data.get("lines", []))

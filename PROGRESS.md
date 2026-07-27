@@ -2910,3 +2910,94 @@ sıfır regresyon). `ruff` temiz.
 **Gerçek doğrulama ($0 maliyet):** `utils.save_project_snapshot()`
 gerçek bir `DocumentaryProject`'e `custom_tags` yazıp `project.json`'dan
 geri okuyarak round-trip doğrulandı (test görev klasörü temizlendi).
+
+## GÖREV D+E+F+G -- Klasik Mod'dan Documentary Studio'ya beş UI iyileştirmesi
+
+Kullanıcı, Klasik Mod'un artık gizli olması nedeniyle orada kalan bazı
+kontrolleri Documentary Studio'ya taşımamı istedi. Dördü de tek bir
+commit'te birleştirildi: `webui/Main.py`'deki değişiklikler aynı fonksiyon
+bölgesinde iç içe geçtiği için (D'nin ses/BGM fonksiyonu ile F/G'nin
+Gelişmiş Ayarlar fonksiyonu art arda eklendi, E'nin expander sarmalaması
+da aynı `_render_documentary_studio_page()` gövdesinde) `git add -p` ile
+sonradan 4 ayrı commit'e bölmek kırılma riski taşırdı -- daha güvenli/geri
+alınabilir seçenek olarak (genel kural 1, ve bu projede kategori
+genişletmesinde de kullanılmış aynı emsal) tek, kapsamlı ve her alt-görevi
+ayrı ayrı belgeleyen bir committe birleştirildi.
+
+### GÖREV D -- Ses hızı/seviyesi + BGM
+
+`run_pipeline()` zaten `voice_rate`/`voice_volume`/`bgm_type`/`bgm_file`/
+`bgm_volume` kabul ediyordu ama Documentary Studio sadece `voice_name`
+gönderiyordu. Yeni `_render_documentary_audio_settings()`: Klasik Mod'daki
+AYNI seçenek listeleriyle rate/volume selectbox'ları + BGM kaynağı
+seçici. **Bilinçli kapsam kararı:** Sonilo/ElevenLabs BGM üretimi sadece
+eski `task.py` (legacy tekil-video) akışında yaşıyor, `default_pipeline.py`
+buna hiç bağlı değil -- v1 sadece Yok/Rastgele/Kendi Dosyanı Yükle sunuyor
+(üçü de `video.get_bgm_file()` üzerinden gerçek çalışıyor). Klasik Mod'daki
+AYNI desen: özel BGM dosyası sadece "Generate" tıklanınca
+`bgm_service.save_bgm_upload()` ile kalıcı hale getiriliyor (render-anında
+değil) -- iptal edilen yüklemeler storage'da yetim dosya bırakmıyor.
+
+### GÖREV E -- Kategori/Ton kart grid'lerini katlanabilir yapma
+
+15 kart hep açık sayfayı çok uzatıyordu. İkisi de artık kapalı başlayan
+birer `st.expander` içinde, başlık her zaman güncel seçimi özetliyor
+("Kategori: Otomatik" gibi, "Otomatik" dahil her zaman). AppTest'in kapalı
+expander içeriğini yine render ettiği doğrulandı -- mevcut 13 kart testi
+değişmeden geçti.
+
+### GÖREV F -- Sistem Promptu + Özel Senaryo Gereksinimleri (ADIM 0 kontrolü)
+
+`custom_system_prompt` zaten `script_generator.build_script_prompt()`'a
+kadar kablolanmıştı (Klasik Mod'dan miras) ama `run_pipeline()` bunu hiç
+almıyordu -- eklendi. `custom_requirements` TAMAMEN YENİ bir parametre:
+`_growth_guidance_instructions`'ın (otomatik büyüme ilkeleri) hemen
+ardına, onu EZMEDEN ek bir blok olarak enjekte ediliyor
+("Additional requirements:"). ADIM 0 doğrulaması: ikisi de gerçek,
+çalışan bir tüketiciye (generate_script → LLM prompt'u) bağlı, dekoratif
+alan değil. İkisi de kayıt/şeffaflık için `DocumentaryProject`'e de
+eklendi (`custom_system_prompt`, `custom_requirements`).
+
+### GÖREV G -- Altyazı font ailesi/boyutu/rengi (ADIM 0 kontrolü)
+
+`video_renderer.build_video_params()` ZATEN `config.ui["font_name"/
+"font_size"/"text_fore_color"]` okuyor (Klasik Mod'un yazdığı yer) --
+Documentary Studio'nun aynı anahtarlara yazması yeterliydi, pipeline'da
+HİÇBİR değişiklik gerekmedi. Kullanıcının istediği sadece üçü eklendi
+(aile/boyut/renk) -- stroke/pozisyon/arkaplan Klasik Mod'da var ama
+bilinçli olarak kapsam dışı bırakıldı.
+
+### Testler ve doğrulama
+
+Yeni dosyalar: `test_webui_audio_settings.py` (6), `test_webui_category_
+tone_expander.py` (4), `test_webui_advanced_settings.py` (5) + genişletilen
+`test_script_generator.py` (+5) ve `test_default_pipeline.py` (mevcut ana
+wiring testine custom_system_prompt/custom_requirements assertion'ları
+eklendi). Tam suite: **815 passed, 11 skipped** (795'ten +20, sıfır
+regresyon).
+
+**Yeni AppTest bulgusu:** Documentary Studio sayfasında Pacing/Format/
+Aspect/Video Source/BGM Type gibi `format_func`'lı TÜM selectbox'lar
+yüzünden bu sayfada HERHANGİ bir ikinci `.run()` çağrısı (bir tıklamayı
+takiben de olsa) kırılıyor -- `ValueError: 'short' is not in list`. Her
+yeni test bu yüzden GÖREV 1'in kurduğu desene uyuyor: tek `.run()`, tüm
+session_state (metin girdileri + buton "tıklandı" bayrağı dahil) o tek
+run'dan ÖNCE set ediliyor. `default_pipeline.run_pipeline()` gerçekten
+`patch.object` ile mock'lanıp Generate butonunun (rerun tetiklemediği
+doğrulanan bir buton) tek run'da doğru kwarg'larla çağrıldığı ilk kez bu
+görevlerde doğrulandı.
+
+**Gerçek doğrulama (Stok Video, $0 maliyet, iki ayrı çalıştırma):**
+1. GÖREV D: "The History of the Lighthouse", `voice_rate=1.3`,
+   `voice_volume=1.5`, `bgm_type="random"`, `bgm_volume=0.4` -- pipeline
+   uçtan uca tamamlandı, `project.bgm_type`/`bgm_volume` doğru kaydedildi,
+   `final.mp4` (1080x1920, h264/aac, 22.7s) `ffprobe` ile doğrulandı.
+2. GÖREV F+G: "The Founding of the Roman Republic",
+   `custom_requirements="Explicitly mention the exact year 509 BC..."`,
+   `config.ui["font_name"/"font_size"/"text_fore_color"]` render öncesi
+   bilinçli olarak varsayılan-dışı değerlere (`Charm-Bold.ttf`, 42, yeşil)
+   ayarlandı. Sonuç: narration/SEO metninde "509 BC" gerçekten geçti
+   (`custom_requirements` doğrulandı); render log'u `⑤ font:
+   ./resource/fonts/Charm-Bold.ttf` yazdı -- `build_video_params()`'ın
+   `config.ui`'dan gerçekten okuduğu, ADIM 0'ın doğru olduğu kanıtlandı.
+   İki test görev klasörü de temizlendi.

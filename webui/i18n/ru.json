@@ -451,6 +451,14 @@
     "Documentary Custom Tags Save": "Сохранить теги",
     "Documentary Custom Tags Saved": "Теги сохранены.",
     "Documentary History Filter By Tags": "Фильтр по тегам",
-    "Documentary History No Match For Tags": "Нет проектов, соответствующих выбранным тегам."
+    "Documentary History No Match For Tags": "Нет проектов, соответствующих выбранным тегам.",
+    "Documentary Audio Settings": "Настройки звука",
+    "Documentary Topic Category Select": "Категория темы",
+    "Documentary Tone Select": "Тон",
+    "Documentary Advanced Settings": "Расширенные настройки",
+    "Documentary System Prompt": "Системный промпт",
+    "Documentary System Prompt Help": "Переопределяет базовые инструкции автора закадрового текста. Оставьте пустым, чтобы использовать значение по умолчанию, показанное ниже как подсказка.",
+    "Documentary Custom Requirements": "Особые требования к сценарию",
+    "Documentary Custom Requirements Help": "Дополнительные инструкции для этого повествования, добавляются поверх автоматических требований роста/качества (они не заменяются)."
   }
 }

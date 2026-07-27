@@ -478,6 +478,14 @@
     "Documentary Custom Tags Save": "Save Tags",
     "Documentary Custom Tags Saved": "Tags saved.",
     "Documentary History Filter By Tags": "Filter by tags",
-    "Documentary History No Match For Tags": "No productions match the selected tags."
+    "Documentary History No Match For Tags": "No productions match the selected tags.",
+    "Documentary Audio Settings": "Audio Settings",
+    "Documentary Topic Category Select": "Topic Category",
+    "Documentary Tone Select": "Tone",
+    "Documentary Advanced Settings": "Advanced Settings",
+    "Documentary System Prompt": "System Prompt",
+    "Documentary System Prompt Help": "Overrides the narration writer's base instructions. Leave empty to use the default shown as a placeholder below.",
+    "Documentary Custom Requirements": "Custom Scenario Requirements",
+    "Documentary Custom Requirements Help": "Extra instructions for this narration, added on top of the automatic growth/quality requirements (they are not replaced)."
   }
 }

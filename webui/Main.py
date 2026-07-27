@@ -26,6 +26,7 @@ if root_dir not in sys.path:
 
 from app.config import config
 from app.config.profile_dimensions import PACING_SCENE_SPEC, Format, Pacing, Tone, TopicCategory
+from app.departments.creative import script_generator
 from app.departments.growth import publisher
 from app.departments.production import ai_video_generator
 from app.models import const
@@ -4433,6 +4434,196 @@ def _render_category_tone_grid(*, kind: str, values: list[str], icons: dict, lab
                     )
 
 
+# GÖREV D (kullanıcı onaylı): Documentary Studio bugüne kadar sadece ses adını
+# (voice_name) soruyordu -- run_pipeline() zaten voice_rate/voice_volume/
+# bgm_type/bgm_file/bgm_volume kabul ediyordu ama hep varsayılana düşüyordu.
+# Sonilo/ElevenLabs BGM ÜRETİMİ (bilinçli kapsam dışı) sadece eski task.py
+# (tekil-video legacy) akışında yaşıyor, default_pipeline.py'ye hiç
+# bağlanmamış -- buraya taşımak bu görevin kapsamını ciddi büyütürdü, bu
+# yüzden v1 sadece Yok/Rastgele/Kendi Dosyanı Yükle sunuyor (üçü de
+# video.get_bgm_file() üzerinden zaten gerçek çalışıyor). Dosya kaydetme,
+# Klasik Mod'daki AYNI desenle, render-anında değil GENERATE tıklanınca
+# yapılıyor (bkz. _render_documentary_studio_page'deki generate_clicked
+# bloğu) -- iptal edilen yüklemeler storage'da yetim dosya bırakmasın diye.
+def _render_documentary_audio_settings():
+    """Ses hızı/seviyesi + BGM kaynağı ayarlarını render eder.
+
+    Dönen `uploaded_bgm_file`, henüz DİSKE KAYDEDİLMEMİŞ ham Streamlit
+    UploadedFile -- çağıran, sadece kullanıcı gerçekten "Generate" tıklarsa
+    bgm_service.save_bgm_upload() ile kalıcı hale getirmeli.
+    """
+    with st.expander(tr("Documentary Audio Settings"), expanded=False):
+        voice_cols = st.columns(2)
+        with voice_cols[0]:
+            voice_volume = st.selectbox(
+                tr("Voiceover Volume"),
+                options=[0.6, 0.8, 1.0, 1.2, 1.5, 2.0, 3.0, 4.0, 5.0],
+                index=2,
+                key="documentary_voice_volume",
+                format_func=lambda value: f"{int(value * 100)}%",
+            )
+        with voice_cols[1]:
+            voice_rate = st.selectbox(
+                tr("Voiceover Speed"),
+                options=[0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.5, 1.8, 2.0],
+                index=2,
+                key="documentary_voice_rate",
+                format_func=lambda value: f"{value:.1f}×",
+            )
+
+        st.divider()
+        bgm_options = [
+            (tr("No Background Music"), ""),
+            (tr("Random Background Music"), "random"),
+            (tr("Custom Background Music"), "custom"),
+        ]
+        bgm_type = st.selectbox(
+            tr("Background Music Source"),
+            options=[value for _, value in bgm_options],
+            index=1,
+            key="documentary_bgm_type",
+            format_func=lambda value: dict((v, label) for label, v in bgm_options)[value],
+        )
+        bgm_volume = st.selectbox(
+            tr("Background Music Volume"),
+            options=[0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+            index=2,
+            key="documentary_bgm_volume",
+            format_func=lambda value: f"{int(value * 100)}%",
+            disabled=not bgm_type,
+        )
+
+        uploaded_bgm_file = None
+        if bgm_type == "custom":
+            uploaded_bgm_file = st.file_uploader(
+                tr("Upload Background Music"),
+                type=[
+                    extension.removeprefix(".")
+                    for extension in bgm_service.SUPPORTED_BGM_EXTENSIONS
+                ],
+                accept_multiple_files=False,
+                key="documentary_custom_bgm_uploader",
+                help=tr("Upload Background Music Help"),
+                max_upload_size=bgm_service.MAX_BGM_UPLOAD_BYTES // (1024 * 1024),
+            )
+            if uploaded_bgm_file is not None:
+                validation_key = (
+                    uploaded_bgm_file.name,
+                    uploaded_bgm_file.size,
+                    hashlib.sha256(uploaded_bgm_file.getbuffer()).hexdigest(),
+                )
+                cached_validation = st.session_state.get(
+                    "documentary_custom_bgm_validation"
+                )
+                if (
+                    not cached_validation
+                    or cached_validation.get("key") != validation_key
+                ):
+                    try:
+                        bgm_service.validate_bgm_upload(
+                            uploaded_bgm_file.name, uploaded_bgm_file
+                        )
+                    except bgm_service.BgmUploadError as exc:
+                        cached_validation = {"key": validation_key, "error": str(exc)}
+                    except bgm_service.BgmServiceError as exc:
+                        cached_validation = {"key": validation_key, "error": str(exc)}
+                    else:
+                        cached_validation = {"key": validation_key, "error": ""}
+                    st.session_state["documentary_custom_bgm_validation"] = (
+                        cached_validation
+                    )
+                if cached_validation.get("error"):
+                    st.error(tr("Invalid Background Music"))
+                else:
+                    st.audio(uploaded_bgm_file, format="audio/mp3")
+
+    return voice_rate, voice_volume, bgm_type, uploaded_bgm_file, bgm_volume
+
+
+# GÖREV F + G (kullanıcı onaylı, tek "Gelişmiş Ayarlar" expander'ında):
+#
+# F -- custom_system_prompt zaten script_generator.build_script_prompt()'a
+# kadar tam kablolanmıştı (Klasik Mod'dan miras), sadece run_pipeline() bunu
+# hiç almıyordu -- bu görevde eklendi (bkz. default_pipeline.run_pipeline).
+# custom_requirements ise YENİ bir parametre: script_generator'a kadar
+# taşınıp _growth_guidance_instructions'ın hemen ardına, onu EZMEDEN ek bir
+# blok olarak enjekte ediliyor (ADIM 0: dekoratif değil, gerçek tüketicisi
+# bu görevde birlikte eklendi).
+#
+# G -- video_renderer.build_video_params() ZATEN config.ui["font_name"/
+# "font_size"/"text_fore_color"] okuyor (Klasik Mod'un yazdığı yer) --
+# Documentary Studio'nun aynı anahtarlara yazması yeterli, pipeline'da
+# hiçbir değişiklik gerekmedi (ADIM 0: gerçek, halihazırda bağlı tüketici).
+# Kullanıcı sadece bu üçünü istedi (aile/boyut/renk) -- stroke/pozisyon/
+# arkaplan Klasik Mod'da var ama burada bilinçli olarak kapsam dışı.
+def _render_documentary_advanced_settings():
+    """Sistem promptu + özel senaryo gereksinimleri + altyazı görünümü.
+
+    Döner: (custom_system_prompt, custom_requirements) -- ikisi de
+    run_pipeline()'a doğrudan geçiriliyor. Font ayarları ayrıca dönmüyor,
+    çünkü config.ui[...]'a yazılıyor ve build_video_params() bunu render
+    anında zaten okuyor (proje-özel bir parametre değil, global ayar).
+    """
+    with st.expander(tr("Documentary Advanced Settings"), expanded=False):
+        custom_system_prompt = st.text_area(
+            tr("Documentary System Prompt"),
+            value="",
+            key="documentary_custom_system_prompt",
+            help=tr("Documentary System Prompt Help"),
+            placeholder=script_generator.DEFAULT_SCRIPT_SYSTEM_PROMPT,
+        ).strip()
+        custom_requirements = st.text_area(
+            tr("Documentary Custom Requirements"),
+            value="",
+            key="documentary_custom_requirements",
+            help=tr("Documentary Custom Requirements Help"),
+        ).strip()
+
+        st.divider()
+        font_names = get_all_fonts()
+        saved_font_name = config.ui.get(
+            "font_name", DEFAULT_SUBTITLE_SETTINGS["font_name"]
+        )
+        saved_font_index = (
+            font_names.index(saved_font_name) if saved_font_name in font_names else 0
+        )
+        font_cols = st.columns([0.5, 0.25, 0.25])
+        with font_cols[0]:
+            selected_font = st.selectbox(
+                tr("Font"),
+                options=font_names,
+                index=saved_font_index if font_names else None,
+                key="documentary_font_name_select",
+                disabled=not font_names,
+            )
+            if selected_font:
+                config.ui["font_name"] = selected_font
+        with font_cols[1]:
+            saved_font_size = config.ui.get(
+                "font_size", DEFAULT_SUBTITLE_SETTINGS["font_size"]
+            )
+            font_size = st.slider(
+                tr("Font Size"),
+                30,
+                100,
+                value=saved_font_size,
+                key="documentary_font_size_slider",
+            )
+            config.ui["font_size"] = font_size
+        with font_cols[2]:
+            saved_text_fore_color = config.ui.get(
+                "text_fore_color", DEFAULT_SUBTITLE_SETTINGS["text_fore_color"]
+            )
+            font_color = st.color_picker(
+                tr("Font Color"),
+                value=saved_text_fore_color,
+                key="documentary_font_color_picker",
+            )
+            config.ui["text_fore_color"] = font_color
+
+    return custom_system_prompt, custom_requirements
+
+
 def _render_documentary_studio_page():
     """
     AI Documentary Studio (Beta): Intent -> Research -> Outline -> Scene ->
@@ -4556,28 +4747,46 @@ def _render_documentary_studio_page():
     # session_state anahtarları (documentary_topic_category/documentary_tone)
     # eski selectbox'larla BİREBİR AYNI, aşağıdaki run_pipeline() çağrısı
     # hiç değişmedi.
-    st.caption(tr("Documentary Topic Category Help"))
-    _render_category_tone_grid(
-        kind="category",
-        values=["auto"] + [c.value for c in TopicCategory],
-        icons=_CATEGORY_ICONS,
-        labels_fn=_documentary_category_label,
-        previews_fn=_category_style_preview,
-        session_key="documentary_topic_category",
-        cards_per_row=_CATEGORY_CARDS_PER_ROW,
-    )
+    #
+    # GÖREV E (kullanıcı onaylı): 15 kart hep açık sayfayı çok uzatıyordu --
+    # her ikisi de artık kapalı başlayan birer st.expander içinde, başlıkta
+    # her zaman GÜNCEL seçimi gösteriyor (Otomatik dahil) böylece kapalıyken
+    # bile özet görünür kalıyor. AppTest'in kapalı expander içeriğini yine
+    # render ettiği doğrulandı (widget'lar erişilebilir) -- mevcut kart
+    # testleri değişmeden geçiyor.
+    current_category = st.session_state.get("documentary_topic_category", "auto")
+    with st.expander(
+        f"{tr('Documentary Topic Category Select')}: "
+        f"{_documentary_category_label(current_category)}",
+        expanded=False,
+    ):
+        st.caption(tr("Documentary Topic Category Help"))
+        _render_category_tone_grid(
+            kind="category",
+            values=["auto"] + [c.value for c in TopicCategory],
+            icons=_CATEGORY_ICONS,
+            labels_fn=_documentary_category_label,
+            previews_fn=_category_style_preview,
+            session_key="documentary_topic_category",
+            cards_per_row=_CATEGORY_CARDS_PER_ROW,
+        )
     topic_category = st.session_state.get("documentary_topic_category", "auto")
 
-    st.caption(tr("Documentary Tone Help"))
-    _render_category_tone_grid(
-        kind="tone",
-        values=["auto"] + [t.value for t in Tone],
-        icons=_TONE_ICONS,
-        labels_fn=_documentary_tone_label,
-        previews_fn=_tone_style_preview,
-        session_key="documentary_tone",
-        cards_per_row=_TONE_CARDS_PER_ROW,
-    )
+    current_tone = st.session_state.get("documentary_tone", "auto")
+    with st.expander(
+        f"{tr('Documentary Tone Select')}: {_documentary_tone_label(current_tone)}",
+        expanded=False,
+    ):
+        st.caption(tr("Documentary Tone Help"))
+        _render_category_tone_grid(
+            kind="tone",
+            values=["auto"] + [t.value for t in Tone],
+            icons=_TONE_ICONS,
+            labels_fn=_documentary_tone_label,
+            previews_fn=_tone_style_preview,
+            session_key="documentary_tone",
+            cards_per_row=_TONE_CARDS_PER_ROW,
+        )
     tone = st.session_state.get("documentary_tone", "auto")
 
     voice_name = st.text_input(
@@ -4585,6 +4794,12 @@ def _render_documentary_studio_page():
         value=config.ui.get("voice_name", "") or "en-US-JennyNeural",
         key="documentary_voice_name",
         help=tr("Documentary Voice Name Help"),
+    )
+    voice_rate, voice_volume, bgm_type, uploaded_bgm_file, bgm_volume = (
+        _render_documentary_audio_settings()
+    )
+    custom_system_prompt, custom_requirements = (
+        _render_documentary_advanced_settings()
     )
 
     # En düşük riskli başlangıç noktası (kullanıcı onaylı): yeni bir
@@ -4648,6 +4863,24 @@ def _render_documentary_studio_page():
             if video_source_choice == _DOCUMENTARY_STOCK_VIDEO_SOURCE
             else video_source_choice
         )
+        # Klasik Mod'daki AYNI desen: yükleme sadece render-anında değil
+        # gerçekten "Generate" tıklanınca kalıcı hale getiriliyor, iptal
+        # edilen/hiç gönderilmeyen yüklemeler storage'da yetim dosya
+        # bırakmasın diye.
+        resolved_bgm_file = ""
+        if uploaded_bgm_file is not None and bgm_service.should_use_bgm(
+            bgm_type, bgm_volume
+        ):
+            try:
+                resolved_bgm_file = bgm_service.save_bgm_upload(
+                    uploaded_bgm_file.name, uploaded_bgm_file
+                )
+            except bgm_service.BgmUploadError:
+                st.error(tr("Invalid Background Music"))
+                st.stop()
+            except bgm_service.BgmServiceError:
+                st.error(tr("Background Music Validation Failed"))
+                st.stop()
         try:
             with st.status(tr("Generating Documentary"), expanded=True) as status:
 
@@ -4680,8 +4913,15 @@ def _render_documentary_studio_page():
                     format=(None if format_choice == "standard" else format_choice),
                     pacing=pacing,
                     voice_name=voice_name.strip(),
+                    voice_rate=voice_rate,
+                    voice_volume=voice_volume,
                     video_source=resolved_video_source,
                     video_aspect=video_aspect,
+                    bgm_type=bgm_type,
+                    bgm_file=resolved_bgm_file,
+                    bgm_volume=bgm_volume,
+                    custom_system_prompt=custom_system_prompt,
+                    custom_requirements=custom_requirements,
                     on_stage_change=_update_documentary_stage_status,
                     on_substage_progress=_update_documentary_ai_video_progress,
                 )

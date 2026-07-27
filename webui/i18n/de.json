@@ -451,6 +451,14 @@
     "Documentary Custom Tags Save": "Tags Speichern",
     "Documentary Custom Tags Saved": "Tags gespeichert.",
     "Documentary History Filter By Tags": "Nach Tags filtern",
-    "Documentary History No Match For Tags": "Keine Produktionen entsprechen den ausgewählten Tags."
+    "Documentary History No Match For Tags": "Keine Produktionen entsprechen den ausgewählten Tags.",
+    "Documentary Audio Settings": "Audioeinstellungen",
+    "Documentary Topic Category Select": "Themenkategorie",
+    "Documentary Tone Select": "Tonfall",
+    "Documentary Advanced Settings": "Erweiterte Einstellungen",
+    "Documentary System Prompt": "System-Prompt",
+    "Documentary System Prompt Help": "Überschreibt die Basisanweisungen des Erzähltext-Autors. Leer lassen, um die unten als Platzhalter gezeigte Standardeinstellung zu verwenden.",
+    "Documentary Custom Requirements": "Individuelle Szenario-Anforderungen",
+    "Documentary Custom Requirements Help": "Zusätzliche Anweisungen für diese Erzählung, ergänzend zu den automatischen Wachstums-/Qualitätsanforderungen (diese werden nicht ersetzt)."
   }
 }

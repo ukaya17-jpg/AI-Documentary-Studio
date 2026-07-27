@@ -74,6 +74,8 @@ def run_pipeline(
     bgm_type: str = "random",
     bgm_file: str = "",
     bgm_volume: float = 0.2,
+    custom_system_prompt: str = "",
+    custom_requirements: str = "",
     on_stage_change: Callable[[int, str], None] | None = None,
     on_substage_progress: Callable[[int, int], None] | None = None,
 ) -> DocumentaryProject:
@@ -111,6 +113,8 @@ def run_pipeline(
         video_aspect=video_aspect,
         bgm_type=bgm_type,
         bgm_volume=bgm_volume,
+        custom_system_prompt=custom_system_prompt,
+        custom_requirements=custom_requirements,
     )
 
     def stage(n: int, name: str):
@@ -158,9 +162,11 @@ def run_pipeline(
             project.scene_plan,
             topic,
             language=project.language,
+            custom_system_prompt=custom_system_prompt,
             outline=project.outline,
             tone=resolved_tone,
             format=resolved_format,
+            custom_requirements=custom_requirements,
         )
         utils.save_project_snapshot(project)
 

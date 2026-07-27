@@ -478,6 +478,14 @@
     "Documentary Custom Tags Save": "保存标签",
     "Documentary Custom Tags Saved": "标签已保存。",
     "Documentary History Filter By Tags": "按标签筛选",
-    "Documentary History No Match For Tags": "没有与所选标签匹配的作品。"
+    "Documentary History No Match For Tags": "没有与所选标签匹配的作品。",
+    "Documentary Audio Settings": "音频设置",
+    "Documentary Topic Category Select": "主题类别",
+    "Documentary Tone Select": "语气",
+    "Documentary Advanced Settings": "高级设置",
+    "Documentary System Prompt": "系统提示词",
+    "Documentary System Prompt Help": "覆盖旁白撰写者的基础指令。留空则使用下方占位符显示的默认值。",
+    "Documentary Custom Requirements": "自定义脚本要求",
+    "Documentary Custom Requirements Help": "此旁白的附加说明，附加在自动增长/质量要求之上（不会替换它们）。"
   }
 }

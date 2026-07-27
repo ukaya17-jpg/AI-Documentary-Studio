@@ -451,6 +451,14 @@
     "Documentary Custom Tags Save": "Guardar Etiquetas",
     "Documentary Custom Tags Saved": "Etiquetas guardadas.",
     "Documentary History Filter By Tags": "Filtrar por etiquetas",
-    "Documentary History No Match For Tags": "Ninguna producción coincide con las etiquetas seleccionadas."
+    "Documentary History No Match For Tags": "Ninguna producción coincide con las etiquetas seleccionadas.",
+    "Documentary Audio Settings": "Ajustes de Audio",
+    "Documentary Topic Category Select": "Categoría del Tema",
+    "Documentary Tone Select": "Tono",
+    "Documentary Advanced Settings": "Configuración Avanzada",
+    "Documentary System Prompt": "Prompt del Sistema",
+    "Documentary System Prompt Help": "Anula las instrucciones base del redactor de la narración. Déjalo vacío para usar el valor predeterminado mostrado como marcador de posición abajo.",
+    "Documentary Custom Requirements": "Requisitos de Escenario Personalizados",
+    "Documentary Custom Requirements Help": "Instrucciones adicionales para esta narración, añadidas sobre los requisitos automáticos de crecimiento/calidad (no los reemplazan)."
   }
 }

@@ -242,6 +242,48 @@ class TestGrowthGuidance(unittest.TestCase):
         self.assertIn("a new concrete detail or turn should surface", prompt)
 
 
+class TestCustomRequirements(unittest.TestCase):
+    """GÖREV F (kullanıcı onaylı): kullanıcının kendi ek talimatları --
+    otomatik büyüme ilkelerinin (Growth requirements) YERİNE değil, onun
+    hemen ardına ek bir blok olarak eklenir, ikisi çakışmaz.
+    """
+
+    def test_omitting_custom_requirements_adds_no_extra_block(self):
+        prompt = script_generator.build_script_prompt(_scene_plan(), "Topic")
+        self.assertNotIn("Additional requirements:", prompt)
+
+    def test_blank_custom_requirements_adds_no_extra_block(self):
+        prompt = script_generator.build_script_prompt(
+            _scene_plan(), "Topic", custom_requirements="   "
+        )
+        self.assertNotIn("Additional requirements:", prompt)
+
+    def test_custom_requirements_appear_after_growth_requirements(self):
+        prompt = script_generator.build_script_prompt(
+            _scene_plan(), "Topic", custom_requirements="Always mention the year."
+        )
+        self.assertIn("Additional requirements:", prompt)
+        self.assertIn("Always mention the year.", prompt)
+        self.assertLess(
+            prompt.index("Growth requirements:"),
+            prompt.index("Additional requirements:"),
+        )
+
+    def test_custom_requirements_coexist_with_growth_requirements_unmodified(self):
+        # The growth block itself must stay byte-identical -- custom
+        # requirements are additive, not a replacement.
+        without = script_generator.build_script_prompt(_scene_plan(), "Topic")
+        with_custom = script_generator.build_script_prompt(
+            _scene_plan(), "Topic", custom_requirements="Mention the year."
+        )
+        growth_block = without[
+            without.index("Growth requirements:") : without.index(
+                "Respond with a single JSON object"
+            )
+        ]
+        self.assertIn(growth_block.strip(), with_custom)
+
+
 class TestGenerateScript(unittest.TestCase):
     @patch("app.departments.creative.script_generator.generate_json")
     def test_parses_lines_in_scene_order(self, mock_generate_json):
@@ -281,6 +323,17 @@ class TestGenerateScript(unittest.TestCase):
 
         prompt_arg = mock_generate_json.call_args[0][0]
         self.assertIn(script_generator.TONE_VOICE_GUIDANCE[Tone.scientific], prompt_arg)
+
+    @patch("app.departments.creative.script_generator.generate_json")
+    def test_passes_custom_requirements_through_to_the_prompt(self, mock_generate_json):
+        mock_generate_json.return_value = {"lines": []}
+
+        script_generator.generate_script(
+            _scene_plan(), "Topic", custom_requirements="Always mention the year."
+        )
+
+        prompt_arg = mock_generate_json.call_args[0][0]
+        self.assertIn("Always mention the year.", prompt_arg)
 
     @patch("app.departments.creative.script_generator.generate_json")
     def test_passes_format_through_to_the_prompt(self, mock_generate_json):

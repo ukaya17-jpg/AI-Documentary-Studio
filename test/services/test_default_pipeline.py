@@ -175,6 +175,8 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
             language="auto",
             pacing=Pacing.short,
             voice_name="en-US-JennyNeural",
+            custom_system_prompt="Write like a noir detective.",
+            custom_requirements="Always mention exact dates.",
         )
 
         self.assertEqual(project.language, "en")
@@ -222,6 +224,19 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         self.assertIs(script_kwargs["outline"], self.outline)
         self.assertEqual(script_kwargs["tone"], Tone.credibility)
         self.assertIsNone(script_kwargs["format"])
+        # GÖREV F (kullanıcı onaylı): custom_system_prompt zaten
+        # script_generator'a kadar kablolanmıştı ama run_pipeline() hiç
+        # almıyordu -- custom_requirements ise tamamen yeni bir parametre.
+        # İkisi de doğrudan generate_script()'e ulaşmalı, ayrıca projede de
+        # (şeffaflık/kayıt için) saklanmalı.
+        self.assertEqual(
+            script_kwargs["custom_system_prompt"], "Write like a noir detective."
+        )
+        self.assertEqual(
+            script_kwargs["custom_requirements"], "Always mention exact dates."
+        )
+        self.assertEqual(project.custom_system_prompt, "Write like a noir detective.")
+        self.assertEqual(project.custom_requirements, "Always mention exact dates.")
 
         # storyboard_generator receives both scene plan and script, plus the
         # topic and a bounded slice of research key_facts -- these anchor the

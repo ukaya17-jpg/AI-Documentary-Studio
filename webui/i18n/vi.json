@@ -451,6 +451,14 @@
     "Documentary Custom Tags Save": "Lưu Thẻ",
     "Documentary Custom Tags Saved": "Đã lưu thẻ.",
     "Documentary History Filter By Tags": "Lọc theo thẻ",
-    "Documentary History No Match For Tags": "Không có sản phẩm nào khớp với các thẻ đã chọn."
+    "Documentary History No Match For Tags": "Không có sản phẩm nào khớp với các thẻ đã chọn.",
+    "Documentary Audio Settings": "Cài Đặt Âm Thanh",
+    "Documentary Topic Category Select": "Danh Mục Chủ Đề",
+    "Documentary Tone Select": "Giọng Điệu",
+    "Documentary Advanced Settings": "Cài Đặt Nâng Cao",
+    "Documentary System Prompt": "System Prompt",
+    "Documentary System Prompt Help": "Ghi đè hướng dẫn cơ bản của người viết lời dẫn. Để trống để dùng mặc định hiển thị bên dưới dưới dạng placeholder.",
+    "Documentary Custom Requirements": "Yêu Cầu Kịch Bản Tùy Chỉnh",
+    "Documentary Custom Requirements Help": "Hướng dẫn bổ sung cho lời dẫn này, được thêm vào bên cạnh các yêu cầu tăng trưởng/chất lượng tự động (không thay thế chúng)."
   }
 }
