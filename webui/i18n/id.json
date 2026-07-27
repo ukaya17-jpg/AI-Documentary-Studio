@@ -444,6 +444,13 @@
     "Documentary Edit Script Regenerate Button": "Simpan dan Buat Ulang Audio/Video",
     "Documentary Edit Script Regenerating": "Membuat ulang audio dan video dari naskah yang Anda edit...",
     "Documentary Edit Script Success": "Naskah diperbarui -- audio dan video berhasil dibuat ulang.",
-    "Documentary Edit Script Failed": "Gagal membuat ulang dari naskah yang diedit"
+    "Documentary Edit Script Failed": "Gagal membuat ulang dari naskah yang diedit",
+    "Documentary Custom Tags": "Tag Kustom",
+    "Documentary Custom Tags Help": "Tag organisasi Anda sendiri (seperti playlist), untuk menemukan video terkait nanti -- bukan hashtag/kata kunci SEO, tidak memengaruhi bagaimana video ditemukan di platform mana pun.",
+    "Documentary Custom Tags Input": "Tag (dipisahkan koma)",
+    "Documentary Custom Tags Save": "Simpan Tag",
+    "Documentary Custom Tags Saved": "Tag disimpan.",
+    "Documentary History Filter By Tags": "Filter berdasarkan tag",
+    "Documentary History No Match For Tags": "Tidak ada produksi yang cocok dengan tag yang dipilih."
   }
 }

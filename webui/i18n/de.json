@@ -444,6 +444,13 @@
     "Documentary Edit Script Regenerate Button": "Speichern und Audio/Video neu erstellen",
     "Documentary Edit Script Regenerating": "Audio und Video werden aus Ihrem bearbeiteten Skript neu erstellt...",
     "Documentary Edit Script Success": "Skript aktualisiert -- Audio und Video erfolgreich neu erstellt.",
-    "Documentary Edit Script Failed": "Neuerstellung aus dem bearbeiteten Skript fehlgeschlagen"
+    "Documentary Edit Script Failed": "Neuerstellung aus dem bearbeiteten Skript fehlgeschlagen",
+    "Documentary Custom Tags": "Eigene Tags",
+    "Documentary Custom Tags Help": "Ihre eigenen Organisationstags (wie eine Playlist), um verwandte Videos später wiederzufinden -- keine SEO-Hashtags/Schlüsselwörter, ohne Auswirkung darauf, wie das Video auf einer Plattform gefunden wird.",
+    "Documentary Custom Tags Input": "Tags (durch Komma getrennt)",
+    "Documentary Custom Tags Save": "Tags Speichern",
+    "Documentary Custom Tags Saved": "Tags gespeichert.",
+    "Documentary History Filter By Tags": "Nach Tags filtern",
+    "Documentary History No Match For Tags": "Keine Produktionen entsprechen den ausgewählten Tags."
   }
 }

@@ -2864,3 +2864,49 @@ Tam suite (üç görev sonrası, final): **779 passed, 11 skipped, sıfır
 regresyon boyunca**. `ruff` her commit'te temiz. `git log origin/main -1`
 ile senkron doğrulandı. `./deploy.sh` çalıştırıldı, production temiz
 restart oldu.
+
+## ÖZELLİK A/B/C (kullanıcı onaylı 3 özellik) -- A tamamlandı, B bu bölümde, C ertelendi
+
+Kullanıcı üç yeni özelliği önceden onayladı: **A** (düzenlenebilir senaryo
+alanı, commit `f57c121` -- ayrı push+deploy ile önceden tamamlandı),
+**B** (özel etiketler, bu bölüm) ve **C** (Hailuo/MiniMax model seçeneği).
+Kullanıcı daha sonra 5 yeni UI görevi (D/E/F/B/G) istediğinde B'nin kod
+tarafı zaten yarı bitmiş haldeydi -- B, D'den önce (parti-kod/parti-test
+durumda bırakmamak için, en az riskli/tersine çevrilebilir seçenek olarak)
+bitirilip commit edildi; **C bu görev listesinde YOK, kullanıcı talebiyle
+ertelendi.**
+
+### ÖZELLİK B -- Özel Etiketler (kanal içi organizasyon, SEO değil)
+
+`DocumentaryProject.custom_tags: list[str]` (yeni alan, varsayılan `[]`).
+Documentary Studio'nun sonuç panelinde VE Geçmiş Üretimler'de (kart
+detayında) paylaşılan `_render_custom_tags_section()` -- virgülle ayrılmış
+serbest metin girdisi, "Kaydet" `save_project_snapshot()`'ı çağırıp
+`st.rerun()` yapıyor. Geçmiş Üretimler'in "tamamen salt-okunur" ilkesine
+kullanıcı onaylı, DAR bir istisna (Publish hâlâ orada yok).
+
+Geçmiş Üretimler sayfasına bir "Filter by tags" `st.multiselect`
+eklendi (tüm projelerin `custom_tags` birleşimi, OR semantiği -- seçili
+etiketlerden HERHANGİ birine sahip proje eşleşiyor). Etiketi olan hiçbir
+proje yoksa filtre gizleniyor.
+
+**Test kısıtı (yeni öğrenilen bir AppTest tuzağı):** Save butonunun
+handler'ı `st.rerun()` çağırıyor. Butonun "tıklandı" bayrağını doğrudan
+`session_state[key] = True` ile önceden set edip TEK bir `.run()`
+kullanmak (GÖREV 1'den beri bilinen format_func/session_state kısıtı
+yüzünden `.click().run()` zinciri burada kullanılamıyor, ikinci `.run()`
+Pacing selectbox'ını kırıyor) yeni bir soruna yol açtı: bayrak hiç
+temizlenmediği için her iç rerun turunda buton "yeniden tıklanmış" görünüp
+**sonsuz döngüye girdi** (süreç bir kez bu yüzden kilitlenip manuel
+öldürüldü). Düzeltme: `st.rerun()` testte no-op'a patch'lendi -- tek script
+geçişi rerun tetiklemeden tamamlanıyor, click sonrası durum yine de tam
+doğrulanabiliyor.
+
+Test: yeni `test_webui_custom_tags.py` (6 test: i18n parity, ön-doldurma,
+boş durum, trim/kaydet davranışı, filtre listeleme, hiç etiket yokken
+filtrenin gizlenmesi). Tam suite: **795 passed, 11 skipped** (779'dan +16,
+sıfır regresyon). `ruff` temiz.
+
+**Gerçek doğrulama ($0 maliyet):** `utils.save_project_snapshot()`
+gerçek bir `DocumentaryProject`'e `custom_tags` yazıp `project.json`'dan
+geri okuyarak round-trip doğrulandı (test görev klasörü temizlendi).

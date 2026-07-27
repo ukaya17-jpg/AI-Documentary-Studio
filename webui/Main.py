@@ -4211,6 +4211,42 @@ def _render_project_media_panel(project: dict) -> bool:
     return True
 
 
+def _render_custom_tags_section(project: dict) -> None:
+    """ÖZELLİK B (kullanıcı onaylı): serbest, kullanıcı tanımlı etiketler
+    (playlist tarzı, kanal içi organizasyon için) -- SEO hashtag/keywords
+    ile karıştırılmamalı, videonun platformda nasıl bulunduğuyla ilgisi yok.
+
+    Documentary Studio'nun kendi sonuç panelinde VE Geçmiş Üretimler
+    sayfasında (kart detayında) kullanılıyor -- History'nin "tamamen
+    salt-okunur" ilkesine kasıtlı, DAR bir istisna: etiket eklemek harici/
+    yıkıcı bir eylem değil (Publish/script-düzenleme gibi), düşük riskli,
+    tamamen yerel bir metadata güncellemesi -- Publish hâlâ History'de yok.
+    """
+    project_id = project.get("project_id", "")
+    current_tags = project.get("custom_tags") or []
+
+    with st.expander(tr("Documentary Custom Tags"), expanded=bool(current_tags)):
+        st.caption(tr("Documentary Custom Tags Help"))
+        tags_input = st.text_input(
+            tr("Documentary Custom Tags Input"),
+            value=", ".join(current_tags),
+            key=f"documentary_custom_tags_input_{project_id}",
+        )
+        if st.button(
+            tr("Documentary Custom Tags Save"),
+            key=f"documentary_custom_tags_save_{project_id}",
+        ):
+            new_tags = [t.strip() for t in tags_input.split(",") if t.strip()]
+            full_project = DocumentaryProject(**project)
+            full_project.custom_tags = new_tags
+            utils.save_project_snapshot(full_project)
+            current_last_project = st.session_state.get("documentary_last_project") or {}
+            if project_id and project_id == current_last_project.get("project_id"):
+                st.session_state["documentary_last_project"] = full_project.model_dump(mode="json")
+            st.success(tr("Documentary Custom Tags Saved"))
+            st.rerun()
+
+
 def _documentary_category_label(value):
     return tr(f"Category: {value}")
 
@@ -4697,6 +4733,7 @@ def _render_documentary_studio_page():
         _, results_col, _ = st.columns([1, 2, 1])
         with results_col:
             _render_project_media_panel(last_project)
+            _render_custom_tags_section(last_project)
             _render_script_edit_section(last_project)
             _render_publish_section(last_project)
 
@@ -4877,13 +4914,14 @@ def _render_history_card(entry, expanded: bool):
 
 def _render_history_page():
     """Geçmiş Üretimler: storage/tasks/ altındaki tamamlanmış Documentary
-    Studio projelerini salt-okunur bir galeri olarak listeler.
+    Studio projelerini bir galeri olarak listeler.
 
-    Kasıtlı olarak tamamen salt-okunur: sadece diskteki mevcut project.json/
-    video/thumbnail dosyalarını okur, ne yeni bir pipeline çalıştırır ne de
-    (Documentary Studio sonuç panelinin aksine) Publish bölümünü içerir --
-    publish harici platformlara gerçek bir yayın eylemi tetiklediği için bu
-    sayfanın kapsamı dışında bırakıldı.
+    Neredeyse tamamen salt-okunur: ne yeni bir pipeline çalıştırır ne de
+    (Documentary Studio sonuç panelinin aksine) Publish veya script-düzenleme
+    bölümlerini içerir -- ikisi de gerçek/geri alınması zor eylemler (harici
+    yayın, yeniden render). ÖZELLİK B (kullanıcı onaylı) BUNA TEK istisna:
+    özel etiketler eklenebiliyor -- düşük riskli, tamamen yerel bir metadata
+    güncellemesi, harici hiçbir yan etkisi yok (bkz. _render_custom_tags_section).
     """
     st.header(tr("Nav History"))
 
@@ -4891,6 +4929,25 @@ def _render_history_page():
     if not projects:
         st.info(tr("Documentary History Empty"))
         return
+
+    all_tags = sorted(
+        {tag for entry in projects for tag in (entry["project"].get("custom_tags") or [])}
+    )
+    if all_tags:
+        selected_tags = st.multiselect(
+            tr("Documentary History Filter By Tags"),
+            options=all_tags,
+            key="history_tag_filter",
+        )
+        if selected_tags:
+            projects = [
+                entry
+                for entry in projects
+                if set(selected_tags) & set(entry["project"].get("custom_tags") or [])
+            ]
+        if not projects:
+            st.info(tr("Documentary History No Match For Tags"))
+            return
 
     selected_task_id = st.session_state.get("history_expanded_task_id")
 
@@ -4910,6 +4967,7 @@ def _render_history_page():
             with results_col:
                 st.subheader(_history_card_title(selected_entry["project"]))
                 _render_project_media_panel(selected_entry["project"])
+                _render_custom_tags_section(selected_entry["project"])
             st.divider()
 
 

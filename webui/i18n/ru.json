@@ -444,6 +444,13 @@
     "Documentary Edit Script Regenerate Button": "Сохранить и пересоздать аудио/видео",
     "Documentary Edit Script Regenerating": "Пересоздание аудио и видео из отредактированного сценария...",
     "Documentary Edit Script Success": "Сценарий обновлён -- аудио и видео успешно пересозданы.",
-    "Documentary Edit Script Failed": "Не удалось пересоздать по отредактированному сценарию"
+    "Documentary Edit Script Failed": "Не удалось пересоздать по отредактированному сценарию",
+    "Documentary Custom Tags": "Пользовательские теги",
+    "Documentary Custom Tags Help": "Ваши собственные организационные теги (как плейлист), чтобы позже находить связанные видео -- это не SEO-хэштеги/ключевые слова, они не влияют на то, как видео находят на любой платформе.",
+    "Documentary Custom Tags Input": "Теги (через запятую)",
+    "Documentary Custom Tags Save": "Сохранить теги",
+    "Documentary Custom Tags Saved": "Теги сохранены.",
+    "Documentary History Filter By Tags": "Фильтр по тегам",
+    "Documentary History No Match For Tags": "Нет проектов, соответствующих выбранным тегам."
   }
 }

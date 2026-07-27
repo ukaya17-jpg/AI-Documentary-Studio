@@ -444,6 +444,13 @@
     "Documentary Edit Script Regenerate Button": "Lưu và Tạo Lại Âm Thanh/Video",
     "Documentary Edit Script Regenerating": "Đang tạo lại âm thanh và video từ kịch bản đã chỉnh sửa của bạn...",
     "Documentary Edit Script Success": "Kịch bản đã cập nhật -- âm thanh và video đã được tạo lại thành công.",
-    "Documentary Edit Script Failed": "Không thể tạo lại từ kịch bản đã chỉnh sửa"
+    "Documentary Edit Script Failed": "Không thể tạo lại từ kịch bản đã chỉnh sửa",
+    "Documentary Custom Tags": "Thẻ Tùy Chỉnh",
+    "Documentary Custom Tags Help": "Thẻ tổ chức của riêng bạn (giống như danh sách phát), để tìm các video liên quan sau này -- không phải hashtag/từ khóa SEO, không ảnh hưởng đến cách video được tìm thấy trên bất kỳ nền tảng nào.",
+    "Documentary Custom Tags Input": "Thẻ (phân cách bằng dấu phẩy)",
+    "Documentary Custom Tags Save": "Lưu Thẻ",
+    "Documentary Custom Tags Saved": "Đã lưu thẻ.",
+    "Documentary History Filter By Tags": "Lọc theo thẻ",
+    "Documentary History No Match For Tags": "Không có sản phẩm nào khớp với các thẻ đã chọn."
   }
 }

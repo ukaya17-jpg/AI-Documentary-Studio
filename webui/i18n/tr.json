@@ -444,6 +444,13 @@
     "Documentary Edit Script Regenerate Button": "Kaydet ve Ses/Videoyu Yeniden Oluştur",
     "Documentary Edit Script Regenerating": "Düzenlenen senaryonuzdan ses ve video yeniden oluşturuluyor...",
     "Documentary Edit Script Success": "Senaryo güncellendi -- ses ve video başarıyla yeniden oluşturuldu.",
-    "Documentary Edit Script Failed": "Düzenlenen senaryodan yeniden oluşturma başarısız oldu"
+    "Documentary Edit Script Failed": "Düzenlenen senaryodan yeniden oluşturma başarısız oldu",
+    "Documentary Custom Tags": "Özel Etiketler",
+    "Documentary Custom Tags Help": "Kendi organizasyon etiketleriniz (playlist gibi), ilişkili videoları sonra bulmak için -- SEO hashtag/anahtar kelimeleri değil, videonun herhangi bir platformda nasıl keşfedildiğine hiçbir etkisi yok.",
+    "Documentary Custom Tags Input": "Etiketler (virgülle ayrılmış)",
+    "Documentary Custom Tags Save": "Etiketleri Kaydet",
+    "Documentary Custom Tags Saved": "Etiketler kaydedildi.",
+    "Documentary History Filter By Tags": "Etikete göre filtrele",
+    "Documentary History No Match For Tags": "Seçili etiketlerle eşleşen üretim yok."
   }
 }

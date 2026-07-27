@@ -471,6 +471,13 @@
     "Documentary Edit Script Regenerate Button": "Save and Regenerate Audio/Video",
     "Documentary Edit Script Regenerating": "Regenerating audio and video from your edited script...",
     "Documentary Edit Script Success": "Script updated -- audio and video regenerated successfully.",
-    "Documentary Edit Script Failed": "Failed to regenerate from the edited script"
+    "Documentary Edit Script Failed": "Failed to regenerate from the edited script",
+    "Documentary Custom Tags": "Custom Tags",
+    "Documentary Custom Tags Help": "Your own organizational tags (like a playlist), for finding related videos later -- not SEO hashtags/keywords, no effect on how the video is discovered on any platform.",
+    "Documentary Custom Tags Input": "Tags (comma-separated)",
+    "Documentary Custom Tags Save": "Save Tags",
+    "Documentary Custom Tags Saved": "Tags saved.",
+    "Documentary History Filter By Tags": "Filter by tags",
+    "Documentary History No Match For Tags": "No productions match the selected tags."
   }
 }

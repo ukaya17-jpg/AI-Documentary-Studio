@@ -444,6 +444,13 @@
     "Documentary Edit Script Regenerate Button": "Salvar e Regenerar Áudio/Vídeo",
     "Documentary Edit Script Regenerating": "Regenerando áudio e vídeo a partir do seu roteiro editado...",
     "Documentary Edit Script Success": "Roteiro atualizado -- áudio e vídeo regenerados com sucesso.",
-    "Documentary Edit Script Failed": "Falha ao regenerar a partir do roteiro editado"
+    "Documentary Edit Script Failed": "Falha ao regenerar a partir do roteiro editado",
+    "Documentary Custom Tags": "Tags Personalizadas",
+    "Documentary Custom Tags Help": "Suas próprias tags organizacionais (como uma playlist), para encontrar vídeos relacionados depois -- não são hashtags/palavras-chave de SEO, sem efeito em como o vídeo é descoberto em qualquer plataforma.",
+    "Documentary Custom Tags Input": "Tags (separadas por vírgula)",
+    "Documentary Custom Tags Save": "Salvar Tags",
+    "Documentary Custom Tags Saved": "Tags salvas.",
+    "Documentary History Filter By Tags": "Filtrar por tags",
+    "Documentary History No Match For Tags": "Nenhuma produção corresponde às tags selecionadas."
   }
 }

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.config.profile_dimensions import Format, Pacing, Tone, TopicCategory
 from app.models.asset import AssetPlan
@@ -67,3 +67,9 @@ class DocumentaryProject(BaseModel):
     # app.departments.growth.publisher.publish_project (see webui's Publish
     # section). None means "not published (yet)", not "publish failed".
     publish_result: PublishResult | None = None
+    # ÖZELLİK B (kullanıcı onaylı): serbest, kullanıcı tanımlı etiketler --
+    # playlist tarzı kanal-içi organizasyon için, SEO hashtags/keywords ile
+    # KARIŞTIRILMAMALI (platformda keşfedilebilirlikle ilgisi yok). run_pipeline()
+    # bunu hiç doldurmuyor -- sadece webui'nin _render_custom_tags_section()'ı
+    # üzerinden, üretim sonrası kullanıcı tarafından ekleniyor.
+    custom_tags: list[str] = Field(default_factory=list)

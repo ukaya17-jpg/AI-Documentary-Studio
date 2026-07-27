@@ -471,6 +471,13 @@
     "Documentary Edit Script Regenerate Button": "保存并重新生成音频/视频",
     "Documentary Edit Script Regenerating": "正在根据您编辑的脚本重新生成音频和视频……",
     "Documentary Edit Script Success": "脚本已更新——音频和视频已成功重新生成。",
-    "Documentary Edit Script Failed": "无法根据编辑后的脚本重新生成"
+    "Documentary Edit Script Failed": "无法根据编辑后的脚本重新生成",
+    "Documentary Custom Tags": "自定义标签",
+    "Documentary Custom Tags Help": "您自己的组织标签（类似播放列表），方便日后查找相关视频——不是 SEO 话题标签/关键词，不影响视频在任何平台上的曝光。",
+    "Documentary Custom Tags Input": "标签（用逗号分隔）",
+    "Documentary Custom Tags Save": "保存标签",
+    "Documentary Custom Tags Saved": "标签已保存。",
+    "Documentary History Filter By Tags": "按标签筛选",
+    "Documentary History No Match For Tags": "没有与所选标签匹配的作品。"
   }
 }

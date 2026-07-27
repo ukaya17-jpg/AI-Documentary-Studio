@@ -444,6 +444,13 @@
     "Documentary Edit Script Regenerate Button": "Guardar y Regenerar Audio/Video",
     "Documentary Edit Script Regenerating": "Regenerando audio y video a partir de tu guion editado...",
     "Documentary Edit Script Success": "Guion actualizado -- audio y video regenerados con éxito.",
-    "Documentary Edit Script Failed": "Error al regenerar desde el guion editado"
+    "Documentary Edit Script Failed": "Error al regenerar desde el guion editado",
+    "Documentary Custom Tags": "Etiquetas Personalizadas",
+    "Documentary Custom Tags Help": "Tus propias etiquetas organizativas (como una lista de reproducción), para encontrar videos relacionados más tarde -- no son hashtags/palabras clave SEO, no afectan cómo se descubre el video en ninguna plataforma.",
+    "Documentary Custom Tags Input": "Etiquetas (separadas por comas)",
+    "Documentary Custom Tags Save": "Guardar Etiquetas",
+    "Documentary Custom Tags Saved": "Etiquetas guardadas.",
+    "Documentary History Filter By Tags": "Filtrar por etiquetas",
+    "Documentary History No Match For Tags": "Ninguna producción coincide con las etiquetas seleccionadas."
   }
 }
