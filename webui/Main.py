@@ -4621,6 +4621,13 @@ def _render_documentary_advanced_settings():
             )
             config.ui["text_fore_color"] = font_color
 
+        # Klasik Mod'un aksine Documentary Studio hiçbir yerde
+        # config.save_config() çağırmıyordu -- bu üç ayar RAM'de kalıp bir
+        # sonraki süreç yeniden başlatmasında (deploy/restart) sessizce eski
+        # değerlere dönerdi. save_config() içerik değişmediyse zaten no-op
+        # (bkz. app.config.config), bu yüzden her rerun'da çağırmak güvenli.
+        config.save_config()
+
     return custom_system_prompt, custom_requirements
 
 

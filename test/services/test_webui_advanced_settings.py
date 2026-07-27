@@ -83,6 +83,20 @@ def test_font_settings_default_to_configured_values():
     assert font_color.value == "#FF0000"
 
 
+def test_font_settings_are_persisted_via_save_config():
+    """Klasik Mod'un aksine Documentary Studio hiçbir yerde
+    config.save_config() çağırmıyordu -- bu üç ayar RAM'de kalıp bir sonraki
+    süreç yeniden başlatmasında sessizce eski değerlere dönerdi.
+    """
+    with patch.object(config, "save_config") as save_mock:
+        app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+        app.session_state["ui_language"] = "en"
+        app.run()
+
+    assert not app.exception
+    save_mock.assert_called()
+
+
 def _fake_project():
     project = DocumentaryProject(
         project_id="fake-id",
