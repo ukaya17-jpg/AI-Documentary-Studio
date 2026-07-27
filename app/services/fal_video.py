@@ -1,4 +1,4 @@
-"""Generic fal.ai queue API client for AI-generated video clips (Kling models).
+"""Generic fal.ai queue API client for AI-generated video clips (Kling/Hailuo).
 
 Provider-agnostic wrapper around fal.ai's queue-based REST API: submit a
 text-to-video job, poll its status, fetch the result, download the clip.
@@ -11,6 +11,13 @@ Real money is spent per submitted job -- this module never retries a failed
 submission automatically (unlike llm.py's generate_json) and never falls
 back to anything; callers decide what to do with a {"success": False, ...}
 result.
+
+ADIM 3 (Provider Sistemi keşif raporu, kullanıcı onaylı): fal_ai_video_model
+config'i ile Kling/Hailuo arasında seçim -- yeni bir Protocol/ABC katmanı
+YOK (kullanıcı bilinçli olarak istemedi), voice.tts()'in kendi kanıtlanmış
+deseniyle (basit if/elif + model-özel payload fonksiyonu) tutarlı, küçük
+bir dispatch. submit_video_job()'un PUBLIC arayüzü hiç değişmedi --
+ai_video_generator.py'nin tek satırı bile dokunulmadı.
 """
 
 import os
@@ -27,12 +34,26 @@ _RESULT_TIMEOUT = 30
 _DOWNLOAD_TIMEOUT = 120
 
 DEFAULT_KLING_MODEL = "fal-ai/kling-video/v1/standard/text-to-video"
+DEFAULT_HAILUO_MODEL = "fal-ai/minimax/hailuo-02/standard/text-to-video"
+_DEFAULT_VIDEO_PROVIDER = "kling"
+
+# Kling ("5"/"10") ve Hailuo ("6"/"10", resmi API dokümantasyonuna göre)
+# farklı duration enum'ları kabul ediyor -- asset_generator.py'nin
+# _kling_duration_for_word_count()'u (AssetCandidate.ai_duration'ın tek
+# kaynağı) BİLİNÇLİ OLARAK Kling-şekilli kalıyor (webui'nin maliyet
+# tahmini de bu iki değere dayanıyor) -- burada, SADECE Hailuo API'sine
+# giden payload'da, en yakın geçerli Hailuo değerine eşleniyor.
+_HAILUO_DURATION_MAP = {"5": "6", "10": "10"}
 
 
 class FalVideoService:
     def __init__(self):
         self.api_key = config.app.get("fal_api_key", "")
-        self.model = config.app.get("fal_kling_model", DEFAULT_KLING_MODEL)
+        self.provider = config.app.get("fal_ai_video_model", _DEFAULT_VIDEO_PROVIDER)
+        if self.provider == "hailuo":
+            self.model = config.app.get("fal_hailuo_model", DEFAULT_HAILUO_MODEL)
+        else:
+            self.model = config.app.get("fal_kling_model", DEFAULT_KLING_MODEL)
 
     def is_configured(self) -> bool:
         return bool(self.api_key)
@@ -56,6 +77,36 @@ class FalVideoService:
             "Content-Type": "application/json",
         }
 
+    def _build_kling_payload(
+        self, prompt: str, duration: str, aspect_ratio: str, negative_prompt: str
+    ) -> dict:
+        payload = {"prompt": prompt, "duration": duration, "aspect_ratio": aspect_ratio}
+        if negative_prompt:
+            payload["negative_prompt"] = negative_prompt
+        return payload
+
+    def _build_hailuo_payload(self, prompt: str, duration: str) -> dict:
+        """Hailuo'nun (fal-ai/minimax/hailuo-02, "standard" tier) alanları
+        Kling'den farklı: "aspect_ratio" YOK, duration "6"/"10" (Kling'in
+        "5"/"10"una değil).
+
+        GERÇEK API İLE DOĞRULANDI (varsayım değil, bkz. PROGRESS.md ADIM 3):
+        bu endpoint 9:16 (dikey) DESTEKLEMİYOR -- prompt metninde açıkça
+        "vertical portrait shot, 9:16 aspect ratio" istense bile, çıktı
+        HER ZAMAN sabit 1366x768 (yatay, ~16:9) geliyor. Bu yüzden
+        Documentary Studio'nun varsayılan (ve en yaygın) 9:16 modu için
+        Hailuo UYGUN DEĞİL -- sadece 16:9 (landscape) modda, ve düşük
+        çözünürlük (1366x768, HD'nin altında) bilinerek kabul edilirse
+        kullanılabilir. Bu bulgu nedeniyle kullanıcının kendi v1/v2 ayrımı
+        (v2 = webui'de per-generation model seçici) BİLİNÇLİ OLARAK
+        uygulanmadı -- sadece config-seviyesi anahtar var, hiçbir webui
+        elemanı Hailuo'yu tanıtmıyor/önermiyor.
+        """
+        return {
+            "prompt": prompt,
+            "duration": _HAILUO_DURATION_MAP.get(duration, duration),
+        }
+
     def submit_video_job(
         self,
         prompt: str,
@@ -65,6 +116,12 @@ class FalVideoService:
     ) -> dict:
         """Submit one text-to-video job. Never raises -- always returns
         {"success": True, "request_id": str} or {"success": False, "error": str}.
+
+        `duration` is always given in Kling's "5"/"10" shape regardless of
+        the active provider (matches AssetCandidate.ai_duration, the single
+        source of truth webui's cost estimate also reads) -- if the active
+        provider is Hailuo, it's internally remapped to Hailuo's own
+        duration enum before being sent.
         """
         if not self.is_configured():
             return {
@@ -74,9 +131,10 @@ class FalVideoService:
         if not prompt.strip():
             return {"success": False, "error": "prompt is empty"}
 
-        payload = {"prompt": prompt, "duration": duration, "aspect_ratio": aspect_ratio}
-        if negative_prompt:
-            payload["negative_prompt"] = negative_prompt
+        if self.provider == "hailuo":
+            payload = self._build_hailuo_payload(prompt, duration)
+        else:
+            payload = self._build_kling_payload(prompt, duration, aspect_ratio, negative_prompt)
 
         try:
             response = requests.post(

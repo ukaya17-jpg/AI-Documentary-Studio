@@ -49,15 +49,23 @@ pixabay_api_keys = []
 # Register at https://coverr.co/developers?ctx=header_navigation
 coverr_api_keys = []
 
-# Optional: AI-generated video clips (fal.ai / Kling) instead of stock
-# footage -- real cost per video, opt-in only (video_source must be set to
-# "ai_generated"), default stock behavior is unaffected.
+# Optional: AI-generated video clips (fal.ai / Kling or Hailuo) instead of
+# stock footage -- real cost per video, opt-in only (video_source must be
+# set to "ai_generated"), default stock behavior is unaffected.
 # Get a key at https://fal.ai/dashboard/keys
 fal_api_key = ""
+# Which fal.ai video model family to use: "kling" (default) or "hailuo".
+# CONFIRMED VIA REAL API TEST (see PROGRESS.md ADIM 3): Hailuo's standard
+# text-to-video endpoint does NOT support 9:16 (vertical) output -- it
+# always returns fixed 1366x768 landscape, even when explicitly asked for
+# a vertical/portrait shot in the prompt. Only consider "hailuo" for 16:9
+# (landscape) documentaries, and note its resolution is below HD.
+fal_ai_video_model = "kling"
 # Model tier is configurable since fal.ai's Kling pricing/versions change
 # over time -- see PROGRESS.md for the pricing comparison this default was
 # chosen from.
 fal_kling_model = "fal-ai/kling-video/v1/standard/text-to-video"
+fal_hailuo_model = "fal-ai/minimax/hailuo-02/standard/text-to-video"
 
 # Optional TwelveLabs integration for semantic material ranking and video QA.
 # Install the optional dependency with: uv sync --extra twelvelabs

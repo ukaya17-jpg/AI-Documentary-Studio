@@ -53,6 +53,51 @@ class TestIsConfigured(unittest.TestCase):
             self.assertEqual(FalVideoService().model, DEFAULT_KLING_MODEL)
 
 
+_HAILUO_CONFIGURED = {
+    "fal_api_key": "test-fal-key",
+    "fal_ai_video_model": "hailuo",
+}
+
+
+class TestHailuoProviderSelection(unittest.TestCase):
+    """ADIM 3 (kullanıcı onaylı): fal_ai_video_model config'i ile Kling/
+    Hailuo arasında seçim -- yeni bir Protocol/ABC katmanı yok, voice.tts()
+    ile aynı basit if/elif deseni.
+    """
+
+    @patch("app.services.fal_video.config.app", _CONFIGURED)
+    def test_defaults_to_kling_when_fal_ai_video_model_not_set(self):
+        service = FalVideoService()
+        self.assertEqual(service.provider, "kling")
+        self.assertEqual(
+            service.model, "fal-ai/kling-video/v1/standard/text-to-video"
+        )
+
+    @patch("app.services.fal_video.config.app", _HAILUO_CONFIGURED)
+    def test_uses_hailuo_model_when_selected(self):
+        from app.services.fal_video import DEFAULT_HAILUO_MODEL
+
+        service = FalVideoService()
+        self.assertEqual(service.provider, "hailuo")
+        self.assertEqual(service.model, DEFAULT_HAILUO_MODEL)
+
+    @patch(
+        "app.services.fal_video.config.app",
+        {**_HAILUO_CONFIGURED, "fal_hailuo_model": "fal-ai/minimax/hailuo-2.3/standard/text-to-video"},
+    )
+    def test_uses_configured_hailuo_model_override(self):
+        service = FalVideoService()
+        self.assertEqual(
+            service.model, "fal-ai/minimax/hailuo-2.3/standard/text-to-video"
+        )
+
+    @patch("app.services.fal_video.config.app", _HAILUO_CONFIGURED)
+    def test_app_id_strips_subpath_for_hailuo_too(self):
+        # Aynı queue API kısıtı Hailuo için de geçerli (submit URL'i tam
+        # alt-yolu kullanır, status/result sadece "owner/app-name").
+        self.assertEqual(FalVideoService()._app_id, "fal-ai/minimax")
+
+
 class TestSubmitVideoJob(unittest.TestCase):
     @patch("app.services.fal_video.config.app", _UNCONFIGURED)
     @patch("app.services.fal_video.requests.post")
@@ -92,6 +137,40 @@ class TestSubmitVideoJob(unittest.TestCase):
         self.assertEqual(call.kwargs["json"]["prompt"], "a wide shot of ancient ruins")
         self.assertEqual(call.kwargs["json"]["duration"], "10")
         self.assertEqual(call.kwargs["json"]["aspect_ratio"], "9:16")
+
+    @patch("app.services.fal_video.config.app", _HAILUO_CONFIGURED)
+    @patch("app.services.fal_video.requests.post")
+    def test_hailuo_payload_has_no_aspect_ratio_and_remaps_duration(self, mock_post):
+        """Hailuo'nun (resmi dokümana göre) aspect_ratio parametresi yok,
+        duration enum'ı Kling'den farklı ("6"/"10", "5"/"10" değil).
+        AssetCandidate.ai_duration hâlâ Kling-şekilli "5"/"10" üretiyor
+        (webui'nin maliyet tahmini de buna dayanıyor) -- burada SADECE
+        Hailuo'ya giden payload'da en yakın geçerli değere eşleniyor.
+        """
+        mock_post.return_value = _response({"request_id": "req-456"})
+
+        result = FalVideoService().submit_video_job(
+            "a wide shot of ancient ruins", duration="5", aspect_ratio="9:16"
+        )
+
+        self.assertTrue(result["success"])
+        call = mock_post.call_args
+        self.assertEqual(
+            call.args[0],
+            "https://queue.fal.run/fal-ai/minimax/hailuo-02/standard/text-to-video",
+        )
+        sent_payload = call.kwargs["json"]
+        self.assertEqual(sent_payload["duration"], "6")
+        self.assertNotIn("aspect_ratio", sent_payload)
+
+    @patch("app.services.fal_video.config.app", _HAILUO_CONFIGURED)
+    @patch("app.services.fal_video.requests.post")
+    def test_hailuo_duration_ten_stays_ten(self, mock_post):
+        mock_post.return_value = _response({"request_id": "req-789"})
+
+        FalVideoService().submit_video_job("a wide shot", duration="10")
+
+        self.assertEqual(mock_post.call_args.kwargs["json"]["duration"], "10")
 
     @patch("app.services.fal_video.config.app", _CONFIGURED)
     @patch("app.services.fal_video.requests.post")

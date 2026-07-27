@@ -3249,3 +3249,58 @@ durdurulmalı -- aksi halde bu SINIFTA bir hata (paylaşılan config.toml'a
 sessiz, gecikmeli, kaynağı belirsiz yazmalar) tekrarlanabilir.
 `ps aux | grep streamlit` periyodik olarak kontrol edilip beklenmedik
 süreç olup olmadığı doğrulanabilir.
+
+### ADIM 3 -- Hailuo/MiniMax entegrasyonu (v1, config-seviyesi) + gerçek 9:16 testi
+
+Önceden planlanmış ÖZELLİK C'ye göre: `fal_video.py`'ye `fal_ai_video_model`
+config'i (`"kling"` varsayılan | `"hailuo"`) eklendi. Yeni bir Protocol/
+ABC katmanı YOK (kullanıcı bilinçli olarak istemedi) -- `voice.tts()`'in
+kendi kanıtlanmış deseniyle tutarlı, basit bir if/elif + model-özel
+payload fonksiyonu (`_build_kling_payload`/`_build_hailuo_payload`).
+`submit_video_job()`'un PUBLIC arayüzü hiç değişmedi, `ai_video_generator.py`
+tek satır bile dokunulmadı. Kling'in "5"/"10" duration'ı (AssetCandidate.
+ai_duration'ın tek kaynağı, webui'nin maliyet tahmini de buna dayanıyor)
+BİLİNÇLİ OLARAK Kling-şekilli kaldı -- Hailuo'ya giden payload'da SADECE
+en yakın geçerli Hailuo değerine ("5"→"6", "10"→"10") eşleniyor.
+
+Test: `test_fal_video.py`'ye +6 test (provider seçimi, model override,
+`_app_id` Hailuo için de doğru subpath'i kesiyor, Hailuo payload'ının
+aspect_ratio İÇERMEDİĞİ ve duration'ın doğru eşlendiği). Tam suite:
+**839 passed, 11 skipped** (833'ten +6, sıfır regresyon). `ruff` ve
+`tomllib` ile `config.example.toml` doğrulandı.
+
+**GERÇEK API doğrulaması (kullanıcının açık talimatı: "varsayım yapmayın"):**
+Gerçek `fal_api_key` ile, Hailuo'nun standard tier'ına TEK, ucuz bir
+text-to-video job gönderildi -- prompt açıkça "A vertical portrait shot
+of a single lit candle... 9:16 aspect ratio" istedi, duration en ucuz
+tier'a ("6"sn) eşlendi. Submission başarılı (payload'ın aspect_ratio
+İÇERMEMESİ kabul edildi), iş ~7.3 dakikada tamamlandı, klip indirildi ve
+`ffprobe` ile incelendi:
+
+```
+codec_name=h264
+width=1366
+height=768
+avg_frame_rate=24/1
+duration=5.875000
+```
+
+**SONUÇ: Hailuo'nun standard text-to-video endpoint'i 9:16 (dikey) DESTEK-
+LEMİYOR.** Prompt metninde açıkça dikey/9:16 istenmesine RAĞMEN çıktı
+SABİT 1366x768 (yatay, ~16:9) geldi -- bu bir varsayım değil, gerçek,
+ölçülmüş bir API davranışı. Bu, kullanıcının kendi v1/v2 ayrımındaki
+gate koşuluna göre (v2 = webui'de per-generation model seçici, SADECE
+9:16 desteği doğrulanırsa eklenecekti) **v2 UYGULANMADI** -- Hailuo
+Documentary Studio'nun varsayılan/en yaygın modu (9:16) için uygun değil,
+sadece 16:9 modda ve düşük çözünürlük (1366x768, HD altı) bilinerek kabul
+edilirse teorik olarak kullanılabilir. Kod ve `config.example.toml`
+yorumları bu gerçek bulguyu dürüstçe belgeliyor. Test klibi hem yerel
+diskten hem `storage/tasks`'tan temizlendi (fal.ai'nin kendi barındırdığı
+kopya bizim kontrolümüzde değil, herhangi bir yerel maliyet yok).
+
+**Kapsam kararı (kullanıcı onaylı ADIM 0 prensibiyle tutarlı):** webui'ye
+HİÇBİR yeni model seçici eklenmedi -- sadece `config.toml`'da manuel
+olarak `fal_ai_video_model = "hailuo"` yazan bir kullanıcı bunu
+kullanabilir (ve o zaman bile sadece 16:9 için mantıklı). Bu, "gerçek
+tüketicisi olmayan süs katman" riskinden kaçınıyor -- webui hiçbir yerde
+Hailuo'yu önermiyor/tanıtmıyor, sadece backend'de config-seviyesinde var.
