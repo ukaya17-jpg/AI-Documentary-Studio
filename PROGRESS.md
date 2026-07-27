@@ -3001,3 +3001,13 @@ görevlerde doğrulandı.
    ./resource/fonts/Charm-Bold.ttf` yazdı -- `build_video_params()`'ın
    `config.ui`'dan gerçekten okuduğu, ADIM 0'ın doğru olduğu kanıtlandı.
    İki test görev klasörü de temizlendi.
+
+**Canlı tarayıcı doğrulaması (playwright, production, deploy sonrası)
+bir gerçek bug buldu ve düzeltti:** Documentary Studio hiçbir yerde
+`config.save_config()` çağırmıyordu -- GÖREV G'nin font ayarları sadece
+RAM'deki `config.ui`'a yazılıyordu, bir sonraki `deploy.sh`/restart'ta
+sessizce eski değere dönerdi. Düzeltme: `_render_documentary_advanced_
+settings()` artık `config.save_config()` çağırıyor (içerik değişmediyse
+zaten no-op, her rerun'da çağırmak güvenli). Ayrı commit + yeni test
+(`test_font_settings_are_persisted_via_save_config`) + push + deploy.sh.
+Tam suite: **816 passed, 11 skipped**.
