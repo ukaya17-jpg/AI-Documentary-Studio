@@ -4454,6 +4454,192 @@ def _render_category_tone_grid(*, kind: str, values: list[str], icons: dict, lab
                     )
 
 
+# ADIM 2 (Provider Sistemi keşif raporu, kullanıcı onaylı, TAM OTONOMİ):
+# Documentary Studio'nun "Ses Adı" alanı düz bir metin girdisiydi -- kullanıcı
+# doğru önekli voice_name string'ini ("elevenlabs:VOICE_ID:İsim" gibi) EL İLE
+# yazmak zorundaydı. voice.tts() servis katmanında ZATEN 7 sağlayıcıyı
+# (Azure v1/v2, SiliconFlow, Gemini, MiMo, ElevenLabs, Chatterbox) tam
+# destekliyordu -- boşluk sadece UI'daydı. Ayrıca keşifte bulundu: bu 7
+# sağlayıcıdan hiçbirinin (Azure v1 hariç -- ücretsiz/anahtarsız edge-tts)
+# API key'i, Klasik Mod gizlendiğinden beri HİÇBİR YERDE girilemiyordu
+# (global "Ayarlar" diyaloğunda TTS sekmesi yok) -- bu yüzden aşağıdaki
+# fonksiyon Klasik Mod'un _render_audio_settings()'inin TAM karşılığını
+# (server seçici + sağlayıcıya özel credential girdileri + ses listesi)
+# kendi documentary_* önekli widget key'leriyle yeniden kuruyor; "Voiceover
+# Mode" (Automatic/Upload/None) kasıtlı olarak YOK -- belgesel her zaman
+# anlatım gerektirir, Documentary Studio'da hiç "sessiz video" kavramı yok.
+_DOCUMENTARY_TTS_SERVERS = (
+    ("azure-tts-v1", "Azure TTS V1"),
+    ("azure-tts-v2", "Azure TTS V2"),
+    ("siliconflow", "SiliconFlow TTS"),
+    ("gemini-tts", "Google Gemini TTS"),
+    ("mimo-tts", "Xiaomi MiMo TTS"),
+    ("elevenlabs", "ElevenLabs TTS"),
+    ("chatterbox", "Chatterbox TTS"),
+)
+
+
+def _documentary_tts_voice_friendly_name(voice_name: str) -> str:
+    """Klasik Mod'un _render_audio_settings() içindeki _friendly()'nin
+    kendi kendine yeten (module-level) karşılığı -- kapsam Documentary
+    Studio'ya özel olduğu için ayrı, küçük bir kopya (bu kod tabanında
+    zaten kurulu bir desen, bkz. _WORDS_PER_SECOND'un script_generator.py/
+    asset_generator.py arasında ayrı ayrı tutulması)."""
+    if voice.is_elevenlabs_voice(voice_name):
+        parts = voice_name.split(":", 2)
+        return parts[2] if len(parts) >= 3 else voice_name
+    if voice.is_chatterbox_voice(voice_name):
+        name = voice_name.split(":", 1)[1] if ":" in voice_name else voice_name
+        return name.replace("-Female", "").replace("-Male", "")
+    return (
+        voice_name.replace("Female", tr("Female"))
+        .replace("Male", tr("Male"))
+        .replace("Neural", "")
+    )
+
+
+def _render_documentary_tts_voice_picker() -> str:
+    """TTS sunucusu + ses seçici. Döner: nihai voice_name string'i (ör.
+    "en-US-JennyNeural" veya "elevenlabs:VOICE_ID:İsim")."""
+    tts_server_values = [value for value, _ in _DOCUMENTARY_TTS_SERVERS]
+    saved_tts_server = config.ui.get("tts_server", "azure-tts-v1")
+    if saved_tts_server not in tts_server_values:
+        saved_tts_server = "azure-tts-v1"
+
+    selected_tts_server = st.selectbox(
+        tr("Voiceover Service"),
+        options=tts_server_values,
+        index=tts_server_values.index(saved_tts_server),
+        key="documentary_tts_server_select",
+        format_func=lambda v: dict(_DOCUMENTARY_TTS_SERVERS)[v],
+    )
+    config.ui["tts_server"] = selected_tts_server
+
+    provider_tips = get_tts_provider_tips(selected_tts_server)
+    if provider_tips:
+        st.info(provider_tips)
+
+    if selected_tts_server == "siliconflow":
+        filtered_voices = voice.get_siliconflow_voices()
+    elif selected_tts_server == "gemini-tts":
+        filtered_voices = voice.get_gemini_voices()
+    elif selected_tts_server == "mimo-tts":
+        filtered_voices = voice.get_mimo_voices()
+    elif selected_tts_server == "elevenlabs":
+        saved_elevenlabs_api_key = config.elevenlabs.get("api_key", "")
+        cache_key = f"documentary_elevenlabs_voices_{saved_elevenlabs_api_key}"
+        if cache_key not in st.session_state:
+            st.session_state[cache_key] = voice.get_elevenlabs_voices(
+                saved_elevenlabs_api_key
+            )
+        filtered_voices = st.session_state[cache_key]
+    elif selected_tts_server == "chatterbox":
+        filtered_voices = voice.get_chatterbox_voices()
+    else:
+        all_voices = voice.get_all_azure_voices(filter_locals=None)
+        filtered_voices = [
+            v for v in all_voices if ("V2" in v) == (selected_tts_server == "azure-tts-v2")
+        ]
+
+    friendly_names = {v: _documentary_tts_voice_friendly_name(v) for v in filtered_voices}
+
+    if not friendly_names:
+        st.warning(
+            tr(
+                "No voices available for the selected TTS server. Please select another server."
+            )
+        )
+        voice_name = ""
+    else:
+        saved_voice_name = config.ui.get("voice_name", "")
+        default_voice = (
+            saved_voice_name if saved_voice_name in friendly_names else filtered_voices[0]
+        )
+        # Ses listesi sunucuya göre değişiyor (dinamik options) -- bu tam
+        # olarak stable_selectbox'ın çözdüğü senaryo (bkz. fonksiyonun kendi
+        # docstring'i), bu yüzden Documentary Studio'nun diğer statik-
+        # seçenekli selectbox'larının aksine burada bilinçli olarak
+        # kullanılıyor.
+        voice_name = stable_selectbox(
+            tr("Voiceover Voice"),
+            options=list(friendly_names.keys()),
+            default_value=default_voice,
+            key=f"documentary_voice_select_{selected_tts_server}",
+            format_func=lambda v: friendly_names[v],
+        )
+        config.ui["voice_name"] = voice_name
+
+    if selected_tts_server == "azure-tts-v2" or (
+        voice_name and voice.is_azure_v2_voice(voice_name)
+    ):
+        azure_speech_region = st.text_input(
+            tr("Speech Region"),
+            value=config.azure.get("speech_region", ""),
+            key="documentary_azure_speech_region_input",
+        )
+        azure_speech_key = st.text_input(
+            tr("Speech Key"),
+            value=config.azure.get("speech_key", ""),
+            type="password",
+            key="documentary_azure_speech_key_input",
+        )
+        config.azure["speech_region"] = azure_speech_region
+        config.azure["speech_key"] = azure_speech_key
+
+    if selected_tts_server == "gemini-tts":
+        gemini_api_key = st.text_input(
+            tr("Gemini API Key"),
+            value=config.app.get("gemini_api_key", ""),
+            type="password",
+            key="documentary_gemini_tts_api_key_input",
+        )
+        config.app["gemini_api_key"] = gemini_api_key
+
+    if selected_tts_server == "siliconflow" or (
+        voice_name and voice.is_siliconflow_voice(voice_name)
+    ):
+        siliconflow_api_key = st.text_input(
+            tr("SiliconFlow API Key"),
+            value=config.siliconflow.get("api_key", ""),
+            type="password",
+            key="documentary_siliconflow_api_key_input",
+        )
+        config.siliconflow["api_key"] = siliconflow_api_key
+
+    if selected_tts_server == "mimo-tts" or (voice_name and voice.is_mimo_voice(voice_name)):
+        mimo_api_key = st.text_input(
+            tr("MiMo API Key"),
+            value=config.app.get("mimo_api_key", ""),
+            type="password",
+            key="documentary_mimo_tts_api_key_input",
+        )
+        config.app["mimo_api_key"] = mimo_api_key
+
+    if selected_tts_server == "elevenlabs" or (
+        voice_name and voice.is_elevenlabs_voice(voice_name)
+    ):
+        elevenlabs_api_key = st.text_input(
+            tr("ElevenLabs API Key"),
+            value=config.elevenlabs.get("api_key", ""),
+            type="password",
+            key="documentary_elevenlabs_api_key_input",
+        )
+        config.elevenlabs["api_key"] = elevenlabs_api_key
+
+    if selected_tts_server == "chatterbox" or (
+        voice_name and voice.is_chatterbox_voice(voice_name)
+    ):
+        chatterbox_base_url = st.text_input(
+            tr("Chatterbox Base URL"),
+            value=config.chatterbox.get("base_url") or DEFAULT_CHATTERBOX_BASE_URL,
+            key="documentary_chatterbox_base_url_input",
+            placeholder=tr("Chatterbox Base URL Placeholder"),
+        )
+        config.chatterbox["base_url"] = (chatterbox_base_url or "").strip()
+
+    return voice_name
+
+
 # GÖREV D (kullanıcı onaylı): Documentary Studio bugüne kadar sadece ses adını
 # (voice_name) soruyordu -- run_pipeline() zaten voice_rate/voice_volume/
 # bgm_type/bgm_file/bgm_volume kabul ediyordu ama hep varsayılana düşüyordu.
@@ -4466,13 +4652,15 @@ def _render_category_tone_grid(*, kind: str, values: list[str], icons: dict, lab
 # yapılıyor (bkz. _render_documentary_studio_page'deki generate_clicked
 # bloğu) -- iptal edilen yüklemeler storage'da yetim dosya bırakmasın diye.
 def _render_documentary_audio_settings():
-    """Ses hızı/seviyesi + BGM kaynağı ayarlarını render eder.
+    """TTS sunucusu/sesi + ses hızı/seviyesi + BGM kaynağı ayarlarını render eder.
 
     Dönen `uploaded_bgm_file`, henüz DİSKE KAYDEDİLMEMİŞ ham Streamlit
     UploadedFile -- çağıran, sadece kullanıcı gerçekten "Generate" tıklarsa
     bgm_service.save_bgm_upload() ile kalıcı hale getirmeli.
     """
     with st.expander(tr("Documentary Audio Settings"), expanded=False):
+        voice_name = _render_documentary_tts_voice_picker()
+        st.divider()
         voice_cols = st.columns(2)
         with voice_cols[0]:
             voice_volume = st.selectbox(
@@ -4557,7 +4745,7 @@ def _render_documentary_audio_settings():
                 else:
                     st.audio(uploaded_bgm_file, format="audio/mp3")
 
-    return voice_rate, voice_volume, bgm_type, uploaded_bgm_file, bgm_volume
+    return voice_name, voice_rate, voice_volume, bgm_type, uploaded_bgm_file, bgm_volume
 
 
 # GÖREV F + G (kullanıcı onaylı, tek "Gelişmiş Ayarlar" expander'ında):
@@ -4816,13 +5004,7 @@ def _render_documentary_studio_page():
         )
     tone = st.session_state.get("documentary_tone", "auto")
 
-    voice_name = st.text_input(
-        tr("Documentary Voice Name"),
-        value=config.ui.get("voice_name", "") or "en-US-JennyNeural",
-        key="documentary_voice_name",
-        help=tr("Documentary Voice Name Help"),
-    )
-    voice_rate, voice_volume, bgm_type, uploaded_bgm_file, bgm_volume = (
+    voice_name, voice_rate, voice_volume, bgm_type, uploaded_bgm_file, bgm_volume = (
         _render_documentary_audio_settings()
     )
     custom_system_prompt, custom_requirements = (

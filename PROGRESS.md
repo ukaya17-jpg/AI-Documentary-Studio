@@ -3094,6 +3094,60 @@ olduğu için mimari olarak çalışması beklenir, ama bu iddia edilmiyor,
 sadece ön-kontrolün doğru çalıştığı -- eksik key'de net hata, pipeline hiç
 başlamıyor -- unit testle kanıtlandı).
 
+### ADIM 2 -- TTS provider+voice seçici (Klasik Mod'daki gibi)
+
+Keşif raporunun ikinci bulgusu: `voice.tts()` servis katmanında zaten 7
+sağlayıcıyı (Azure v1/v2, SiliconFlow, Gemini, MiMo, ElevenLabs,
+Chatterbox) tam destekliyordu, `audio_renderer.render_audio_plan()`
+(Documentary Studio'nun kullandığı) doğrudan AYNI dispatcher'ı
+çağırıyordu -- ama Documentary Studio'nun "Ses Adı" alanı düz bir metin
+girdisiydi, kullanıcı doğru önekli voice_name string'ini
+("elevenlabs:VOICE_ID:İsim" gibi) EL İLE yazmak zorundaydı.
+
+**Ek keşif (kod incelemesinde bulundu):** Azure v1 (ücretsiz/anahtarsız
+edge-tts) hariç, bu 7 sağlayıcıdan HİÇBİRİNİN API key'i, Klasik Mod
+gizlendiğinden beri hiçbir yerde girilemiyordu -- global "Ayarlar"
+diyaloğunda TTS'e ait bir sekme yok (sadece LLM/Material API/Cache/
+Interface var). Bu yüzden `_render_documentary_tts_voice_picker()`,
+Klasik Mod'un `_render_audio_settings()`'inin TAM karşılığını (server
+seçici + ses listesi + sağlayıcıya özel credential girdileri: Azure v2
+region/key, Gemini API key, SiliconFlow API key, MiMo API key, ElevenLabs
+API key+model, Chatterbox base URL) `documentary_*` önekli kendi widget
+key'leriyle yeniden kurdu -- "Voiceover Mode" (Automatic/Upload/None)
+kasıtlı olarak YOK, belgeselde hiç "sessiz video" kavramı yok. "Ses
+Ayarları" expander'ının (GÖREV D) en üstüne eklendi, eski düz metin
+girdisi kaldırıldı. Tüm gerekli i18n metinleri Klasik Mod'dan zaten
+vardı -- **sıfır yeni çeviri anahtarı gerekti**.
+
+Test: yeni `test_webui_tts_provider.py` (9 test: varsayılan Azure v1 +
+credential girdisi yok, her sağlayıcı seçildiğinde doğru credential
+alanının göründüğü 6 test, ElevenLabs gerçek-şekilli ses listesi +
+friendly-name, boş ses listesinde crash yerine uyarı, run_pipeline'a
+doğru voice_name'in geçmesi). Tam suite: **833 passed, 11 skipped**
+(824'ten +9, sıfır regresyon). `ruff` temiz.
+
+**Gerçek doğrulama:** ElevenLabs için config'te gerçek API key zaten
+mevcuttu -- `voice.get_elevenlabs_voices()` gerçek API'ye karşı çağrıldı
+(35 gerçek ses döndü). Ardından "The Northern Lights" konusu, picker'ın
+üreteceği TAM formatta ama önceden persist edilmiş varsayılandan
+BİLEREK FARKLI bir ses (`elevenlabs:Vv1QW9Yx3WB2mLKFmyZG:Kaya...`) ile
+uçtan uca çalıştırıldı -- gerçek provider/ses DEĞİŞİMİNİ kanıtlamak için.
+ElevenLabs TTS gerçekten bu farklı sesle sentezledi, `final.mp4` `ffprobe`
+ile doğrulandı (1080x1920, h264/aac, 23.2s). **Dürüst not:** Azure v2/
+SiliconFlow/Gemini/MiMo/Chatterbox için config'te gerçek credential YOK --
+bu 5 sağlayıcının kendisi gerçek bir API çağrısıyla doğrulanamadı (aynı
+paylaşılan `voice.tts()` dispatcher'ından geçtikleri için mimari olarak
+çalışmaları beklenir, ama bu iddia edilmiyor -- sadece UI'ın doğru
+credential alanını gösterdiği unit testle kanıtlandı).
+
+**Not (ilk gerçek doğrulama denemesi):** Bu doğrulamanın ilk denemesi,
+tamamen ilgisiz bir nedenle (aşağıdaki config.toml olayı, gerçek Pexels
+key'inin bozulması) video indirme aşamasında başarısız oldu -- TTS
+kısmının kendisi o denemede de sorunsuz çalışmıştı (log'da "elevenlabs
+tts succeeded" doğrulandı). Kullanıcı gerçek key'i yeniden girdikten ve
+yapısal güvenlik ağı kurulduktan sonra doğrulama TEMİZ bir şekilde
+tekrarlandı (yukarıdaki sonuç).
+
 ### ⚠️ OLAY: ADIM 1'in testleri gerçek production config.toml'unu bozdu
 
 **Kök neden:** `test_webui_stock_provider.py`'deki iki test,
