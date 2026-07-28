@@ -3466,3 +3466,71 @@ skipped** (844'ten +1, sıfır regresyon). `ruff` temiz.
 **Gerçek doğrulama (deploy sonrası, canlı production'da):** aynı 3
 genişlik (1400/700/375px) tekrar test edildi, üçünde de
 `aria-expanded=true`, `width=300` -- düzeltme production'da doğrulandı.
+
+### Regresyon: yukarıdaki düzeltme YETERSİZDİ -- gerçek kök neden ve son düzeltme
+
+Kullanıcı gerçek bir ekran görüntüsüyle kanıtladı: sidebar hâlâ tamamen
+kayboluyordu (sayfa doğrudan "Stok Üretimler" başlığıyla başlıyor, hiçbir
+nav menüsü yok). Yukarıdaki `initial_sidebar_state="expanded"` düzeltmesi
+sadece BAKİR tarayıcılarda çalışıyordu -- **kök neden**: Streamlit,
+sidebar her katlandığında (kullanıcı tıklaması VEYA -- bu bugun asıl
+kaynağı -- eski `"auto"` değeriyle dar viewport'ta otomatik) bunu
+`localStorage["stSidebarCollapsed-"]="true"` olarak KALICI kaydediyor ve
+bu değer sonraki HER sayfa yüklemesinde `initial_sidebar_state`'i
+geçersiz kılıyor. Yani "auto" döneminde bir kez dar pencerede açan/
+otomatik katlanan her kullanıcı, sunucu tarafı fix'ten SONRA bile
+sidebar'ı asla geri görmüyordu. Playwright ile `context.addInitScript(()
+=> localStorage.setItem('stSidebarCollapsed-', 'true'))` + reload ile
+%100 üretildi.
+
+**1. düzeltme denemesi (BAŞARISIZ, gerçek tarayıcıda sıfır etkiliydi):**
+`webui/styles.css`'e `div[data-testid="stSidebar"] { transform: none
+!important; ... }` eklendi -- localStorage'dan tamamen bağımsız,
+sidebar'ı her zaman görünür tutması gereken bir CSS kuralıydı. Yapay bir
+`page.addStyleTag()` enjeksiyon testiyle "çalışıyor" diye rapor edildi,
+commit+deploy edildi -- **bu yanlıştı**. Kullanıcının talep ettiği asıl
+sıkı doğrulama (stale localStorage önceden set + reload + 4 farklı
+viewport genişliği, GERÇEK deployed production'da) çalıştırıldığında
+8/8 kontrol BAŞARISIZ oldu, sidebar hâlâ gizliydi
+(`box={"x":-300,"width":0}`).
+
+**Gerçek kök neden (2. teşhis):** `document.styleSheets` üzerinden
+canlı DOM'da doğrudan sorgulama yapıldı. Kuralın kendisi doğru parse
+edilmişti (`div[data-testid="stSidebar"] { transform: none !important;
+... }` `cssRules` içinde mevcuttu, `!important` doğru işaretliydi) --
+ama `el.matches('div[data-testid="stSidebar"]')` **false** döndürdü.
+Neden: Streamlit sidebar'ı `<div>` değil **`<section
+data-testid="stSidebar">`** olarak render ediyor. Yani `div[...]`
+seçicisi hiçbir elemente HİÇ eşleşmiyordu -- geçerli, parse edilmiş,
+`!important` bir CSS kuralı ama sıfır elemente uygulanan bir kural.
+CSS cascade'de "kaybetmedi", zaten hiç yarışmıyordu; Streamlit'in kendi
+(non-important) `.st-emotion-cache-* { transform: translateX(-300px); ...
+}` kuralı rakipsiz kaldığı için kazanıyordu.
+
+**Son düzeltme:** `webui/styles.css`'te etiket adı şartı kaldırıldı --
+sadece öznitelik seçici: `[data-testid="stSidebar"] { transform: none
+!important; min-width: 300px !important; max-width: none !important;
+visibility: visible !important; }` (ayrıca Streamlit'in `max-width: 0px`
+kuralıyla çakışmayı önlemek için `max-width: none !important` eklendi).
+
+**Test:** `test_webui_sidebar_config.py` güncellendi -- artık kuralın
+KENDİSİNİN (yorum metni değil) etiket adı İÇERMEDİĞİNİ ve
+`max-width: none !important` içerdiğini doğruluyor, bu regresyonun bir
+daha sessizce geri gelmesini engelliyor. Tam suite: **846 passed, 11
+skipped** (845'ten +1, sıfır regresyon). `ruff` temiz. `config.toml`
+değişmedi (mtime doğrulandı).
+
+**Gerçek doğrulama (deploy sonrası, canlı production'da, kullanıcının
+talep ettiği TAM senaryo):** `localStorage["stSidebarCollapsed-"]="true"`
+önceden set edilip 4 viewport genişliğinde (1920/1400/700/375px) hem ilk
+yüklemede hem reload sonrası test edildi -- **8/8 kontrol PASS**, sidebar
+hepsinde `width=300, x=0` ile görünür. Ekran görüntüleri (1920px geniş
+masaüstü ve 375px dar pencere, ikisi de stale-collapsed senaryosuyla)
+kullanıcıya gösterildi.
+
+**Ders:** Bir CSS/JS davranış düzeltmesini SADECE yapay/enjekte edilmiş
+bir test ile (`page.addStyleTag()` sayfa yüklemesi TAMAMLANDIKTAN SONRA)
+doğrulamak yeterli değil -- bu, kuralın GERÇEK sayfa render'ında
+(`st.markdown()` ile enjekte edildiğinde) doğru elemente eşleştiğini
+KANITLAMAZ. Seçicinin gerçekten hedef elemente `matches()` ettiğini canlı
+DOM'da doğrudan sorgulamadan "çalışıyor" denmemeli.
