@@ -694,6 +694,21 @@ def _task_manager_label(processing_count):
     return f"{label} · {processing_count}"
 
 
+def _safe_task_row_key(task_id: str) -> str:
+    """`st.container(key=...)` için sabit uzunlukta, çakışmasız bir anahtar
+    üretir.
+
+    Sadece sanitize edilmiş `task_id`'yi `[:40]` ile kesmek yeterli DEĞİL --
+    production'da iki farklı (uzun, tanımlayıcı) task_id ilk 40 karakterde
+    aynı çıkıp `StreamlitDuplicateElementKey` hatasına yol açtı (bkz.
+    PROGRESS.md). Kesilen okunabilir önek + tam `task_id`'nin sabit-uzunlukta
+    hash'i birlikte, kesme olsa bile gerçek bir çakışma bırakmıyor.
+    """
+    readable_prefix = "".join(ch if ch.isalnum() else "_" for ch in task_id)[:40]
+    task_id_hash = hashlib.sha1(task_id.encode("utf-8")).hexdigest()[:10]
+    return f"{readable_prefix}_{task_id_hash}"
+
+
 def _render_task_table(filtered_tasks, key_prefix):
     with st.container(key=f"task_table_header_{key_prefix}"):
         header_cols = st.columns([1.1, 1.7, 3.0, 0.8, 1.6], vertical_alignment="center")
@@ -718,7 +733,7 @@ def _render_task_table(filtered_tasks, key_prefix):
             has_restore_data = os.path.isfile(
                 os.path.join(task["task_path"], "script.json")
             )
-            safe_task_key = "".join(ch if ch.isalnum() else "_" for ch in task_id)[:40]
+            safe_task_key = _safe_task_row_key(task_id)
 
             # 使用 Streamlit 原生 bordered container + columns 保留每行操作。
             # 相比自定义 HTML/CSS 表格，这种方式对 Streamlit 版本变更更稳；
