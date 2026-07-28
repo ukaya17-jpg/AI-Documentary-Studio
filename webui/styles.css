@@ -507,6 +507,30 @@ div[class*="st-key-task_row_"] button[kind="secondary"] p {
     }
 }
 
+/* Sidebar'ın HİÇBİR ZAMAN otomatik/kalıcı olarak katlanmaması (kullanıcı
+   talebi -- kritik regresyon fix'i): initial_sidebar_state="expanded"
+   (Main.py) SADECE bakir/ilk yüklemede işe yarıyor -- Streamlit, sidebar
+   her katlandığında (kullanıcı tıklaması VEYA -- bu bugun asıl nedeni --
+   initial_sidebar_state="auto" iken dar bir viewport'ta OTOMATİK olarak)
+   bunu localStorage["stSidebarCollapsed-"]="true" olarak KALICI kaydediyor
+   ve bu, sonraki HER sayfa yüklemesinde initial_sidebar_state'i geçersiz
+   kılıyor -- yani "auto" döneminde bir kez dar pencerede açan/otomatik
+   katlanan her kullanıcı, initial_sidebar_state="expanded" fix'inden SONRA
+   bile sidebar'ı asla geri görmüyordu (gerçek Playwright testiyle
+   doğrulandı: localStorage'a stale "true" önceden yazılıp reload edilince
+   sidebar collapsed kalıyor). Sunucu tarafı config'in aksine, bu CSS
+   kuralı Streamlit'in dahili collapsed state'inden TAMAMEN bağımsız --
+   sidebar'ı görsel olarak her zaman açık/erişilebilir tutuyor (element
+   collapsed'ken Streamlit onu transform: translateX(-300px) ile ekran
+   dışına itiyor, bu kural bunu geçersiz kılıyor), stale localStorage
+   değerinden veya gelecekteki bir manuel/otomatik katlama girişiminden
+   etkilenmeden. */
+div[data-testid="stSidebar"] {
+    transform: none !important;
+    min-width: 300px !important;
+    visibility: visible !important;
+}
+
 /* Faz 3 -- sidebar nav (Oluştur / Klasik Mod) markalaşma: Streamlit'in
    kendi data-testid'lerini hedefliyor (st-emotion-cache-* hash class'ları
    yerine), aktif sayfa native aria-current="page" ile işaretli olduğu için
