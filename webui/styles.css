@@ -524,10 +524,25 @@ div[class*="st-key-task_row_"] button[kind="secondary"] p {
    collapsed'ken Streamlit onu transform: translateX(-300px) ile ekran
    dışına itiyor, bu kural bunu geçersiz kılıyor), stale localStorage
    değerinden veya gelecekteki bir manuel/otomatik katlama girişiminden
-   etkilenmeden. */
-div[data-testid="stSidebar"] {
+   etkilenmeden.
+
+   DÜZELTME (2. deneme): İlk sürüm `div[data-testid="stSidebar"]`
+   seçicisini kullanıyordu ve gerçek tarayıcıda (stale localStorage +
+   reload) HİÇBİR etkisi olmadığı kanıtlandı. Kök neden: Streamlit
+   sidebar'ı `<div>` değil `<section data-testid="stSidebar">` olarak
+   render ediyor -- `div[...]` seçicisi bu yüzden hiçbir elemente asla
+   eşleşmiyordu (geçerli, parse edilmiş, !important bir kural ama sıfır
+   elemente uygulanan bir kural -- CSS cascade'de "kaybetmedi", zaten hiç
+   yarışmıyordu). Etiket adı kısıtlaması kaldırılıp sadece öznitelik
+   seçici (`[data-testid="stSidebar"]`) kullanılınca kural gerçek
+   elemente eşleşti ve Streamlit'in `.st-emotion-cache-*` class kuralını
+   (transform/min-width/max-width, !important yok) geçersiz kıldı --
+   gerçek production'da, stale localStorage senaryosunda, 4 farklı
+   viewport genişliğinde doğrulandı. */
+[data-testid="stSidebar"] {
     transform: none !important;
     min-width: 300px !important;
+    max-width: none !important;
     visibility: visible !important;
 }
 

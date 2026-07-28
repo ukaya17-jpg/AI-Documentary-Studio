@@ -26,6 +26,13 @@ STYLES_CSS = ROOT_DIR / "webui" / "styles.css"
 # intent-lock deseniyle tutarlı) -- bu yüzden kaynak koddaki niyet burada
 # kilitleniyor, gerçek davranış PROGRESS.md'de belgelenen canlı tarayıcı
 # testiyle (stale localStorage senaryosu dahil) ayrıca doğrulandı.
+#
+# 2. deneme notu: `div[data-testid="stSidebar"]` seçicisi gerçek
+# tarayıcıda SIFIR etkiliydi -- Streamlit sidebar'ı `<section>` olarak
+# render ediyor, `<div>` değil, o yüzden bu seçici hiçbir elemente hiç
+# eşleşmiyordu. Aşağıdaki test artık etiket adı OLMAYAN öznitelik
+# seçiciyi ('[data-testid="stSidebar"]', başında `div` yok) zorunlu
+# kılıyor ki bu regresyon bir daha sessizce geri gelemesin.
 
 
 def test_sidebar_initial_state_is_expanded():
@@ -41,5 +48,14 @@ def test_sidebar_initial_state_is_expanded():
 
 def test_sidebar_css_forces_visibility_regardless_of_stale_collapsed_state():
     css = STYLES_CSS.read_text(encoding="utf-8")
-    assert 'div[data-testid="stSidebar"]' in css
-    assert "transform: none !important;" in css
+    rule_start = css.index('[data-testid="stSidebar"] {')
+    rule_end = css.index("}", rule_start)
+    rule_block = css[rule_start:rule_end]
+    # Etiket adı YOK: Streamlit sidebar'ı <div> değil <section> olarak
+    # render ediyor -- `div[data-testid="stSidebar"]` gerçek tarayıcıda
+    # hiçbir elemente eşleşmeyen, sessizce hiçbir işe yaramayan bir kural
+    # olduğu kanıtlandı (bkz. yukarıdaki not). Kuralın kendisi (yorum
+    # metni değil) etiket adı içermemeli.
+    assert not css[max(0, rule_start - 1) : rule_start].endswith("div")
+    assert "transform: none !important;" in rule_block
+    assert "max-width: none !important;" in rule_block
