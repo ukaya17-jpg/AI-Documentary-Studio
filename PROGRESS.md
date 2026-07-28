@@ -3446,3 +3446,23 @@ mevcut path'e göre yanlış çözülüp 404 veriyor -- bu, benim değişikliği
 ÖNCE de var olan `/history` için de aynen tekrarlanan, Streamlit'in kendi
 alt-path deep-link davranışı, gerçek kullanıcı sidebar tıklamasıyla hiç
 karşılaşmıyor, bu görevle ilgisiz.)
+
+## Sidebar navigasyonu -- otomatik katlanma düzeltmesi
+
+Kullanıcı talebi: sol menü hiçbir zaman otomatik gizlenmemeli/katlanmamalı.
+Playwright ile gerçek ölçüm yapıldı (varsayımla değil): `initial_sidebar_
+state="auto"` (eski değer) ile 1400px genişlikte sidebar açık
+(`aria-expanded=true`, `width=300`) ama 700px VE 375px'de otomatik
+katlanmış çıktı (`aria-expanded=false`, `x=-300`, `width=0`) -- Streamlit'in
+kendi dahili responsive kırılma noktası ~700-1400px arasında bir yerde.
+İzole bir test app'inde `initial_sidebar_state="expanded"` denendi: AYNI
+üç genişlikte de sidebar açık kaldı. Tek satırlık, düşük riskli bir
+düzeltme.
+
+Test: yeni `test_webui_sidebar_config.py` (kaynak kod niyet-kilidi,
+`test_webui_navigation.py`'deki aynı desen). Tam suite: **845 passed, 11
+skipped** (844'ten +1, sıfır regresyon). `ruff` temiz.
+
+**Gerçek doğrulama (deploy sonrası, canlı production'da):** aynı 3
+genişlik (1400/700/375px) tekrar test edildi, üçünde de
+`aria-expanded=true`, `width=300` -- düzeltme production'da doğrulandı.
