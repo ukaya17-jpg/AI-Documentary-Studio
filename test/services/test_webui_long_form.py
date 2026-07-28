@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from streamlit.testing.v1 import AppTest
+from streamlit.util import calc_hash
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
@@ -13,6 +14,11 @@ WEBUI_MAIN = ROOT_DIR / "webui" / "Main.py"
 # Aynı AppTest kısıtı burada da geçerli (format_func'lar tr() çağırıyor) --
 # her senaryo tek bir .run() çağrısıyla, session_state önceden set edilerek
 # doğrulanıyor.
+#
+# 3-sayfa restructuring (kullanıcı onaylı, TAM OTONOMİ): AI video senaryoları
+# artık "Belgesel Niteliği" sayfasına (url_path="quality") sabit -- bir
+# selectbox ile açılmıyor, page hash ile navigasyonla ulaşılıyor.
+_QUALITY_PAGE_HASH = calc_hash("quality")
 
 
 def _button_by_key(app, key):
@@ -58,8 +64,8 @@ def test_extended_pacing_is_selectable_and_available_in_the_dropdown():
 @patch("webui.Main.fal_video_service.is_configured", return_value=True)
 def test_extended_pacing_with_ai_video_shows_repeated_frame_warning(_mock_configured):
     app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+    app._page_hash = _QUALITY_PAGE_HASH
     app.session_state["documentary_pacing"] = "extended"
-    app.session_state["documentary_video_source"] = "ai_generated"
     app.run()
 
     assert not app.exception
@@ -75,7 +81,7 @@ def test_extended_pacing_with_ai_video_shows_repeated_frame_warning(_mock_config
 @patch("webui.Main.fal_video_service.is_configured", return_value=True)
 def test_short_pacing_with_ai_video_shows_no_extended_warning(_mock_configured):
     app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
-    app.session_state["documentary_video_source"] = "ai_generated"
+    app._page_hash = _QUALITY_PAGE_HASH
     app.run()
 
     assert not app.exception

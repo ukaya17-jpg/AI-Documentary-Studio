@@ -3,27 +3,32 @@ from pathlib import Path
 from unittest.mock import patch
 
 from streamlit.testing.v1 import AppTest
+from streamlit.util import calc_hash
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 ROOT_DIR = Path(__file__).parent.parent.parent
 WEBUI_MAIN = ROOT_DIR / "webui" / "Main.py"
 
-# AI-üretimi video kaynağı (fal.ai/Kling, opt-in). Documentary Studio artık
-# st.navigation'ın varsayılan sayfası olduğu için (bkz. test_webui_voice_preview.py
-# içindeki not) burada özel bir page hash gerekmiyor.
+# AI-üretimi video kaynağı (fal.ai/Kling, opt-in). 3-sayfa restructuring'den
+# (kullanıcı onaylı, TAM OTONOMİ) sonra bu davranış "Belgesel Niteliği"
+# sayfasına sabit (url_path="quality") -- artık bir selectbox ile açılmıyor,
+# bu yüzden AI senaryoları o sayfaya `_page_hash` ile doğrudan navigasyonla
+# ulaşıyor. "Stok Üretimler" varsayılan sayfa kaldığı için hash gerekmiyor.
 #
 # GÖREV 1'den öğrenilen AppTest kısıtı burada da geçerli: Video Source
 # selectbox'ının format_func'ı tr() çağırıyor (dolaylı olarak session_state
 # okuyor) -- bu yüzden her senaryo TEK bir .run() çağrısıyla, session_state
 # önceden set edilerek doğrulanıyor, .select()/.click() zinciri kullanılmıyor.
 
+_QUALITY_PAGE_HASH = calc_hash("quality")
+
 
 def _button_by_key(app, key):
     return next(b for b in app.button if str(getattr(b, "key", "")).startswith(key))
 
 
-def test_default_video_source_is_stock_and_ai_ui_is_hidden():
+def test_default_page_is_stock_and_ai_ui_is_hidden():
     app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
     app.run()
 
@@ -36,7 +41,7 @@ def test_default_video_source_is_stock_and_ai_ui_is_hidden():
 @patch("webui.Main.fal_video_service.is_configured", return_value=False)
 def test_ai_generated_without_fal_configured_shows_warning_and_disables_button(_mock_configured):
     app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
-    app.session_state["documentary_video_source"] = "ai_generated"
+    app._page_hash = _QUALITY_PAGE_HASH
     app.run()
 
     assert not app.exception
@@ -50,7 +55,7 @@ def test_ai_generated_with_fal_configured_shows_cost_estimate_and_requires_confi
     _mock_configured,
 ):
     app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
-    app.session_state["documentary_video_source"] = "ai_generated"
+    app._page_hash = _QUALITY_PAGE_HASH
     app.session_state["documentary_pacing"] = "short"
     app.run()
 
@@ -68,7 +73,7 @@ def test_ai_generated_with_fal_configured_shows_cost_estimate_and_requires_confi
 @patch("webui.Main.fal_video_service.is_configured", return_value=True)
 def test_confirming_ai_video_cost_enables_generate_button(_mock_configured):
     app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
-    app.session_state["documentary_video_source"] = "ai_generated"
+    app._page_hash = _QUALITY_PAGE_HASH
     app.session_state["documentary_ai_video_cost_confirmed"] = True
     app.run()
 
@@ -80,7 +85,7 @@ def test_confirming_ai_video_cost_enables_generate_button(_mock_configured):
 @patch("webui.Main.fal_video_service.is_configured", return_value=True)
 def test_long_pacing_rounds_billed_duration_up_to_ten_seconds(_mock_configured):
     app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
-    app.session_state["documentary_video_source"] = "ai_generated"
+    app._page_hash = _QUALITY_PAGE_HASH
     app.session_state["documentary_pacing"] = "long"
     app.run()
 

@@ -4854,18 +4854,19 @@ def _render_documentary_advanced_settings():
     return custom_system_prompt, custom_requirements
 
 
-def _render_documentary_studio_page():
-    """
-    AI Documentary Studio (Beta): Intent -> Research -> Outline -> Scene ->
-    Script -> Storyboard -> Asset -> AssetDownload -> Audio -> Timeline ->
-    SEO -> VideoRenderer pipeline'ı için ayrı, kendi kendine yeten bir bölüm.
+def _render_shared_documentary_form(video_source_fixed: str) -> None:
+    """Konu->Gelişmiş Ayarlar->Üret->Sonuç paneli arasındaki TÜM ortak form
+    mantığını render eder; "Belgesel Niteliği" (AI-üretimi) ve "Stok
+    Üretimler" sayfaları arasındaki tek fark budur -- Video Kaynağı bu
+    sayfalarda artık bir seçici değil, çağıran sayfa tarafından SABİT
+    geçiriliyor (kullanıcı değiştiremez, ilgili sayfa zaten o kaynak için
+    var). `video_source_fixed`: `_DOCUMENTARY_STOCK_VIDEO_SOURCE` ("stock")
+    ya da `default_pipeline.AI_GENERATED_VIDEO_SOURCE`.
 
     Bilinçli olarak legacy üretim akışından (arka plan thread, task manager,
     log fragment'ları) bağımsız tutuldu: pipeline senkron çalışır, sonuç
     doğrudan bu script çalışması içinde gösterilir.
     """
-    st.header(tr("AI Documentary Studio (Beta)"))
-
     # Streamlit forbids writing to a widget's own session_state key after
     # that widget has been instantiated in the same script run. So
     # "Accept Suggestion" below stores the chosen topic under a separate
@@ -5026,24 +5027,19 @@ def _render_documentary_studio_page():
         _render_documentary_advanced_settings()
     )
 
-    # En düşük riskli başlangıç noktası (kullanıcı onaylı): yeni bir
-    # provider seçeneği olarak eklendi, varsayılan hâlâ ücretsiz stok --
-    # Documentary Studio'da bugüne kadar hiç video-kaynağı seçici yoktu
-    # (her zaman sabit "pexels" kullanıyordu, bkz. run_pipeline'ın
-    # varsayılanı), bu ilk kez ekleniyor.
-    video_source_choice = st.selectbox(
-        tr("Documentary Video Source"),
-        options=[_DOCUMENTARY_STOCK_VIDEO_SOURCE, default_pipeline.AI_GENERATED_VIDEO_SOURCE],
-        index=0,
-        key="documentary_video_source",
-        help=tr("Documentary Video Source Help"),
-        format_func=lambda v: tr(f"Documentary Video Source: {v}"),
-    )
+    # 3-sayfa restructuring (kullanıcı onaylı, TAM OTONOMİ): Video Kaynağı
+    # artık bir seçici DEĞİL -- her sayfa kendi kaynağına SABİT ("Belgesel
+    # Niteliği" = her zaman AI, "Stok Üretimler" = her zaman stok). Eskiden
+    # burada tek bir birleşik sayfada iki kaynak arasında geçiş yapan bir
+    # selectbox vardı (bkz. git geçmişi); o widget'ın kendisi tamamen
+    # kaldırıldı, çağıran sayfa fonksiyonu hangi dalın render edileceğini
+    # `video_source_fixed` ile belirliyor.
+    video_source_choice = video_source_fixed
 
     # ADIM 1 (Provider Sistemi keşif raporu, kullanıcı onaylı): stok seçiliyken
-    # hangi sağlayıcının kullanılacağını gösteren, iç içe (nested) bir seçici
-    # -- BGM kaynağı/AI video maliyet onayı gibi bu sayfada zaten kurulu olan
-    # "üst seçime göre alt seçenek açılıyor" deseniyle tutarlı.
+    # hangi sağlayıcının kullanılacağını gösteren bir seçici -- BGM kaynağı/AI
+    # video maliyet onayı gibi bu sayfada zaten kurulu olan "seçime göre alt
+    # seçenek açılıyor" deseniyle tutarlı.
     stock_provider = _DOCUMENTARY_STOCK_PROVIDERS[0]
     if video_source_choice == _DOCUMENTARY_STOCK_VIDEO_SOURCE:
         stock_provider = st.selectbox(
@@ -5224,6 +5220,25 @@ def _render_documentary_studio_page():
             _render_custom_tags_section(last_project)
             _render_script_edit_section(last_project)
             _render_publish_section(last_project)
+
+
+def _render_documentary_quality_page():
+    """"Belgesel Niteliği" -- eskiden birleşik "Oluştur" sayfasının AI Video
+    Source moduna karşılık gelir. Video Kaynağı her zaman AI üretimine
+    sabittir (kullanıcı değiştiremez), bu yüzden maliyet onay kutusu
+    gösterilir, stok sağlayıcı seçici hiç render edilmez."""
+    st.header(tr("Nav Documentary Quality"))
+    _render_shared_documentary_form(
+        video_source_fixed=default_pipeline.AI_GENERATED_VIDEO_SOURCE
+    )
+
+
+def _render_stock_productions_page():
+    """"Stok Üretimler" -- eskiden birleşik "Oluştur" sayfasının Stok Video
+    moduna karşılık gelir. Video Kaynağı her zaman stoğa sabittir, maliyet
+    onay kutusu gösterilmez (ücretsiz), stok sağlayıcı seçici render edilir."""
+    st.header(tr("Nav Stock Productions"))
+    _render_shared_documentary_form(video_source_fixed=_DOCUMENTARY_STOCK_VIDEO_SOURCE)
 
 
 # -----------------------------------------------------------------------------
@@ -5541,11 +5556,23 @@ def _render_application():
     # anında geri alınabilir.
     pg = st.navigation(
         [
+            # 3-sayfa restructuring (kullanıcı onaylı, TAM OTONOMİ): eski
+            # birleşik "Oluştur" sayfası, Video Kaynağı seçimine göre ikiye
+            # bölündü. "Stok Üretimler" varsayılan/ilk sayfa kalıyor --
+            # eski selectbox'ın da varsayılanı ("stock", index=0) buydu, bu
+            # yüzden mevcut testlerin/kullanıcı akışının varsayılan-sayfa
+            # davranışı değişmiyor.
             st.Page(
-                _render_documentary_studio_page,
-                title=tr("Nav Create"),
+                _render_stock_productions_page,
+                title=tr("Nav Stock Productions"),
                 icon="🎬",
                 default=True,
+            ),
+            st.Page(
+                _render_documentary_quality_page,
+                title=tr("Nav Documentary Quality"),
+                icon="✨",
+                url_path="quality",
             ),
             st.Page(
                 _render_history_page,

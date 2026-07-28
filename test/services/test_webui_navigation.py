@@ -52,9 +52,29 @@ def test_classic_mode_page_is_hidden_from_the_sidebar():
     assert 'visibility="hidden"' in blocks["_render_legacy_page"]
 
 
-def test_create_and_history_pages_remain_visible():
+def test_stock_quality_and_history_pages_remain_visible():
+    # 3-sayfa restructuring (kullanıcı onaylı, TAM OTONOMİ): eski birleşik
+    # "Oluştur" sayfası (_render_documentary_studio_page), Video Kaynağı
+    # seçimine göre ikiye bölündü -- "Stok Üretimler" (varsayılan) ve
+    # "Belgesel Niteliği" (url_path="quality").
     blocks = _page_blocks()
-    assert "_render_documentary_studio_page" in blocks
+    assert "_render_stock_productions_page" in blocks
+    assert "_render_documentary_quality_page" in blocks
     assert "_render_history_page" in blocks
-    assert 'visibility="hidden"' not in blocks["_render_documentary_studio_page"]
+    assert 'visibility="hidden"' not in blocks["_render_stock_productions_page"]
+    assert 'visibility="hidden"' not in blocks["_render_documentary_quality_page"]
     assert 'visibility="hidden"' not in blocks["_render_history_page"]
+
+
+def test_stock_productions_page_is_the_default():
+    # Eski birleşik sayfadaki video-kaynağı selectbox'ının varsayılanı da
+    # "stock" (index=0) idi -- bölünmeden sonra varsayılan-sayfa davranışı
+    # değişmesin diye "Stok Üretimler" varsayılan kalıyor.
+    blocks = _page_blocks()
+    assert "default=True" in blocks["_render_stock_productions_page"]
+    assert "default=True" not in blocks["_render_documentary_quality_page"]
+
+
+def test_documentary_quality_page_has_its_own_url_path():
+    blocks = _page_blocks()
+    assert 'url_path="quality"' in blocks["_render_documentary_quality_page"]

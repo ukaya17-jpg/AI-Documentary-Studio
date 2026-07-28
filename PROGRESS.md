@@ -3367,3 +3367,82 @@ regresyon. `ruff` temiz.
 (4→7 sahne, en kötü senaryoda +3 x $0.045x5s ≈ +$0.68/video) -- ama Stok
 Video (varsayılan, ücretsiz) için maliyet etkisi sıfır, ve düzeltme
 olmadan üretilen içerik zaten kullanıcıya vaat edilen kalitede değildi.
+
+## Production'da bulunan ayrı bug: Task Manager satır key çakışması
+
+Pacing düzeltmesinin production deploy'undan sonraki günün loglarında
+(`journalctl`), Task Manager panelinin görev tablosunda iki kez
+`StreamlitDuplicateElementKey` hatası bulundu: `key='task_row_all_matrix_
+TopicCategory_healthy_living_Paci'`. Kod zaten kategori+dil değil
+`task_id`'yi kullanıyordu, ama container key'i sanitize edilmiş `task_id`'yi
+`[:40]` karakterle kesiyordu -- iki farklı, uzun/tanımlayıcı `task_id` ilk
+40 karakterde aynı çıkınca (ortak "matrix_TopicCategory_healthy_living_
+Paci..." öneki -- muhtemelen bir QA/dimension-matrix scripti tarafından
+elle oluşturulmuş, normal UUID4 üretim akışının parçası değil) çakışma
+oluşuyordu. Kısa UUID4 `task_id`'ler (36 karakter) bu sınıra hiç
+yaklaşmadığı için bugüne kadar tetiklenmemişti.
+
+**Düzeltme (ayrı, küçük commit -- `26459ae`):** `_safe_task_row_key()` --
+kesilen okunabilir önek + tam `task_id`'nin sabit-uzunlukta sha1 hash'i.
+3 yeni birim testi, ortak 40-karakterlik önekli iki `task_id`'nin farklı
+key ürettiğini doğruluyor (gerçek olayı yeniden üretiyor).
+
+## 3-sayfa restructuring -- Belgesel Niteliği + Stok Üretimler
+
+Kullanıcı talebi (net spesifikasyonla): eski birleşik "Oluştur" sayfası,
+Video Kaynağı seçimine göre ikiye bölündü. Sonuç 4 sayfa: "Stok Üretimler"
+(yeni, varsayılan), "Belgesel Niteliği" (yeni, `url_path="quality"`),
+"Geçmiş Üretimler" (değişmedi), "Klasik Mod" (değişmedi, gizli).
+
+**DRY:** `_render_shared_documentary_form(video_source_fixed: str)` --
+eski `_render_documentary_studio_page()`'in TÜM gövdesini (konu→dil→
+kategori/ton→ses ayarları→gelişmiş ayarlar→üret→sonuç paneli) alıyor.
+Video Kaynağı artık bir selectbox değil -- o widget'ın kendisi tamamen
+kaldırıldı, çağıran sayfa `video_source_fixed` ile hangi dalın
+render edileceğini belirliyor: `_DOCUMENTARY_STOCK_VIDEO_SOURCE` ("stock")
+→ stok sağlayıcı seçici gösterilir, maliyet onayı yok; `default_pipeline.
+AI_GENERATED_VIDEO_SOURCE` → maliyet onay bloğu gösterilir, stok sağlayıcı
+seçici hiç render edilmez. İki ince sarmalayıcı (`_render_documentary_
+quality_page`, `_render_stock_productions_page`) sadece başlık + shared fn
+çağrısından ibaret.
+
+**Varsayılan sayfa kararı:** "Stok Üretimler" varsayılan kaldı (eski
+selectbox'ın da varsayılanı "stock", index=0 idi) -- bu, video_source'u
+hiç set etmeyen onlarca mevcut webui testinin varsayılan-sayfa davranışını
+değiştirmeden koruyor.
+
+**i18n:** "Nav Documentary Quality"/"Nav Stock Productions" 9 locale'e
+eklendi; artık kullanılmayan "Nav Create" ve "AI Documentary Studio (Beta)"
+key'leri 9 locale'den kaldırıldı; "Documentary History Empty" metni
+("...Oluştur sayfasından...") artık spesifik bir sayfa adına referans
+vermeyecek şekilde genelleştirildi (iki olası giriş noktası olduğu için).
+
+**Test:** `test_webui_navigation.py` 4-sayfa yapısını (görünürlük,
+varsayılan, url_path) doğrulayacak şekilde yeniden yazıldı.
+`test_webui_ai_video_source.py`/`test_webui_stock_provider.py`/
+`test_webui_long_form.py`'deki AI-senaryoları -- Video Kaynağı artık bir
+selectbox olmadığı için -- `app.session_state["documentary_video_source"]`
+yerine `app._page_hash = calc_hash("quality")` ile doğrudan "Belgesel
+Niteliği" sayfasına navigasyona geçirildi. Tam suite: **844 passed, 11
+skipped**, sıfır regresyon. `ruff` temiz.
+
+**Gerçek tarayıcı doğrulaması (Playwright/headless Chromium, geçici port
+8588 -- production 8501'e hiç dokunulmadı, doğrulama sonunda süreç
+durduruldu ve port'un gerçekten boşaldığı `ss` ile teyit edildi):**
+kök sayfadan sidebar linklerine TIKLAYARAK gerçek kullanıcı akışı
+izlendi (doğrudan URL'e git değil) -- 3 sayfa da (Stok Üretimler
+varsayılan, Belgesel Niteliği, Geçmiş Üretimler) doğru içerikle render
+oldu, konsol hatası SIFIR. Stok Üretimler'de stok sağlayıcı seçici var,
+maliyet onayı yok; Belgesel Niteliği'nde maliyet tahmini ($1.57, short
+pacing'in 7 sahnesiyle tutarlı) ve onay kutusu var, stok sağlayıcı
+seçici yok. Task Manager paneli de (bug fix doğrulaması) hatasız açıldı.
+Klasik Mod hâlâ `/classic` üzerinden doğrudan erişilebilir (sidebar'da
+gizli, kayıt silinmedi). config.toml'da git diff YOK (doğrulama sırasında
+hiçbir kalıcı yazma olmadı).
+
+(Not: `/quality` veya `/history`'ye DOĞRUDAN `page.goto()` ile gidildiğinde
+Streamlit'in kendi `_stcore/health`/`host-config` polling istekleri
+mevcut path'e göre yanlış çözülüp 404 veriyor -- bu, benim değişikliğimden
+ÖNCE de var olan `/history` için de aynen tekrarlanan, Streamlit'in kendi
+alt-path deep-link davranışı, gerçek kullanıcı sidebar tıklamasıyla hiç
+karşılaşmıyor, bu görevle ilgisiz.)

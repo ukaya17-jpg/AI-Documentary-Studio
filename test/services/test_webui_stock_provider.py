@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from streamlit.testing.v1 import AppTest
+from streamlit.util import calc_hash
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
@@ -31,6 +32,11 @@ NEW_KEYS = (
     "Documentary Stock Provider: pixabay",
     "Documentary Stock Provider: coverr",
 )
+
+# 3-sayfa restructuring (kullanıcı onaylı, TAM OTONOMİ): Video Kaynağı artık
+# bir selectbox değil, "Belgesel Niteliği" sayfasına (url_path="quality")
+# sabit -- AI senaryosuna page hash ile navigasyonla ulaşılıyor.
+_QUALITY_PAGE_HASH = calc_hash("quality")
 
 
 def _translation(locale):
@@ -60,10 +66,10 @@ def test_stock_provider_selector_shown_by_default_with_pexels_selected():
     assert stock_provider.value == "pexels"
 
 
-def test_stock_provider_selector_hidden_when_ai_generated_selected():
+def test_stock_provider_selector_hidden_on_documentary_quality_page():
     app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+    app._page_hash = _QUALITY_PAGE_HASH
     app.session_state["ui_language"] = "en"
-    app.session_state["documentary_video_source"] = "ai_generated"
     app.run()
 
     assert not app.exception
