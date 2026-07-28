@@ -63,7 +63,13 @@ st.set_page_config(
     page_title="AI Documentary Studio",
     page_icon="🎬",
     layout="wide",
-    initial_sidebar_state="auto",
+    # "auto" (eski değer) Streamlit'in kendi dahili responsive kırılma
+    # noktasına göre dar viewport'larda (gerçek Playwright testiyle
+    # doğrulandı: ~700px ve altında) sidebar'ı otomatik katlıyordu --
+    # kullanıcı talebi: navigasyon HİÇBİR ZAMAN otomatik gizlenmemeli.
+    # "expanded" ilk yüklemede genişliği zorluyor (kullanıcı yine de
+    # manuel olarak katlayabilir -- sadece OTOMATİK katlanmayı engelliyor).
+    initial_sidebar_state="expanded",
     menu_items={
         "Report a bug": "https://github.com/harry0703/MoneyPrinterTurbo/issues",
         "About": "# MoneyPrinterTurbo\nSimply provide a topic or keyword for a video, and it will "
