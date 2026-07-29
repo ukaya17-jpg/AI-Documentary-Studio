@@ -132,7 +132,7 @@ Thanks to [Kimi](https://platform.kimi.ai?aff=MoneyPrinterTurbo) for sponsoring 
 - [x] Supports leading model providers including **Kimi / Moonshot AI**, **OpenAI**, **Google Gemini**, **DeepSeek**, **Alibaba Cloud Qwen**, **Microsoft Azure OpenAI**, **ByteDance VolcEngine Ark**, **xAI Grok**, **MiniMax**, and **Xiaomi MiMo**, plus unified gateways, aggregators, and local runtimes such as **Cloudflare AI Gateway**, **Alibaba ModelScope**, **AIHubMix**, **AIML API**, **EvoLink**, **Ollama**, **OneAPI**, **LiteLLM**, **Groq**, and **Pollinations AI**
 - [x] Supports one-click **cross-platform publishing** to **TikTok**, **Instagram**, and **YouTube Shorts** after video generation
 
-## AI Documentary Studio (Beta) 🎙️
+## AI Creator Studio (Beta) 🎙️
 
 A second, separate workflow inside the same WebUI, purpose-built for short
 narrated documentaries rather than general short-form videos. Give it a
@@ -140,7 +140,7 @@ topic and it runs research → outline → script → storyboard → footage
 matching → narration → subtitles → SEO metadata → thumbnail as one pipeline,
 producing a finished vertical video plus two thumbnail options to compare.
 
-**Where to find it:** open the WebUI and expand the **"AI Documentary
+**Where to find it:** open the WebUI and expand the **"AI Creator
 Studio (Beta)"** panel — it's a self-contained section with its own topic
 field and "Generate Documentary" button, independent of the standard video
 generator above it.

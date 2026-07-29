@@ -131,13 +131,13 @@
 - [x] 支持 **Kimi / Moonshot AI**、**OpenAI**、**Google Gemini**、**DeepSeek**、**阿里云通义千问**、**Microsoft Azure OpenAI**、**火山引擎方舟**、**xAI Grok**、**MiniMax**、**小米 MiMo** 等主流模型服务，并兼容 **Cloudflare AI Gateway**、**魔搭 ModelScope**、**AIHubMix**、**AIML API**、**EvoLink**、**Ollama**、**OneAPI**、**LiteLLM**、**Groq**、**Pollinations AI** 等统一网关、聚合平台和本地运行环境
 - [x] 支持一键 **跨平台发布**，生成完成后可自动上传至 **TikTok**、**Instagram** 和 **YouTube Shorts**
 
-## AI 纪录片工作室（Beta）🎙️
+## AI 创作者工作室（Beta）🎙️
 
 WebUI 中的第二套独立工作流，专为**叙事型纪录片短片**设计，而非通用短视频。
 给定一个主题，它会依次运行 研究 → 大纲 → 脚本 → 分镜 → 素材匹配 → 配音 →
 字幕 → SEO 元数据 → 缩略图，最终生成一个成片以及两个可供比较的缩略图选项。
 
-**入口：** 在 WebUI 中展开 **"AI Documentary Studio (Beta)"** 面板——这是一个
+**入口：** 在 WebUI 中展开 **"AI Creator Studio (Beta)"** 面板——这是一个
 独立区域，有自己的主题输入框和"Generate Documentary"按钮，与上方的标准视频
 生成器互不影响。
 
