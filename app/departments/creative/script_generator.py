@@ -15,30 +15,34 @@ from app.services.documentary_llm_utils import generate_json
 _WORDS_PER_SECOND = 2.3
 
 DEFAULT_SCRIPT_SYSTEM_PROMPT = (
-    "You are a documentary narration scriptwriter. Write natural, spoken-style "
-    "narration -- no markdown, no scene labels, no 'narrator says'."
+    "You are a scriptwriter for fast-paced, high-retention YouTube videos. "
+    "Write natural, spoken-style narration -- no markdown, no scene labels, "
+    "no 'narrator says'."
 )
 
-# Previously the narration writer never saw the topic's tone at all -- only
-# outline_generator/research_planner read PROFILE_PROMPTS. This is a new
-# addition, not a re-keyed existing behavior, so there is no old text to stay
-# byte-identical to; it's additive and only applies when a tone is passed in.
+# Kullanıcı talimatı (2026-07-29): "sakin belgesel anlatıcısı" çerçevesi
+# tamamen kaldırıldı -- her tonun ADI/enum değeri AYNI kaldı (DEFAULT_TONE_
+# BY_CATEGORY hiç değişmedi), sadece açıklama metni "like a ... documentary
+# narrator" kalıbından "like a ... YouTuber" kalıbına çevrildi. Her ton kendi
+# duygusal aromasını (mysterious=merak, motivational=motivasyon, vb.) koruyor
+# -- değişen sadece TESLİMAT tarzı: kısa/punchy cümleler, "never a slow/
+# hushed/dry ..." ile eski belgesel temposunun açıkça reddi.
 TONE_VOICE_GUIDANCE = {
-    Tone.cinematic: "vivid, immersive, and sensory -- like a travel film voiceover",
-    Tone.credibility: "measured, authoritative, and precise -- like a trusted history documentary narrator",
-    Tone.epic: "awe-struck and grand in scale, while staying clear and grounded",
-    Tone.scientific: "clear, evidence-minded, and approachable -- like explaining research to a curious friend",
-    Tone.neutral: "clear and neutral",
-    Tone.wondrous: "curious and awe-filled, savoring vivid natural detail -- like a nature documentary narrator marveling at what's on screen",
-    Tone.reflective: "calm, unhurried, and contemplative -- like a narrator inviting quiet reflection rather than reciting facts",
-    Tone.cinephile: "articulate and analytical, with genuine enthusiasm for craft -- like a film critic explaining why a scene works",
-    Tone.dynamic: "energetic and momentum-driven, building intensity toward key moments -- like a sports broadcast narrator",
-    Tone.encouraging: "warm, practical, and supportive -- like a knowledgeable friend giving grounded health advice",
-    Tone.mysterious: "hushed and intriguing, building curiosity without sensationalizing -- like a narrator walking through an unsolved case",
-    Tone.motivational: "direct, energizing, and practical -- like a coach giving advice you can act on immediately",
-    Tone.savory: "warm and sensory, lingering on taste and texture -- like a food documentary narrator savoring every bite",
-    Tone.majestic: "grand and reverent, awed by scale -- like a nature documentary narrator standing before something vast",
-    Tone.gripping: "tense and controlled, building suspense -- like a premium streaming documentary narrator withholding just enough",
+    Tone.cinematic: "vivid and sensory, but fast-cut and punchy -- like a top travel YouTuber narrating quick cuts back-to-back, never lingering on one shot",
+    Tone.credibility: "sharp and fact-packed, fired off in quick, quotable bursts -- like a top history YouTuber who opens with a bold claim and proves it fast, never a slow lecture",
+    Tone.epic: "awe-struck and grand in scale, built from short, quotable lines racing toward one big payoff -- like a viral YouTube video that never lets the momentum drop",
+    Tone.scientific: "clear and evidence-minded, but rapid-fire and hooky -- like a science YouTuber breaking down a study in quick, punchy beats, never a dry lecture",
+    Tone.neutral: "clear, direct, and brisk -- plain language, zero filler, quick pacing, never dry or meandering",
+    Tone.wondrous: "curious and awe-filled, reacting out loud in real time -- like a wildlife YouTuber marveling at vivid detail as it happens, never a slow, hushed narration",
+    Tone.reflective: "calm and personal, but direct and present-tense -- like a YouTuber pausing mid-video to think out loud with you, never a detached, monotone voiceover",
+    Tone.cinephile: "articulate and quick-witted, firing off enthusiasm in rapid takes -- like a popular YouTube film critic breaking down why a scene works, never a slow academic lecture",
+    Tone.dynamic: "high-energy and relentless, building intensity beat by beat -- like a sports YouTuber hyping every highlight live, never a measured broadcast recap",
+    Tone.encouraging: "warm and practical, but upbeat and direct -- like a health YouTuber firing off advice you can use today, never a slow clinical rundown",
+    Tone.mysterious: "quick and intriguing, firing off one unanswered question after another -- like a true-crime YouTuber pulling you deeper into the case in real time, never a hushed, slow burn",
+    Tone.motivational: "direct, high-energy, and practical -- like a motivational YouTuber firing off advice you can act on right now, never a slow, measured pep talk",
+    Tone.savory: "warm and sensory, reacting fast to every bite -- like a food YouTuber devouring the moment on camera, never a slow, lingering food-doc narration",
+    Tone.majestic: "grand and reverent, awed by scale, delivered in short punchy bursts -- like a landscape YouTuber reacting live to something vast, never a slow, reverent pan",
+    Tone.gripping: "tense and fast-building, escalating stakes every beat -- like a thriller YouTuber racing toward the big reveal, never a slow, withholding prestige-doc pace",
 }
 
 # Format is orthogonal to Tone: Tone shapes how the narration sounds (voice),

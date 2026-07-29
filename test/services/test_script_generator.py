@@ -21,6 +21,16 @@ def _scene_plan():
 
 
 class TestBuildScriptPrompt(unittest.TestCase):
+    def test_system_prompt_no_longer_frames_a_documentary_narrator(self):
+        # Kullanıcı talimatı (2026-07-29): temel sistem promptu artık
+        # "documentary narration scriptwriter" demiyor -- YouTube-dinamik
+        # çerçeveye geçti. Yapısal kısıtlar (no markdown/scene labels/
+        # 'narrator says') aynı kalmalı, sadece rol çerçevesi değişti.
+        prompt = script_generator.DEFAULT_SCRIPT_SYSTEM_PROMPT.lower()
+        self.assertNotIn("documentary", prompt)
+        self.assertIn("no markdown", prompt)
+        self.assertIn("no scene labels", prompt)
+
     def test_includes_topic_and_scene_word_targets(self):
         prompt = script_generator.build_script_prompt(_scene_plan(), "The Fall of Rome")
         self.assertIn("The Fall of Rome", prompt)
@@ -121,6 +131,22 @@ class TestBuildScriptPromptTone(unittest.TestCase):
     def test_all_tones_have_voice_guidance(self):
         for tone in Tone:
             self.assertIn(tone, script_generator.TONE_VOICE_GUIDANCE)
+
+    def test_no_tone_guidance_still_frames_a_documentary_narrator(self):
+        # Kullanıcı talimatı (2026-07-29): "sakin belgesel anlatıcısı"
+        # çerçevesi tüm tonlardan kaldırıldı -- hiçbir ton metni artık
+        # "documentary"/"narrator" kelimelerini içermemeli (enum adları
+        # hariç, ör. Tone.credibility -- bu kontrol sadece açıklama
+        # metinlerine bakıyor).
+        for tone, guidance in script_generator.TONE_VOICE_GUIDANCE.items():
+            lowered = guidance.lower()
+            self.assertNotIn("documentary", lowered, f"{tone} still says 'documentary'")
+            self.assertNotIn("narrator", lowered, f"{tone} still says 'narrator'")
+
+    def test_all_tone_guidance_values_are_pairwise_distinct(self):
+        values = list(script_generator.TONE_VOICE_GUIDANCE.values())
+        self.assertEqual(len(values), len(set(values)))
+        self.assertEqual(len(values), len(list(Tone)))
 
 
 class TestBuildScriptPromptFormat(unittest.TestCase):
