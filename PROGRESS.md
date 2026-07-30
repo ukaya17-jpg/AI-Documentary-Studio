@@ -3698,3 +3698,29 @@ regresyon). `ruff` temiz.
 
 **config.example.toml:** `fal_veo_model = "fal-ai/veo3.1/fast"` eklendi,
 `fal_ai_video_model` yorumu güncellendi.
+
+## Gece oturumu -- GÖREV 4: Genel sağlık kontrolü
+
+Tam suite: **864 passed, 11 skipped**, `ruff` temiz, production
+(`ai-documentary-studio-webui.service`) `active` ve `/_stcore/health` OK.
+
+**Config.toml notu (bilgi amaçlı, YENİ bir olay DEĞİL):** GÖREV 3'ün
+gerçek tarayıcı doğrulaması sırasında (`/quality` sayfasına gidildi)
+config.toml'a `fal_ai_video_model = "kling"` satırı gerçekten YAZILDI
+(mtime + içerik doğrulandı). Kök neden araştırıldı: bu, ÖNCEDEN VAR OLAN
+(bu gece eklenmemiş), `_render_documentary_advanced_settings()`'in
+sonundaki KOŞULSUZ `config.save_config()` çağrısı yüzünden (satır
+~4872, kendi yorumu: "Klasik Mod'un aksine Documentary Studio hiçbir
+yerde config.save_config() çağırmıyordu -- bu üç ayar RAM'de kalıp bir
+sonraki restart'ta eski değerlere dönerdi... save_config() içerik
+değişmediyse zaten no-op, bu yüzden her rerun'da çağırmak güvenli").
+Yeni "AI Video Sağlayıcısı" seçicim de AYNI form içinde `config.app[...]`
+'a yazdığı için, bu ÖNCEDEN VAR OLAN save_config() çağrısı onu da
+süpürüp diske yazdı -- bu, tasarımın kendi mantığıyla TUTARLI (kullanıcı
+provider seçimi de, font ayarları gibi, restart'tan sağ çıkmalı) ve
+YAZILAN DEĞER ZARARSIZ/DOĞRU ("kling", varsayılan) -- Pexels API key
+dahil diğer tüm alanlar sağlam/değişmeden kaldı (kontrol edildi). Önceki
+gerçek olay (test suite'in save_config()'i unutup config.toml'ı
+bozması) ile KARIŞTIRILMASIN: o, conftest.py'nin engellediği bir test-
+zamanı sorunuydu; bu, GERÇEK, kasıtlı, production-zamanı kalıcılık
+davranışı. Ek işlem gerekmedi, sadece şeffaflık için not düşüldü.
