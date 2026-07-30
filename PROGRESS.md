@@ -3613,3 +3613,18 @@ sabit/modül oluşturmak da düşünüldü, ama bu var olan bir listeyi
 KOPYALAMAK anlamına gelirdi (iki listenin ileride birbirinden
 sapması riski) -- mevcut listeyi paylaşmak daha DRY ve daha tutucu
 (yeni bir kavram/dosya eklemiyor, sadece bir isim değişikliği).
+
+**OTONOM KARAR (dal/main iş akışı):** Kural 0 (`overnight/topic-fix-and-
+followups` dalına geç) ile Kural 3/4'ün lafzı ("git push origin main",
+"./deploy.sh") arasında gerilim var -- main'e hiç dokunmadan sadece dalda
+kalmak, deploy.sh'ı (main'i pull edip restart eden) işlevsiz kılardı.
+Bu projedeki TÜM önceki gece oturumu dalları (`overnight/claude-tasks-
+3to8`, `overnight/launch-readiness`, `overnight/thumbnail-and-backlog`)
+sonunda main'e karışmış durumda bulundu (`git rev-list` ile doğrulandı,
+main'e göre 0 benzersiz commit) -- yani yerleşik desen, dalın bir
+ÇALIŞMA alanı olması ama her doğrulanmış adımdan sonra main'e FAST-
+FORWARD edilip push+deploy edilmesi. Bu daha güvenli/tutucu seçenek de:
+fast-forward, geçmişi yeniden yazmıyor, gerektiğinde `main`'i eski
+commit'e resetlemek trivial. Bu yüzden: her GÖREV'in testleri yeşil
+olduktan sonra `overnight/...` dalındaki commit main'e fast-forward
+edilip push+deploy ediliyor, dal çalışma alanı olarak devam ediyor.
