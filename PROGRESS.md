@@ -3724,3 +3724,51 @@ gerçek olay (test suite'in save_config()'i unutup config.toml'ı
 bozması) ile KARIŞTIRILMASIN: o, conftest.py'nin engellediği bir test-
 zamanı sorunuydu; bu, GERÇEK, kasıtlı, production-zamanı kalıcılık
 davranışı. Ek işlem gerekmedi, sadece şeffaflık için not düşüldü.
+
+## Gece oturumu -- GÖREV 5: Sistem Promptu / Özel Senaryo Gereksinimleri varsayılanları
+
+"Sistem Promptu" ve "Özel Senaryo Gereksinimleri" artık boş başlamıyor --
+her iki sayfada (Belgesel/AI Üretimi VE Stok Üretim) ön-dolu, kullanıcının
+silip/değiştirebileceği bir varsayılan metinle geliyor.
+
+**İçerik kararı:** Bu sohbette daha önce kullanıcıya verilen iki gerçek
+system prompt'un tam metnini bu oturumda YENİDEN ÜRETEMEDİM (o kısım bir
+önceki oturum özetinde yoktu) -- ama GERÇEK ÜRETİMLERDE (`storage/
+tasks/`) hangi metinlerin fiilen kullanıldığını buldum (GÖREV 1
+teşhisinin bir yan ürünü): biri "award-winning documentary filmmaker...
+professional YouTube documentary scriptwriter" (AI-video, konuya özel,
+Eastern civilizations kilitli), biri "fast-turnaround YouTube
+scriptwriter working with free stock footage" (stok, konudan bağımsız,
+genel). Tam metinleri OLDUĞU GİBİ varsayılan yapmadım -- ilki tek bir
+konuya (Doğu medeniyetleri) kilitliydi, ikincisi zaten genel ve
+kısaydı. Bunun yerine, **GROWTH_GUIDANCE (`_growth_guidance_instructions`,
+her zaman açık) + _story_craft_instructions (Hook/Retention/Callback,
+her zaman açık) + TONE_VOICE_GUIDANCE'ın (`3bc21c2`, önceki oturumda
+YouTube-dinamik'e çevrilmiş, HÂLÂ ÖYLE -- bu gece doğrulandı) hiçbirinin
+KAPSAMADIĞI tek gerçek boşluğu** doldurdum: görsel tarifin AI-video
+üretimi mi yoksa stok-footage aranabilirliği mi için optimize edileceği
+(iki sayfa farklı varsayılan alıyor, kullanıcı talebi buydu) + hafif bir
+SEO/aranabilirlik ipucu (Özel Senaryo Gereksinimleri, ikisinde ortak).
+Bu, kullanıcının önceki iki gerçek prompt'undaki, sistemin BAŞKA HİÇBİR
+YERİNDE kapsanmayan TEK somut, konu-bağımsız, tekrar kullanılabilir
+unsurdu (stok metninin 2. maddesi: "concrete, commonly-filmed subjects").
+
+**Kod (`webui/Main.py`):** `_render_documentary_advanced_settings()`
+artık `video_source_fixed` parametresi alıyor (çağıran `_render_shared_
+documentary_form`'dan geliyor), sayfaya göre `_DOCUMENTARY_DEFAULT_
+SYSTEM_PROMPT_AI_VIDEO` / `_DOCUMENTARY_DEFAULT_SYSTEM_PROMPT_STOCK`
+arasında seçim yapıyor; `_DOCUMENTARY_DEFAULT_CUSTOM_REQUIREMENTS` her
+iki sayfada ortak. `st.text_area(..., value="")` → `value=default_...`
+(placeholder değil, gerçek ön-dolu değer -- kullanıcı silebilir).
+İngilizce kalıyor (i18n YOK) -- bu alanların İÇERİĞİ zaten her zaman
+İngilizce LLM talimatı olmuştu (`DEFAULT_SCRIPT_SYSTEM_PROMPT` da öyle),
+sadece ALAN ETİKETİ `tr()`'den geçiyor.
+
+**Test:** `test_webui_advanced_settings.py` güncellendi -- eski "boş
+varsayılan" testi "stok sayfasında stok varyantı" testine dönüştürüldü,
+yeni `test_system_prompt_defaults_to_ai_video_variant_on_quality_page`
+(iki varyantın GERÇEKTEN farklı olduğunu da doğruluyor) ve
+`test_user_can_still_clear_the_default_to_empty` eklendi, eski "blank
+fields -> empty strings" testi "untouched fields -> defaults gönderilir"
+olarak yeniden adlandırıldı/güncellendi. Tam suite: **866 passed, 11
+skipped** (864'ten +2, sıfır regresyon). `ruff` temiz.

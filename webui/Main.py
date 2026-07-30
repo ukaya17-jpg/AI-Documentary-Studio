@@ -4783,6 +4783,39 @@ def _render_documentary_audio_settings():
     return voice_name, voice_rate, voice_volume, bgm_type, uploaded_bgm_file, bgm_volume
 
 
+# GÖREV 5 (gece oturumu, TAM OTONOMİ): Sistem Promptu/Özel Senaryo
+# Gereksinimleri artık boş başlamıyor, bu sohbette daha önce kullanıcıya
+# verilen ve gerçek üretimlerde (storage/tasks/) kullanıldığı doğrulanan iki
+# gerçek system prompt'un KISA/ÖZ, GENEL (tek bir konuya kilitli olmayan)
+# versiyonları varsayılan değer oluyor. GROWTH_GUIDANCE (_growth_guidance_
+# instructions, her zaman açık) zaten opening/advertiser-safe/series-feel/
+# closing-nudge/engagement'ı, _story_craft_instructions zaten Hook/Retention/
+# Callback'i, TONE_VOICE_GUIDANCE de (3bc21c2, önceki oturum) zaten YouTube-
+# dinamik teslimatı kapsıyor -- bu yüzden buradaki varsayılanlar SADECE o
+# üçünün KAPSAMADIĞI, gerçekten ek değer katan tek şeyi ekliyor: görsel
+# tarifin AI-video mu stok-footage mı için optimize edileceği (iki sayfa
+# FARKLI varsayılan alıyor, kullanıcı talebi buydu) + hafif bir SEO/
+# aranabilirlik ipucu (ikisinde ortak). Kullanıcı bu metni istediği gibi
+# değiştirebilir/silebilir -- bunlar sadece placeholder değil, gerçek
+# ön-dolu `value=`.
+_DOCUMENTARY_DEFAULT_SYSTEM_PROMPT_AI_VIDEO = (
+    "Describe each scene's visuals vividly and concretely, in a way an AI "
+    "video generator can turn directly into a matching shot."
+)
+_DOCUMENTARY_DEFAULT_SYSTEM_PROMPT_STOCK = (
+    "Describe scenes using concrete, commonly-filmed subjects (real places, "
+    "real everyday actions) that a stock footage library would realistically "
+    "have -- avoid describing rare, highly specific, or historically exact "
+    "imagery that stock footage can't visually represent; let the specific "
+    "facts live in the narration instead."
+)
+_DOCUMENTARY_DEFAULT_CUSTOM_REQUIREMENTS = (
+    "Where it fits naturally, mention specific names, places, or terms "
+    "someone might search for related to this topic, to help the video "
+    "surface in YouTube search."
+)
+
+
 # GÖREV F + G (kullanıcı onaylı, tek "Gelişmiş Ayarlar" expander'ında):
 #
 # F -- custom_system_prompt zaten script_generator.build_script_prompt()'a
@@ -4799,25 +4832,34 @@ def _render_documentary_audio_settings():
 # hiçbir değişiklik gerekmedi (ADIM 0: gerçek, halihazırda bağlı tüketici).
 # Kullanıcı sadece bu üçünü istedi (aile/boyut/renk) -- stroke/pozisyon/
 # arkaplan Klasik Mod'da var ama burada bilinçli olarak kapsam dışı.
-def _render_documentary_advanced_settings():
+def _render_documentary_advanced_settings(video_source_fixed: str):
     """Sistem promptu + özel senaryo gereksinimleri + altyazı görünümü.
 
     Döner: (custom_system_prompt, custom_requirements) -- ikisi de
     run_pipeline()'a doğrudan geçiriliyor. Font ayarları ayrıca dönmüyor,
     çünkü config.ui[...]'a yazılıyor ve build_video_params() bunu render
     anında zaten okuyor (proje-özel bir parametre değil, global ayar).
+
+    `video_source_fixed`: GÖREV 5 -- hangi sayfadan çağrıldığını bilmesi
+    gerekiyor, çünkü Sistem Promptu varsayılanı sayfaya göre değişiyor
+    (AI-video görsel tarifi vs. stok-görsel-uyumlu tarif).
     """
+    default_system_prompt = (
+        _DOCUMENTARY_DEFAULT_SYSTEM_PROMPT_STOCK
+        if video_source_fixed == _DOCUMENTARY_STOCK_VIDEO_SOURCE
+        else _DOCUMENTARY_DEFAULT_SYSTEM_PROMPT_AI_VIDEO
+    )
     with st.expander(tr("Documentary Advanced Settings"), expanded=False):
         custom_system_prompt = st.text_area(
             tr("Documentary System Prompt"),
-            value="",
+            value=default_system_prompt,
             key="documentary_custom_system_prompt",
             help=tr("Documentary System Prompt Help"),
             placeholder=script_generator.DEFAULT_SCRIPT_SYSTEM_PROMPT,
         ).strip()
         custom_requirements = st.text_area(
             tr("Documentary Custom Requirements"),
-            value="",
+            value=_DOCUMENTARY_DEFAULT_CUSTOM_REQUIREMENTS,
             key="documentary_custom_requirements",
             help=tr("Documentary Custom Requirements Help"),
         ).strip()
@@ -5044,7 +5086,7 @@ def _render_shared_documentary_form(video_source_fixed: str) -> None:
         _render_documentary_audio_settings()
     )
     custom_system_prompt, custom_requirements = (
-        _render_documentary_advanced_settings()
+        _render_documentary_advanced_settings(video_source_fixed)
     )
 
     # 3-sayfa restructuring (kullanıcı onaylı, TAM OTONOMİ): Video Kaynağı
