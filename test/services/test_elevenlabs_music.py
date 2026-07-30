@@ -499,5 +499,141 @@ class TestElevenLabsMusicService(unittest.TestCase):
             self.assertFalse(proxy.exists())
 
 
+class TestGenerateBgmFromPrompt(unittest.TestCase):
+    """GÖREV 6 (gece oturumu): /v1/music (compose-from-prompt) -- Documentary
+    Studio'nun tek geçişli pipeline'ına uyması için video-to-music yerine
+    seçilen, PROMPT'tan direkt üreten varyant. Bkz. PROGRESS.md için
+    video-to-music yerine bunun seçilme gerekçesi.
+    """
+
+    def test_validates_boundaries_before_any_request(self):
+        with (
+            patch.object(
+                elevenlabs_music.config, "elevenlabs", {"api_key": "test-key"}
+            ),
+            patch.object(elevenlabs_music.requests, "post") as post,
+        ):
+            with tempfile.TemporaryDirectory() as temp_dir:
+                output_path = str(Path(temp_dir) / "music.mp3")
+                with self.assertRaisesRegex(
+                    elevenlabs_music.ElevenLabsMusicError, "prompt is required"
+                ):
+                    elevenlabs_music.generate_bgm_from_prompt("", 30, output_path)
+                with self.assertRaisesRegex(
+                    elevenlabs_music.ElevenLabsMusicError, "1000"
+                ):
+                    elevenlabs_music.generate_bgm_from_prompt(
+                        "x" * 1001, 30, output_path
+                    )
+                for duration in (0, -1, float("nan")):
+                    with self.subTest(duration=duration):
+                        with self.assertRaisesRegex(
+                            elevenlabs_music.ElevenLabsMusicError, "duration"
+                        ):
+                            elevenlabs_music.generate_bgm_from_prompt(
+                                "cinematic", duration, output_path
+                            )
+            post.assert_not_called()
+
+    def test_sends_expected_payload_and_publishes_atomically(self):
+        audio_bytes = b"generated-mp3-from-prompt"
+        response = _StreamingResponse([audio_bytes])
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "music.mp3"
+            with (
+                patch.object(
+                    elevenlabs_music.config,
+                    "elevenlabs",
+                    {"api_key": "test-key"},
+                ),
+                patch.object(
+                    elevenlabs_music.requests,
+                    "post",
+                    return_value=response,
+                ) as post,
+                patch.object(
+                    elevenlabs_music.bgm_service, "validate_audio_file"
+                ) as validate_audio,
+            ):
+                result = elevenlabs_music.generate_bgm_from_prompt(
+                    "warm cinematic instrumental", 30, str(output_path)
+                )
+
+            self.assertEqual(result, str(output_path))
+            self.assertEqual(output_path.read_bytes(), audio_bytes)
+            validate_audio.assert_called_once()
+            self.assertTrue(post.call_args.args[0].endswith("/v1/music"))
+            self.assertEqual(
+                post.call_args.kwargs["headers"]["xi-api-key"], "test-key"
+            )
+            sent_json = post.call_args.kwargs["json"]
+            self.assertEqual(sent_json["prompt"], "warm cinematic instrumental")
+            self.assertEqual(sent_json["music_length_ms"], 30000)
+            self.assertTrue(sent_json["force_instrumental"])
+            self.assertEqual(
+                list(Path(temp_dir).glob(".elevenlabs-music-compose-*")), []
+            )
+
+    def test_duration_is_clamped_to_api_bounds(self):
+        response = _StreamingResponse([b"audio"])
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "music.mp3"
+            with (
+                patch.object(
+                    elevenlabs_music.config,
+                    "elevenlabs",
+                    {"api_key": "test-key"},
+                ),
+                patch.object(
+                    elevenlabs_music.requests,
+                    "post",
+                    return_value=response,
+                ) as post,
+                patch.object(elevenlabs_music.bgm_service, "validate_audio_file"),
+            ):
+                elevenlabs_music.generate_bgm_from_prompt(
+                    "cinematic", 0.5, str(output_path)
+                )
+                self.assertEqual(
+                    post.call_args.kwargs["json"]["music_length_ms"],
+                    elevenlabs_music.MIN_MUSIC_LENGTH_MS,
+                )
+
+                elevenlabs_music.generate_bgm_from_prompt(
+                    "cinematic", 900, str(output_path)
+                )
+                self.assertEqual(
+                    post.call_args.kwargs["json"]["music_length_ms"],
+                    elevenlabs_music.MAX_MUSIC_LENGTH_MS,
+                )
+
+    def test_failure_preserves_existing_output(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "music.mp3"
+            output_path.write_bytes(b"existing-music")
+            with (
+                patch.object(
+                    elevenlabs_music.config,
+                    "elevenlabs",
+                    {"api_key": "test-key"},
+                ),
+                patch.object(
+                    elevenlabs_music.requests,
+                    "post",
+                    return_value=_StreamingResponse(status_code=500),
+                ),
+            ):
+                with self.assertRaisesRegex(
+                    elevenlabs_music.ElevenLabsMusicError, "500"
+                ):
+                    elevenlabs_music.generate_bgm_from_prompt(
+                        "cinematic", 30, str(output_path)
+                    )
+            self.assertEqual(output_path.read_bytes(), b"existing-music")
+            self.assertEqual(
+                list(Path(temp_dir).glob(".elevenlabs-music-compose-*")), []
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

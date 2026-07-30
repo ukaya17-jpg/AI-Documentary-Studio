@@ -466,6 +466,9 @@
     "Documentary Stock Provider: coverr": "Coverr",
     "Documentary AI Video Provider": "Nhà cung cấp video AI",
     "Documentary AI Video Provider: kling": "Kling",
-    "Documentary AI Video Provider: veo": "Veo"
+    "Documentary AI Video Provider: veo": "Veo",
+    "Documentary ElevenLabs Background Music": "Nhạc Nền ElevenLabs (Do AI Tạo)",
+    "Documentary ElevenLabs Music Prompt": "Phong Cách Nhạc (bắt buộc)",
+    "Documentary ElevenLabs Music Prompt Help": "Mô tả tâm trạng/phong cách nhạc nền bạn muốn (bắt buộc), tối đa 1000 ký tự -- ví dụ: \"ấm áp, điện ảnh, dàn nhạc xây dựng chậm rãi\"."
   }
 }

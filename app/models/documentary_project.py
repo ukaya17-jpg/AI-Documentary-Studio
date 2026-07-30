@@ -40,6 +40,11 @@ class DocumentaryProject(BaseModel):
     # için burada saklanıyor.
     bgm_type: str = "random"
     bgm_volume: float = 0.2
+    # GÖREV 6 (gece oturumu): "elevenlabs" bgm_type'ının kendi ayarı --
+    # aynı ÖZELLİK A gerekçesiyle burada saklanıyor, regenerate_from_edited_
+    # script() de ElevenLabs BGM'i (dosya değil, PROMPT'tan) yeniden
+    # üretebilsin diye.
+    video_music_prompt: str = ""
     # GÖREV F (kullanıcı onaylı): kullanıcının script_generator'a giden ek
     # stil rehberliğini/talimatlarını belirtebilmesi -- boş string "ek stil
     # rehberliği yok" anlamına gelir. ADDITIVE: script_generator'ın

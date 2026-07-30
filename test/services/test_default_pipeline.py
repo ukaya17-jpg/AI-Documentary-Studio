@@ -464,6 +464,98 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         self.assertNotIn("format", self.started["research"].call_args[1])
         self.assertNotIn("format", self.started["outline"].call_args[1])
 
+    def test_elevenlabs_bgm_type_generates_music_and_overrides_render_bgm_file(self):
+        # GÖREV 6 (gece oturumu): "elevenlabs" bgm_type, generate_bgm_from_
+        # prompt()'u JIT çağırıp sonucunu bgm_file_override olarak
+        # render_final_video()'ya geçiriyor -- video-to-music'in aksine,
+        # video render'dan ÖNCE, tek geçişte (bkz. PROGRESS.md için neden).
+        with patch.object(
+            default_pipeline.elevenlabs_music,
+            "generate_bgm_from_prompt",
+            return_value="/tmp/tasks/proj-1/elevenlabs_bgm.mp3",
+        ) as generate_music:
+            project = default_pipeline.run_pipeline(
+                project_id="proj-1",
+                topic="The Fall of Rome",
+                language="auto",
+                pacing=Pacing.short,
+                voice_name="en-US-JennyNeural",
+                bgm_type="elevenlabs",
+                bgm_volume=0.5,
+                video_music_prompt="epic orchestral instrumental",
+            )
+
+        generate_music.assert_called_once()
+        args = generate_music.call_args.args
+        self.assertEqual(args[0], "epic orchestral instrumental")
+        self.assertEqual(args[1], self.timeline.total_duration)
+        self.assertEqual(project.video_music_prompt, "epic orchestral instrumental")
+
+        _, video_kwargs = self.started["video"].call_args
+        self.assertEqual(
+            video_kwargs["bgm_file_override"], "/tmp/tasks/proj-1/elevenlabs_bgm.mp3"
+        )
+
+    def test_elevenlabs_bgm_failure_falls_back_to_no_override_without_crashing(self):
+        with patch.object(
+            default_pipeline.elevenlabs_music,
+            "generate_bgm_from_prompt",
+            side_effect=default_pipeline.elevenlabs_music.ElevenLabsMusicError(
+                "quota exceeded"
+            ),
+        ) as generate_music:
+            project = default_pipeline.run_pipeline(
+                project_id="proj-1",
+                topic="The Fall of Rome",
+                language="auto",
+                pacing=Pacing.short,
+                voice_name="en-US-JennyNeural",
+                bgm_type="elevenlabs",
+                bgm_volume=0.5,
+                video_music_prompt="epic orchestral instrumental",
+            )
+
+        generate_music.assert_called_once()
+        self.assertEqual(project.final_video_path, "/tmp/tasks/proj-1/final.mp4")
+        _, video_kwargs = self.started["video"].call_args
+        self.assertIsNone(video_kwargs["bgm_file_override"])
+
+    def test_non_elevenlabs_bgm_type_never_calls_elevenlabs_and_no_override(self):
+        with patch.object(
+            default_pipeline.elevenlabs_music, "generate_bgm_from_prompt"
+        ) as generate_music:
+            default_pipeline.run_pipeline(
+                project_id="proj-1",
+                topic="The Fall of Rome",
+                language="auto",
+                pacing=Pacing.short,
+                voice_name="en-US-JennyNeural",
+                bgm_type="random",
+            )
+
+        generate_music.assert_not_called()
+        _, video_kwargs = self.started["video"].call_args
+        self.assertIsNone(video_kwargs["bgm_file_override"])
+
+    def test_elevenlabs_bgm_type_with_zero_volume_never_calls_elevenlabs(self):
+        # should_use_bgm() güvenlik kısayolu -- provider'dan bağımsız,
+        # random/custom/elevenlabs hepsi 0 hacimde atlanmalı.
+        with patch.object(
+            default_pipeline.elevenlabs_music, "generate_bgm_from_prompt"
+        ) as generate_music:
+            default_pipeline.run_pipeline(
+                project_id="proj-1",
+                topic="The Fall of Rome",
+                language="auto",
+                pacing=Pacing.short,
+                voice_name="en-US-JennyNeural",
+                bgm_type="elevenlabs",
+                bgm_volume=0.0,
+                video_music_prompt="epic orchestral instrumental",
+            )
+
+        generate_music.assert_not_called()
+
     def test_final_video_path_is_set_even_when_quality_review_is_unavailable(self):
         self.started["quality"].return_value = None
 

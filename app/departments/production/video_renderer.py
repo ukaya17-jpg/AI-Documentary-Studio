@@ -97,7 +97,16 @@ def render_final_video(
     audio_track: AudioTrack,
     task_id: str,
     params: VideoParams,
+    bgm_file_override: str | None = None,
 ) -> str:
+    """`bgm_file_override`: GÖREV 6 -- when the pipeline already generated a
+    provider-specific BGM file itself (ElevenLabs) before this stage, this
+    is the ready file to mix in directly, bypassing get_bgm_file()'s
+    random/custom resolution AND its duration-looping (provider files are
+    already sized to the video). `None` (the default) preserves every
+    existing caller's behavior exactly -- same as Classic Mode's task.py,
+    which uses this same generate_video() parameter for Sonilo/ElevenLabs.
+    """
     task_directory = utils.task_dir(task_id)
     output_file = os.path.join(task_directory, "final.mp4")
 
@@ -107,6 +116,7 @@ def render_final_video(
         subtitle_path=audio_track.subtitle_file,
         output_file=output_file,
         params=params,
+        bgm_file_override=bgm_file_override,
     )
     if not bgm_mix_succeeded and params.bgm_type and params.bgm_type != "none":
         logger.warning(

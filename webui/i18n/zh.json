@@ -493,6 +493,9 @@
     "Documentary Stock Provider: coverr": "Coverr",
     "Documentary AI Video Provider": "AI 视频提供商",
     "Documentary AI Video Provider: kling": "Kling",
-    "Documentary AI Video Provider: veo": "Veo"
+    "Documentary AI Video Provider: veo": "Veo",
+    "Documentary ElevenLabs Background Music": "ElevenLabs 背景音乐（AI 生成）",
+    "Documentary ElevenLabs Music Prompt": "音乐风格（必填）",
+    "Documentary ElevenLabs Music Prompt Help": "描述您想要的背景音乐情绪/风格（必填），最多1000个字符——例如“温暖、电影感、缓慢渐强的管弦乐”。"
   }
 }

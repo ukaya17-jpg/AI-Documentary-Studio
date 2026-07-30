@@ -466,6 +466,9 @@
     "Documentary Stock Provider: coverr": "Coverr",
     "Documentary AI Video Provider": "Proveedor de vídeo IA",
     "Documentary AI Video Provider: kling": "Kling",
-    "Documentary AI Video Provider: veo": "Veo"
+    "Documentary AI Video Provider: veo": "Veo",
+    "Documentary ElevenLabs Background Music": "Música de fondo ElevenLabs (generada por IA)",
+    "Documentary ElevenLabs Music Prompt": "Estilo musical (obligatorio)",
+    "Documentary ElevenLabs Music Prompt Help": "Describe el estado de ánimo/estilo de la música de fondo que deseas (obligatorio), hasta 1000 caracteres -- p. ej. \"cálido, cinematográfico, orquestal de crescendo lento\"."
   }
 }

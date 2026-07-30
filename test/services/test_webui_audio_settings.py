@@ -19,9 +19,11 @@ ALL_LOCALES = ("de", "en", "es", "id", "pt", "ru", "tr", "vi", "zh")
 
 # GÖREV D (kullanıcı onaylı): Klasik Mod'daki ses hızı/seviyesi + BGM
 # ayarlarını Documentary Studio'ya geri getiriyor -- şimdiye kadar sadece
-# ses adı (voice_name) vardı. Sonilo/ElevenLabs BGM üretimi bilinçli olarak
-# kapsam dışı (sadece eski task.py'de yaşıyor, default_pipeline.py'ye hiç
-# bağlanmamış) -- burada sadece Yok/Rastgele/Kendi Dosyanı Yükle var.
+# ses adı (voice_name) vardı. O zaman Sonilo/ElevenLabs BGM üretimi
+# bilinçli olarak kapsam dışı bırakılmıştı (sadece eski task.py'de
+# yaşıyordu, default_pipeline.py'ye hiç bağlanmamıştı) -- GÖREV 6 (gece
+# oturumu) bu kararı ElevenLabs için genişletiyor (Sonilo hâlâ kapsam
+# dışı, istenmedi).
 NEW_KEYS = ("Documentary Audio Settings",)
 
 
@@ -151,3 +153,75 @@ def test_generate_with_no_bgm_passes_empty_bgm_type():
     kwargs = run_mock.call_args.kwargs
     assert kwargs["bgm_type"] == ""
     assert kwargs["bgm_file"] == ""
+
+
+# GÖREV 6 (gece oturumu, TAM OTONOMİ): ElevenLabs prompt-tabanlı BGM --
+# Sonilo hâlâ bilinçli olarak kapsam dışı (istenmedi).
+@patch("webui.Main.elevenlabs_music_service.is_enabled", return_value=False)
+def test_elevenlabs_option_shows_warning_when_not_configured(_mock_enabled):
+    app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+    app.session_state["ui_language"] = "en"
+    app.session_state["documentary_bgm_type"] = "elevenlabs"
+    app.run()
+
+    assert not app.exception
+    assert any("ElevenLabs" in w.value for w in app.warning)
+    assert not any(
+        str(getattr(w, "key", "")) == "documentary_elevenlabs_music_prompt"
+        for w in app.text_area
+    )
+
+
+@patch("webui.Main.elevenlabs_music_service.is_enabled", return_value=True)
+def test_elevenlabs_option_shows_prompt_field_when_configured(_mock_enabled):
+    app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+    app.session_state["ui_language"] = "en"
+    app.session_state["documentary_bgm_type"] = "elevenlabs"
+    app.run()
+
+    assert not app.exception
+    prompt_field = _widget_by_key(app.text_area, "documentary_elevenlabs_music_prompt")
+    assert prompt_field.value == ""
+    assert any(
+        str(getattr(b, "key", "")) == "test_documentary_elevenlabs_music_connection_button"
+        for b in app.button
+    )
+    assert not any(w.value and "ElevenLabs" in w.value for w in app.warning)
+
+
+@patch("webui.Main.elevenlabs_music_service.is_enabled", return_value=True)
+def test_generate_passes_video_music_prompt_to_run_pipeline(_mock_enabled):
+    with patch.object(
+        default_pipeline, "run_pipeline", return_value=_fake_project()
+    ) as run_mock:
+        app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+        app.session_state["ui_language"] = "en"
+        app.session_state["documentary_topic"] = "Test Topic"
+        app.session_state["documentary_bgm_type"] = "elevenlabs"
+        app.session_state["documentary_elevenlabs_music_prompt"] = (
+            "warm cinematic orchestral"
+        )
+        app.session_state["documentary_generate_button"] = True
+        app.run()
+
+    assert not app.exception
+    run_mock.assert_called_once()
+    kwargs = run_mock.call_args.kwargs
+    assert kwargs["bgm_type"] == "elevenlabs"
+    assert kwargs["video_music_prompt"] == "warm cinematic orchestral"
+
+
+def test_non_elevenlabs_bgm_types_pass_empty_video_music_prompt():
+    with patch.object(
+        default_pipeline, "run_pipeline", return_value=_fake_project()
+    ) as run_mock:
+        app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+        app.session_state["ui_language"] = "en"
+        app.session_state["documentary_topic"] = "Test Topic"
+        app.session_state["documentary_bgm_type"] = "random"
+        app.session_state["documentary_generate_button"] = True
+        app.run()
+
+    assert not app.exception
+    run_mock.assert_called_once()
+    assert run_mock.call_args.kwargs["video_music_prompt"] == ""

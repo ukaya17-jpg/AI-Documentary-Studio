@@ -15,6 +15,7 @@ from app.utils import utils
 
 DEFAULT_BASE_URL = "https://api.elevenlabs.io"
 VIDEO_TO_MUSIC_PATH = "/v1/music/video-to-music"
+COMPOSE_PATH = "/v1/music"
 SUBSCRIPTION_PATH = "/v1/user/subscription"
 DEFAULT_MODEL_ID = "music_v2"
 SUPPORTED_MODEL_IDS = frozenset({"music_v1", "music_v2"})
@@ -22,6 +23,10 @@ MAX_VIDEO_DURATION_SECONDS = 600
 MAX_PROMPT_LENGTH = 1000
 MAX_PROXY_BYTES = 200 * 1024 * 1024
 MAX_GENERATED_AUDIO_BYTES = 50 * 1024 * 1024
+# GÖREV 6 (gece oturumu): /v1/music (compose-from-prompt), MIN/MAX per the
+# official API reference.
+MIN_MUSIC_LENGTH_MS = 3000
+MAX_MUSIC_LENGTH_MS = 600000
 
 
 class ElevenLabsMusicError(RuntimeError):
@@ -382,3 +387,100 @@ def generate_bgm(
         ) from exc
     finally:
         _remove_file(proxy_path)
+
+
+def generate_bgm_from_prompt(
+    prompt: str, duration_seconds: float, output_path: str
+) -> str:
+    """Generates background music directly from a text description (POST
+    /v1/music), with no rendered video needed.
+
+    GÖREV 6 (gece oturumu, TAM OTONOMİ), OTONOM KARAR: Documentary Studio'nun
+    `default_pipeline.py`'si generate_bgm() (video-to-music) yerine BUNU
+    kullanıyor. Video-to-music, Classic Mode'un legacy `task.py`
+    orkestrasyonunda olduğu gibi TAMAMEN RENDER EDİLMİŞ bir video ister --
+    Documentary Studio'nun tek geçişli pipeline'ında (stage 9 TTS/stage 12
+    video render, BGM her ikisinden de ÖNCE hazır olmalı) bunu kullanmak
+    videoyu İKİ KEZ render etmeyi (önce BGM'siz, sonra müzik üretilip tekrar)
+    gerektirirdi -- gerçek maliyet/gecikme artışı ve ayrı bir pipeline
+    aşaması demek, "düşük risk" kapsamının dışında. Prompt-tabanlı bu
+    endpoint ise mevcut `bgm_file_override` mekanizmasıyla (video.py,
+    Sonilo/ElevenLabs Classic Mode'da zaten aynı şekilde kullanıyor) TEK
+    GEÇİŞTE, pipeline yeniden yapılandırması olmadan çalışıyor.
+
+    `force_instrumental=True` KASITLI: bu, anlatıcının SESİYLE aynı anda
+    çalan arka plan müziği -- rakip vokal istenmiyor.
+    """
+    if not get_api_key():
+        raise ElevenLabsMusicError("ElevenLabs API key is required")
+    prompt = str(prompt or "").strip()
+    if not prompt:
+        raise ElevenLabsMusicError("ElevenLabs music prompt is required")
+    if len(prompt) > MAX_PROMPT_LENGTH:
+        raise ElevenLabsMusicError(
+            "ElevenLabs music prompt exceeds 1000 characters"
+        )
+    try:
+        duration = float(duration_seconds)
+    except (TypeError, ValueError) as exc:
+        raise ElevenLabsMusicError("ElevenLabs music duration is invalid") from exc
+    if not math.isfinite(duration) or duration <= 0:
+        raise ElevenLabsMusicError("ElevenLabs music duration is invalid")
+    music_length_ms = min(
+        MAX_MUSIC_LENGTH_MS, max(MIN_MUSIC_LENGTH_MS, round(duration * 1000))
+    )
+
+    output_dir = os.path.dirname(os.path.abspath(output_path))
+    os.makedirs(output_dir, exist_ok=True)
+    descriptor, temp_audio_path = tempfile.mkstemp(
+        prefix=".elevenlabs-music-compose-",
+        suffix=Path(output_path).suffix or ".mp3",
+        dir=output_dir,
+    )
+    os.close(descriptor)
+    try:
+        logger.info(
+            "requesting ElevenLabs prompt-based background music: "
+            f"music_length_ms={music_length_ms}, prompt_provided={bool(prompt)}"
+        )
+        try:
+            response = requests.post(
+                f"{_base_url()}{COMPOSE_PATH}",
+                headers={"xi-api-key": get_api_key()},
+                params={"output_format": "mp3_44100_128"},
+                json={
+                    "prompt": prompt,
+                    "music_length_ms": music_length_ms,
+                    "force_instrumental": True,
+                },
+                stream=True,
+                timeout=_request_timeout(),
+            )
+            with response:
+                if not response.ok:
+                    raise ElevenLabsMusicError(
+                        "ElevenLabs music generation failed "
+                        f"({response.status_code}): "
+                        f"{_safe_response_error(response)}"
+                    )
+                total_bytes = _stream_audio(response, temp_audio_path)
+        except requests.RequestException as exc:
+            raise ElevenLabsMusicError(
+                f"failed to request ElevenLabs music: {exc}"
+            ) from exc
+
+        try:
+            bgm_service.validate_audio_file(temp_audio_path, timeout_seconds=120)
+        except (bgm_service.BgmUploadError, bgm_service.BgmServiceError) as exc:
+            raise ElevenLabsMusicError(
+                "ElevenLabs returned audio that FFmpeg cannot decode"
+            ) from exc
+        os.replace(temp_audio_path, output_path)
+        temp_audio_path = ""
+        logger.info(
+            "ElevenLabs prompt-based background music generated: "
+            f"output={output_path}, size={total_bytes} bytes"
+        )
+        return output_path
+    finally:
+        _remove_file(temp_audio_path)

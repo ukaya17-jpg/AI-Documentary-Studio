@@ -466,6 +466,9 @@
     "Documentary Stock Provider: coverr": "Coverr",
     "Documentary AI Video Provider": "Penyedia Video AI",
     "Documentary AI Video Provider: kling": "Kling",
-    "Documentary AI Video Provider: veo": "Veo"
+    "Documentary AI Video Provider: veo": "Veo",
+    "Documentary ElevenLabs Background Music": "Musik Latar ElevenLabs (Dihasilkan AI)",
+    "Documentary ElevenLabs Music Prompt": "Gaya Musik (wajib)",
+    "Documentary ElevenLabs Music Prompt Help": "Jelaskan suasana/gaya musik latar yang Anda inginkan (wajib), hingga 1000 karakter -- misalnya \"hangat, sinematik, orkestra yang membangun perlahan\"."
   }
 }

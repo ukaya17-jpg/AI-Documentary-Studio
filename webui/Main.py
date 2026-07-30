@@ -4678,20 +4678,29 @@ def _render_documentary_tts_voice_picker() -> str:
 # GÖREV D (kullanıcı onaylı): Documentary Studio bugüne kadar sadece ses adını
 # (voice_name) soruyordu -- run_pipeline() zaten voice_rate/voice_volume/
 # bgm_type/bgm_file/bgm_volume kabul ediyordu ama hep varsayılana düşüyordu.
-# Sonilo/ElevenLabs BGM ÜRETİMİ (bilinçli kapsam dışı) sadece eski task.py
-# (tekil-video legacy) akışında yaşıyor, default_pipeline.py'ye hiç
-# bağlanmamış -- buraya taşımak bu görevin kapsamını ciddi büyütürdü, bu
-# yüzden v1 sadece Yok/Rastgele/Kendi Dosyanı Yükle sunuyor (üçü de
-# video.get_bgm_file() üzerinden zaten gerçek çalışıyor). Dosya kaydetme,
-# Klasik Mod'daki AYNI desenle, render-anında değil GENERATE tıklanınca
-# yapılıyor (bkz. _render_documentary_studio_page'deki generate_clicked
-# bloğu) -- iptal edilen yüklemeler storage'da yetim dosya bırakmasın diye.
+# Sonilo/ElevenLabs BGM ÜRETİMİ o zaman bilinçli kapsam dışı bırakılmıştı
+# (default_pipeline.py'ye hiç bağlanmamıştı, sadece Klasik Mod'un eski
+# task.py akışında yaşıyordu) -- GÖREV 6 (gece oturumu) bu kararı kasıtlı
+# olarak GENİŞLETİYOR: ElevenLabs artık burada da var (Sonilo hâlâ kapsam
+# dışı, istenmedi). Video-to-music (elevenlabs_music.generate_bgm(),
+# Klasim Mod'un kullandığı) yerine PROMPT-tabanlı `/v1/music` compose
+# endpoint'i (generate_bgm_from_prompt()) seçildi -- video-to-music
+# TAMAMEN RENDER EDİLMİŞ bir video ister, bu da default_pipeline'ın tek
+# geçişli (video render EN SONDA) akışında videoyu iki kez render etmeyi
+# gerektirirdi. Dosya kaydetme (custom upload), Klasik Mod'daki AYNI
+# desenle, render-anında değil GENERATE tıklanınca yapılıyor (bkz.
+# _render_documentary_studio_page'deki generate_clicked bloğu) -- iptal
+# edilen yüklemeler storage'da yetim dosya bırakmasın diye. ElevenLabs
+# için ise dosya YOK, GENERATE anında gerçek zamanlı üretiliyor
+# (default_pipeline.py'nin video render aşamasında).
 def _render_documentary_audio_settings():
     """TTS sunucusu/sesi + ses hızı/seviyesi + BGM kaynağı ayarlarını render eder.
 
     Dönen `uploaded_bgm_file`, henüz DİSKE KAYDEDİLMEMİŞ ham Streamlit
     UploadedFile -- çağıran, sadece kullanıcı gerçekten "Generate" tıklarsa
-    bgm_service.save_bgm_upload() ile kalıcı hale getirmeli.
+    bgm_service.save_bgm_upload() ile kalıcı hale getirmeli. Dönen
+    `video_music_prompt` (GÖREV 6) sadece bgm_type="elevenlabs" iken
+    doludur, run_pipeline()'a doğrudan geçiriliyor.
     """
     with st.expander(tr("Documentary Audio Settings"), expanded=False):
         voice_name = _render_documentary_tts_voice_picker()
@@ -4719,6 +4728,7 @@ def _render_documentary_audio_settings():
             (tr("No Background Music"), ""),
             (tr("Random Background Music"), "random"),
             (tr("Custom Background Music"), "custom"),
+            (tr("Documentary ElevenLabs Background Music"), "elevenlabs"),
         ]
         bgm_type = st.selectbox(
             tr("Background Music Source"),
@@ -4735,6 +4745,31 @@ def _render_documentary_audio_settings():
             format_func=lambda value: f"{int(value * 100)}%",
             disabled=not bgm_type,
         )
+
+        video_music_prompt = ""
+        if bgm_type == "elevenlabs":
+            if not elevenlabs_music_service.is_enabled():
+                st.warning(tr("ElevenLabs API Key Required"))
+            else:
+                video_music_prompt = st.text_area(
+                    tr("Documentary ElevenLabs Music Prompt"),
+                    value="",
+                    key="documentary_elevenlabs_music_prompt",
+                    help=tr("Documentary ElevenLabs Music Prompt Help"),
+                    max_chars=elevenlabs_music_service.MAX_PROMPT_LENGTH,
+                ).strip()
+                if st.button(
+                    tr("Test ElevenLabs Connection"),
+                    key="test_documentary_elevenlabs_music_connection_button",
+                ):
+                    try:
+                        elevenlabs_music_service.test_connection()
+                    except elevenlabs_music_service.ElevenLabsPaidPlanRequiredError:
+                        st.error(tr("ElevenLabs Paid Plan Required"))
+                    except elevenlabs_music_service.ElevenLabsMusicError as exc:
+                        st.error(tr("ElevenLabs Connection Test Failed").format(error=str(exc)))
+                    else:
+                        st.success(tr("ElevenLabs Connection Test Succeeded"))
 
         uploaded_bgm_file = None
         if bgm_type == "custom":
@@ -4780,7 +4815,15 @@ def _render_documentary_audio_settings():
                 else:
                     st.audio(uploaded_bgm_file, format="audio/mp3")
 
-    return voice_name, voice_rate, voice_volume, bgm_type, uploaded_bgm_file, bgm_volume
+    return (
+        voice_name,
+        voice_rate,
+        voice_volume,
+        bgm_type,
+        uploaded_bgm_file,
+        bgm_volume,
+        video_music_prompt,
+    )
 
 
 # GÖREV 5 (gece oturumu, TAM OTONOMİ): Sistem Promptu/Özel Senaryo
@@ -5082,9 +5125,15 @@ def _render_shared_documentary_form(video_source_fixed: str) -> None:
         )
     tone = st.session_state.get("documentary_tone", "auto")
 
-    voice_name, voice_rate, voice_volume, bgm_type, uploaded_bgm_file, bgm_volume = (
-        _render_documentary_audio_settings()
-    )
+    (
+        voice_name,
+        voice_rate,
+        voice_volume,
+        bgm_type,
+        uploaded_bgm_file,
+        bgm_volume,
+        video_music_prompt,
+    ) = _render_documentary_audio_settings()
     custom_system_prompt, custom_requirements = (
         _render_documentary_advanced_settings(video_source_fixed)
     )
@@ -5242,6 +5291,7 @@ def _render_shared_documentary_form(video_source_fixed: str) -> None:
                     bgm_type=bgm_type,
                     bgm_file=resolved_bgm_file,
                     bgm_volume=bgm_volume,
+                    video_music_prompt=video_music_prompt,
                     custom_system_prompt=custom_system_prompt,
                     custom_requirements=custom_requirements,
                     on_stage_change=_update_documentary_stage_status,

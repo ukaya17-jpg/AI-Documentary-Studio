@@ -466,6 +466,9 @@
     "Documentary Stock Provider: coverr": "Coverr",
     "Documentary AI Video Provider": "AI Video Sağlayıcısı",
     "Documentary AI Video Provider: kling": "Kling",
-    "Documentary AI Video Provider: veo": "Veo"
+    "Documentary AI Video Provider: veo": "Veo",
+    "Documentary ElevenLabs Background Music": "ElevenLabs Arka Plan Müziği (AI Üretimi)",
+    "Documentary ElevenLabs Music Prompt": "Müzik Stili (zorunlu)",
+    "Documentary ElevenLabs Music Prompt Help": "İstediğiniz arka plan müziğinin ruh halini/stilini tarif edin (zorunlu), en fazla 1000 karakter -- örn. \"sıcak, sinematik, yavaş yükselen orkestral\"."
   }
 }

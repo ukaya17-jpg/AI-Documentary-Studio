@@ -3772,3 +3772,88 @@ yeni `test_system_prompt_defaults_to_ai_video_variant_on_quality_page`
 fields -> empty strings" testi "untouched fields -> defaults gönderilir"
 olarak yeniden adlandırıldı/güncellendi. Tam suite: **866 passed, 11
 skipped** (864'ten +2, sıfır regresyon). `ruff` temiz.
+
+## Gece oturumu -- GÖREV 6: Background Music Source'a ElevenLabs Music
+
+**Araştırma:** ElevenLabs'in gerçek, TTS'ten AYRI bir Music API'si VAR
+("Eleven Music", `POST /v1/music`, aynı `xi-api-key` -- mevcut
+`elevenlabs_api_key` config'i geçerli, gerçek `test_connection()` çağrısı
+ile canlı hesabın "starter" (ücretli) planda olduğu doğrulandı, Music
+API'ye erişim var). Fiyat: **$0.15/dakika** (~$0.0025/sn) -- Kling/Veo'ya
+kıyasla önemsiz derecede ucuz.
+
+**Sürpriz bulgu:** `app/services/elevenlabs_music.py` ZATEN TAM,
+production-grade bir entegrasyon içeriyordu (`generate_bgm()`,
+video-to-music varyantı, `/v1/music/video-to-music`) -- ama SADECE
+Klasik Mod'un eski `task.py` orkestrasyonuna bağlıydı, Documentary
+Studio'nun `default_pipeline.py`'sine hiç bağlanmamıştı (bu, önceki bir
+oturumda BİLİNÇLİ OLARAK kapsam dışı bırakılmıştı -- bkz. `webui/Main.py`
+içindeki eski yorum: "buraya taşımak bu görevin kapsamını ciddi
+büyütürdü").
+
+**OTONOM KARAR (video-to-music yerine prompt-tabanlı compose):**
+Video-to-music, TAMAMEN RENDER EDİLMİŞ bir video ister (Classic Mode'un
+tek-seferlik `task.py`'si için doğal bir sıra). Documentary Studio'nun
+`default_pipeline.py`'si ise BGM'i video render'dan ÖNCEKİ aşamalarda
+(stage 9 TTS, stage 12 video render) ister -- video-to-music'i kullanmak
+videoyu İKİ KEZ render etmeyi (önce BGM'siz, müzik üretilip tekrar)
+gerektirirdi: gerçek ekstra maliyet/gecikme + yeni bir pipeline aşaması,
+"düşük risk" kapsamının dışında. Bunun yerine ElevenLabs'ın PROMPT-
+tabanlı `/v1/music` "compose" endpoint'i kullanıldı
+(`generate_bgm_from_prompt()`, yeni) -- mevcut `bgm_file_override`
+mekanizmasıyla (video.py, Classic Mode'un Sonilo/ElevenLabs için ZATEN
+kullandığı AYNI mekanizma) TEK GEÇİŞTE, pipeline yeniden yapılandırması
+OLMADAN çalışıyor. `force_instrumental=True` kasıtlı (narrasyonla
+çakışan vokal istenmiyor).
+
+**Kod:**
+- `app/services/elevenlabs_music.py`: yeni `generate_bgm_from_prompt()`
+  (mevcut `_stream_audio`/`_safe_response_error`/`bgm_service.
+  validate_audio_file` yardımcılarını yeniden kullanıyor), `music_length_
+  ms` API'nin 3000-600000 sınırına clamp ediliyor.
+- `app/departments/production/video_renderer.py`: `render_final_video()`'a
+  yeni `bgm_file_override` parametresi (video.generate_video()'ya
+  passthrough).
+- `app/pipeline/default_pipeline.py`: stage 12'den hemen önce, `bgm_type
+  == "elevenlabs"` ve BGM etkinse (`bgm_service.should_use_bgm`),
+  `generate_bgm_from_prompt(video_music_prompt, project.timeline.
+  total_duration, ...)` JIT çağrılıyor, sonucu `bgm_file_override` olarak
+  geçiyor. Üretim BAŞARISIZ olursa pipeline ÇÖKMÜYOR -- narrasyon-only
+  final video ile devam (uyarı logla). `regenerate_from_edited_script()`
+  de aynı mantıkla güncellendi (script düzenlendikten sonra ElevenLabs
+  BGM'i PROMPT'tan yeniden üretebiliyor -- dosya olarak saklanmıyor).
+  Yeni `run_pipeline(video_music_prompt="")` parametresi + yeni
+  `DocumentaryProject.video_music_prompt` alanı (aynı ÖZELLİK A
+  gerekçesiyle, `bgm_type`/`bgm_volume`'un yanına).
+- `webui/Main.py`: "Background Music Source" seçicisine 4. seçenek
+  ("elevenlabs") eklendi (Sonilo hâlâ BİLİNÇLİ OLARAK kapsam dışı,
+  istenmedi). Seçilince: API key yoksa uyarı (mevcut "ElevenLabs API Key
+  Required" key'i yeniden kullanıldı), varsa zorunlu bir prompt text_area'sı
+  + "Test ElevenLabs Connection" düğmesi (Classic Mode'un ZATEN var olan
+  i18n key'leri yeniden kullanıldı: "Test ElevenLabs Connection",
+  "ElevenLabs Paid Plan Required", "ElevenLabs Connection Test
+  Failed/Succeeded" -- provider-tier kontrolü video-to-music'ten
+  BAĞIMSIZ, aynı anlam). SADECE 2 gerçekten YENİ i18n grubu eklendi
+  (seçenek etiketi + prompt label/help, ikisi de "compose" varyantının
+  KENDİ semantiğini yansıtıyor -- Classic Mode'un "leave empty to match
+  the video automatically" metni burada YANLIŞ olurdu, çünkü bu varyantta
+  prompt ZORUNLU).
+
+**Test:** `test_elevenlabs_music.py`'ye `TestGenerateBgmFromPrompt` (4
+test: sınır doğrulama, payload/atomik yazma, süre clamp, hata sonrası
+mevcut dosyanın korunması). `test_default_pipeline.py`'ye 4 test (JIT
+üretim + bgm_file_override, üretim hatası pipeline'ı çökertmiyor,
+elevenlabs-olmayan tiplerde hiç çağrılmıyor, 0 ses seviyesinde hiç
+çağrılmıyor). `test_webui_audio_settings.py`'ye 4 test (yapılandırılmamış
+uyarı, yapılandırılmış prompt alanı, run_pipeline'a video_music_prompt
+geçişi, diğer bgm tiplerinde boş prompt). Tam suite: **878 passed, 11
+skipped** (866'dan +12, sıfır regresyon). `ruff` temiz.
+
+**Gerçek API doğrulaması (GECE bütçesinden 3/8 gerçek çağrı kullanıldı):**
+`generate_bgm_from_prompt("warm, slow-building cinematic instrumental, no
+vocals", 3.0, ...)` gerçek `/v1/music` çağrısı yapıldı, gerçek MP3
+üretildi, `ffprobe` ile doğrulandı: `codec=mp3, sample_rate=44100,
+channels=2, duration=3.056s` (istenen 3sn'ye yakın, API'nin kendi
+toleransı). Ayrıca fonksiyonun kendi `bgm_service.validate_audio_file()`
+çağrısı da (ffmpeg decode kontrolü) sessizce geçti -- gerçek, geçerli
+ses verisi.

@@ -4,6 +4,7 @@ Intent -> Research -> Outline -> Scene -> Script -> Storyboard -> Asset ->
 AssetDownload -> Audio(TTS) -> Timeline -> SEO -> VideoRenderer
 """
 
+import os
 from typing import Callable
 
 from loguru import logger
@@ -32,6 +33,8 @@ from app.departments.production import (
     video_renderer,
 )
 from app.departments.research import intent_analyzer, outline_generator, research_planner
+from app.services import bgm as bgm_service
+from app.services import elevenlabs_music
 from app.thinking import quality_critic
 from app.utils import utils
 
@@ -74,6 +77,7 @@ def run_pipeline(
     bgm_type: str = "random",
     bgm_file: str = "",
     bgm_volume: float = 0.2,
+    video_music_prompt: str = "",
     custom_system_prompt: str = "",
     custom_requirements: str = "",
     on_stage_change: Callable[[int, str], None] | None = None,
@@ -113,6 +117,7 @@ def run_pipeline(
         video_aspect=video_aspect,
         bgm_type=bgm_type,
         bgm_volume=bgm_volume,
+        video_music_prompt=video_music_prompt,
         custom_system_prompt=custom_system_prompt,
         custom_requirements=custom_requirements,
     )
@@ -263,11 +268,33 @@ def run_pipeline(
             bgm_file=bgm_file,
             bgm_volume=bgm_volume,
         )
+        # GÖREV 6 (gece oturumu): ElevenLabs, "random"/"custom" gibi hazır bir
+        # dosyaya değil, gerçek zamanlı üretime dayanıyor -- bu yüzden
+        # get_bgm_file()'ın (video.py) çözümleyebileceği bir bgm_file yerine,
+        # burada JIT üretilip bgm_file_override olarak geçiriliyor (Classic
+        # Mode'un Sonilo/ElevenLabs için zaten kullandığı AYNI mekanizma).
+        # Üretim başarısız olursa pipeline ÇÖKMÜYOR -- narrasyon-only final
+        # video ile devam ediyor (get_bgm_file()'ın "no files found" ile
+        # zaten yaptığı sessiz düşüş ile aynı tolerans).
+        elevenlabs_bgm_file = None
+        if bgm_type == "elevenlabs" and bgm_service.should_use_bgm(bgm_type, bgm_volume):
+            try:
+                elevenlabs_bgm_file = elevenlabs_music.generate_bgm_from_prompt(
+                    video_music_prompt,
+                    project.timeline.total_duration,
+                    os.path.join(utils.task_dir(project.project_id), "elevenlabs_bgm.mp3"),
+                )
+            except elevenlabs_music.ElevenLabsMusicError as e:
+                logger.warning(
+                    f"documentary pipeline: ElevenLabs background music generation "
+                    f"failed, continuing without BGM: {e}"
+                )
         project.final_video_path = video_renderer.render_final_video(
             project.timeline,
             project.audio_plan.narration,
             task_id=project.project_id,
             params=params,
+            bgm_file_override=elevenlabs_bgm_file,
         )
         utils.save_project_snapshot(project)
 
@@ -389,11 +416,29 @@ def regenerate_from_edited_script(
         bgm_file=existing_bgm_file,
         bgm_volume=project.bgm_volume,
     )
+    # GÖREV 6: ElevenLabs BGM'i bir dosya olarak saklanmıyor (run_pipeline()
+    # ile aynı gerekçe) -- project.video_music_prompt'tan yeniden üretiliyor.
+    elevenlabs_bgm_file = None
+    if project.bgm_type == "elevenlabs" and bgm_service.should_use_bgm(
+        project.bgm_type, project.bgm_volume
+    ):
+        try:
+            elevenlabs_bgm_file = elevenlabs_music.generate_bgm_from_prompt(
+                project.video_music_prompt,
+                project.timeline.total_duration,
+                os.path.join(utils.task_dir(project.project_id), "elevenlabs_bgm.mp3"),
+            )
+        except elevenlabs_music.ElevenLabsMusicError as e:
+            logger.warning(
+                f"documentary pipeline (regenerate): ElevenLabs background "
+                f"music generation failed, continuing without BGM: {e}"
+            )
     project.final_video_path = video_renderer.render_final_video(
         project.timeline,
         project.audio_plan.narration,
         task_id=project.project_id,
         params=params,
+        bgm_file_override=elevenlabs_bgm_file,
     )
     utils.save_project_snapshot(project)
 
