@@ -139,7 +139,10 @@ def run_pipeline(
 
         stage(2, "research")
         project.research_plan = research_planner.generate_research_plan(
-            topic, tone=resolved_tone, language=project.language
+            topic,
+            tone=resolved_tone,
+            language=project.language,
+            topic_category=project.topic_category,
         )
         utils.save_project_snapshot(project)
 

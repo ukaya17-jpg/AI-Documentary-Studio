@@ -7,7 +7,10 @@ from app.services.documentary_llm_utils import generate_json
 
 _TURKISH_CHARS = set("çğıöşüÇĞİÖŞÜ")
 
-_CATEGORY_KEYWORDS = {
+# Public (no leading underscore): also reused by research_planner to catch
+# web-search grounding that resolved to a same-named but wrong-category real
+# entity (see research_planner._grounding_matches_category).
+CATEGORY_KEYWORDS = {
     TopicCategory.space: [
         "space", "galaxy", "planet", "nasa", "universe", "astronomy",
         "mars", "moon", "star", "rocket", "cosmos", "orbit",
@@ -78,7 +81,7 @@ def detect_language(topic: str) -> str:
 
 def _heuristic_category(topic: str) -> TopicCategory:
     lowered = topic.lower()
-    for category, keywords in _CATEGORY_KEYWORDS.items():
+    for category, keywords in CATEGORY_KEYWORDS.items():
         if any(keyword in lowered for keyword in keywords):
             return category
     return TopicCategory.history

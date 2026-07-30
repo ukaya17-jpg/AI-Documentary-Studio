@@ -198,9 +198,13 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         self.assertEqual(project.final_video_path, "/tmp/tasks/proj-1/final.mp4")
 
         # research_planner receives the resolved tone (history's default:
-        # credibility), not the raw topic_category.
+        # credibility) AND the resolved topic_category (GÖREV 1 -- needed so
+        # generate_research_plan can discard a web-search grounding result
+        # whose text signals a different category, e.g. topic "Roma"
+        # resolving to AS Roma the football club instead of the city).
         _, research_kwargs = self.started["research"].call_args
         self.assertEqual(research_kwargs["tone"], Tone.credibility)
+        self.assertEqual(research_kwargs["topic_category"], TopicCategory.history)
 
         # outline_generator receives the research plan produced by research_planner,
         # the same resolved tone, and the resolved pacing (GÖREV 2 -- needed

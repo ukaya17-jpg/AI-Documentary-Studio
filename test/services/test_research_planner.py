@@ -176,5 +176,96 @@ class TestGenerateResearchPlan(unittest.TestCase):
         mock_search_web.assert_called_once_with("Çanakkale Savaşı", language="tr")
 
 
+class TestGroundingCategoryGuard(unittest.TestCase):
+    """Real production bug: topic "Roma" (topic_category resolved to
+    "history") got grounded via web_search in AS Roma the football club's
+    Wikipedia page, and the whole outline/script ended up being about the
+    club instead of the city, since the grounding text was force-fed into
+    the LLM prompt as a "verified source... do not contradict."
+    """
+
+    _AS_ROMA_RESULT = WebSearchResult(
+        heading="AS Roma",
+        abstract=(
+            "Associazione Sportiva Roma is a professional football club "
+            "based in Rome, Italy. Roma has won Serie A three times."
+        ),
+        source_url="https://en.wikipedia.org/wiki/AS_Roma",
+    )
+
+    def test_grounding_matches_category_rejects_sports_text_for_history_topic(self):
+        self.assertFalse(
+            research_planner._grounding_matches_category(
+                self._AS_ROMA_RESULT, TopicCategory.history
+            )
+        )
+
+    def test_grounding_matches_category_accepts_sports_text_for_sports_topic(self):
+        self.assertTrue(
+            research_planner._grounding_matches_category(
+                self._AS_ROMA_RESULT, TopicCategory.sports
+            )
+        )
+
+    def test_grounding_matches_category_accepts_when_category_unknown(self):
+        self.assertTrue(
+            research_planner._grounding_matches_category(self._AS_ROMA_RESULT, None)
+        )
+
+    def test_grounding_matches_category_accepts_inconclusive_text(self):
+        # No category keyword at all (for any category) -- ambiguous, not a
+        # positive mismatch signal, so it must NOT be rejected.
+        result = WebSearchResult(
+            heading="Roma", abstract="A word with several meanings.", source_url="https://x"
+        )
+        self.assertTrue(
+            research_planner._grounding_matches_category(result, TopicCategory.history)
+        )
+
+    @patch("app.departments.research.research_planner.web_search.search_web")
+    @patch("app.departments.research.research_planner.generate_json")
+    def test_generate_research_plan_discards_mismatched_grounding(
+        self, mock_generate_json, mock_search_web
+    ):
+        mock_search_web.return_value = self._AS_ROMA_RESULT
+        mock_generate_json.return_value = {"key_questions": [], "key_facts": [], "angles": []}
+
+        plan = research_planner.generate_research_plan(
+            "Roma", topic_category=TopicCategory.history
+        )
+
+        self.assertFalse(plan.grounded)
+        self.assertEqual(plan.source_url, "")
+        self.assertEqual(plan.source_snippet, "")
+        prompt_arg = mock_generate_json.call_args[0][0]
+        self.assertNotIn("Verified web source", prompt_arg)
+        self.assertNotIn("football club", prompt_arg)
+
+    @patch("app.departments.research.research_planner.web_search.search_web")
+    @patch("app.departments.research.research_planner.generate_json")
+    def test_generate_research_plan_keeps_matching_grounding(
+        self, mock_generate_json, mock_search_web
+    ):
+        mock_search_web.return_value = self._AS_ROMA_RESULT
+        mock_generate_json.return_value = {"key_questions": [], "key_facts": [], "angles": []}
+
+        plan = research_planner.generate_research_plan(
+            "Roma", topic_category=TopicCategory.sports
+        )
+
+        self.assertTrue(plan.grounded)
+        self.assertEqual(plan.source_url, "https://en.wikipedia.org/wiki/AS_Roma")
+
+    @patch("app.departments.research.research_planner.web_search.search_web", return_value=None)
+    @patch("app.departments.research.research_planner.generate_json")
+    def test_generate_research_plan_without_topic_category_is_unaffected(
+        self, mock_generate_json, mock_search_web
+    ):
+        # Old call signature (no topic_category arg) must behave byte-identical.
+        mock_generate_json.return_value = {"key_questions": [], "key_facts": [], "angles": []}
+        plan = research_planner.generate_research_plan("The Fall of Rome", Tone.credibility)
+        self.assertFalse(plan.grounded)
+
+
 if __name__ == "__main__":
     unittest.main()

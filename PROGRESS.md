@@ -3534,3 +3534,82 @@ doğrulamak yeterli değil -- bu, kuralın GERÇEK sayfa render'ında
 (`st.markdown()` ile enjekte edildiğinde) doğru elemente eşleştiğini
 KANITLAMAZ. Seçicinin gerçekten hedef elemente `matches()` ettiğini canlı
 DOM'da doğrudan sorgulamadan "çalışıyor" denmemeli.
+
+## Gece oturumu (overnight/topic-fix-and-followups) -- GÖREV 1: Senaryo-konu uyumsuzluğu
+
+Kullanıcının bildirdiği "üretilen senaryo yazdığım konudan farklı bir
+şeyden bahsediyor" şikayeti gerçek `storage/tasks/` verisinde arandı.
+`ed5df651-a076-4cfd-abd1-41b0da6ce4e4` görevi somut bir örnek verdi:
+**topic="Roma"**, `topic_category="history"`, `custom_system_prompt=""`
+(boş -- kullanıcının şüphelendiği Stok Üretim sistem promptu bu örnekte
+HİÇ devrede değildi, o yüzden GÖREV 1'in 2. maddesindeki şüphe bu vakada
+doğrulanmadı). Ama script tamamen **AS Roma futbol kulübünün** tarihiydi
+(1927 birleşmesi, 1941-42 Scudetto, 1983-84 Avrupa Kupası finali) --
+"Roma" (şehir) hakkında tek kelime yok.
+
+**Kök neden:** `research_plan.source_url =
+"https://en.wikipedia.org/wiki/AS_Roma"`, `grounded=true`.
+`app/services/web_search.py`'nin `search_web()`'i bare topic string'i
+("Roma") hiçbir kategori bağlamı olmadan DuckDuckGo/Wikipedia'ya
+sorguluyor; DuckDuckGo instant-answer boş dönünce Wikipedia fallback'i
+"Roma" için en iyi eşleşme olarak AS Roma sayfasını buluyor.
+`research_planner.py`, bu sonucu LLM'e "Verified web source ... Do not
+include key_facts that contradict it" olarak zorluyor -- yani LLM'in
+kendi bilgisiyle şehri anlatması bile ENGELLENİYOR, yanlış kaynağa
+UYMASI isteniyor. `project.topic_category` (bu örnekte zaten doğru
+şekilde "history" olarak çözülmüştü) hiçbir zaman grounding adımına
+ULAŞMIYORDU -- `generate_research_plan(topic, tone, language)` kategori
+parametresi hiç almıyordu, yani sistemin kendi kategori kararı ile
+grounding kaynağı arasında hiçbir tutarlılık kontrolü yoktu.
+
+**Düzeltme (`app/departments/research/research_planner.py`):**
+- `intent_analyzer.py`'deki `_CATEGORY_KEYWORDS` public yapıldı
+  (`CATEGORY_KEYWORDS`, iki modül arasında paylaşılıyor artık).
+- Yeni `_grounding_matches_category(search_result, topic_category)`:
+  grounding metninde (heading+abstract) `topic_category`'nin KENDİ
+  anahtar kelimelerinden biri geçiyorsa kabul edilir; hiçbiri geçmiyor
+  AMA BAŞKA bir kategorinin anahtar kelimesi geçiyorsa (ör. "professional
+  football club" -- sports kategorisinin "football" anahtar kelimesi --
+  ama history'nin hiçbir anahtar kelimesi yok) REDDEDİLİR (ungrounded
+  muamelesi görür, zaten var olan/beklenen bir davranış). Kategori
+  bilinmiyorsa (`None`) veya metin hiçbir kategoriye pozitif işaret
+  vermiyorsa (belirsiz), grounding AYNEN kabul edilir -- bu sadece NET
+  bir uyumsuzluk sinyaline karşı bir güvenlik ağı, aşırı-reddetme riski
+  yok.
+- `generate_research_plan()`'a yeni **opsiyonel** `topic_category`
+  parametresi eklendi (varsayılan `None` -- eski çağrı imzasıyla
+  BYTE-IDENTICAL davranış korunuyor, mevcut hiçbir test bozulmadı).
+- `default_pipeline.py`: çağrı noktasına `topic_category=project.topic_category`
+  eklendi (stage 1'de zaten çözülmüş durumda, stage 2'ye ulaşana kadar
+  hazır).
+
+**Test:** `test_research_planner.py::TestGroundingCategoryGuard` (6 yeni
+test: mismatch reddediliyor, eşleşen kategori kabul ediliyor, kategori
+`None` iken eski davranış korunuyor, belirsiz metin reddedilmiyor, uçtan
+uca `generate_research_plan` üzerinden hem red hem kabul senaryosu).
+`test_default_pipeline.py`'de `topic_category` kwarg'ının gerçekten
+iletildiği doğrulandı. Tam suite: **856 passed, 11 skipped** (846'dan
++10, sıfır regresyon). `ruff` temiz.
+
+**Gerçek API doğrulaması (önce/sonra, GECE bütçesinden 1/8 gerçek LLM
+çağrısı kullanıldı):**
+- *Önce* (gerçek production kanıtı, `ed5df651`): `grounded=true`,
+  `source_url=".../AS_Roma"`, script tamamen futbol kulübü tarihi.
+- *Şimdi, aynı canlı web_search sonucuyla* (`web_search.search_web("Roma",
+  language="en")` hâlâ AS Roma'ya çözülüyor, doğrulandı -- bug hâlâ
+  canlı/güncel, tek seferlik bir tesadüf değil): düzeltmeyle
+  `generate_research_plan("Roma", language="en",
+  topic_category=TopicCategory.history)` çağrıldığında
+  `grounded=False`, `source_url=""` -- grounding doğru şekilde
+  reddedildi. LLM, yanlış kaynağa zorlanmadan kendi bilgisiyle ürettiği
+  research brief'te **Roman halkını (Romani people)** ele aldı --
+  "history" kategorisine mükemmel uyan, gerçek bir etnik/tarihsel konu,
+  futbolla ilgisi sıfır. Log satırı da doğrulandı: `"discarding grounding
+  source '.../AS_Roma' ... treating as ungrounded"`.
+
+**OTONOM KARAR:** `_CATEGORY_KEYWORDS`'ü public yapmak (basit, düşük
+riskli bir rename+iki modül arası paylaşım) yerine ayrı bir yeni
+sabit/modül oluşturmak da düşünüldü, ama bu var olan bir listeyi
+KOPYALAMAK anlamına gelirdi (iki listenin ileride birbirinden
+sapması riski) -- mevcut listeyi paylaşmak daha DRY ve daha tutucu
+(yeni bir kavram/dosya eklemiyor, sadece bir isim değişikliği).
