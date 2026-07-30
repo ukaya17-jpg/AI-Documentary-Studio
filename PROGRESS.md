@@ -3857,3 +3857,37 @@ channels=2, duration=3.056s` (istenen 3sn'ye yakın, API'nin kendi
 toleransı). Ayrıca fonksiyonun kendi `bgm_service.validate_audio_file()`
 çağrısı da (ffmpeg decode kontrolü) sessizce geçti -- gerçek, geçerli
 ses verisi.
+
+## Gece oturumu -- GÖREV 7: Videvo stok sağlayıcı araştırması (KODLANMADI)
+
+**Bulgu: Videvo'nun BAĞIMSIZ bir geliştirici API'si YOK.** Videvo,
+Haziran 2022'de **Freepik tarafından satın alındı** -- kütüphanesi
+(650.000+ video) o zamandan beri Freepik'in KENDİ platformuna
+entegre edildi, ayrı bir "Videvo API"si kalmadı. Freepik'in kendisi de
+Nisan 2026'da **"Magnific"** olarak yeniden markalandı. Bugün gerçekten
+var olan tek gerçek API, `docs.freepik.com/api-reference/videos/videos-api`
+altında belgelenen **Freepik/Magnific Videos API** -- gerçek, iyi
+belgelenmiş, pay-per-use (sabit abonelik yok) bir REST API, ama bu
+**Videvo değil, tamamen farklı bir sağlayıcı** (farklı hesap/API key,
+farklı fiyatlandırma modeli, farklı kullanım şartları, farklı marka).
+
+**Neden kodlanmadı:** GÖREV 7'nin kendi açık dallanma mantığı ("EĞER
+API varsa: kodlayın. EĞER YOKSA: KODLAMAYIN, not düşün") burada net --
+kullanıcı özellikle "Videvo" istedi, ve Videvo'nun kendi başına
+istenen türde bir API'si YOK. Freepik/Magnific'i entegre etmek,
+kullanıcının istemediği/onaylamadığı YENİ bir sağlayıcı hesabı, YENİ bir
+fiyatlandırma modeli ve YENİ kullanım şartları gerektirir -- bu, GÖREV
+7'nin kapsamının ötesinde, ayrı bir onay gerektiren bir karar (rule 6'nın
+ruhuna uygun: kullanıcının onaylamadığı bir sağlayıcı değişikliğini
+otonom olarak yapmak yerine, bulguyu raporlayıp kullanıcının kararına
+bırakmak daha güvenli/tutucu).
+
+**Sonraki adım (kullanıcı karar verirse):** Eğer kullanıcı Freepik/
+Magnific Videos API'sini (Videvo YERİNE, farklı bir sağlayıcı olarak)
+gerçekten istiyorsa, bu ayrı bir GÖREV olarak ele alınmalı --
+`material.py` deseniyle 4. stok sağlayıcı eklemek teknik olarak
+mümkün görünüyor (gerçek, belgelenmiş REST API), ama fiyatlandırma/
+hesap kurulumu/API key alımı kullanıcının kendi onayını gerektirir.
+`config.example.toml`'a hiçbir yeni anahtar eklenmedi, `material.py`'ye
+hiçbir kod eklenmedi -- bu görev tamamen araştırma/rapor aşamasında
+kaldı.
