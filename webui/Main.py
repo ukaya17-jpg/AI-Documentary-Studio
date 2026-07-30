@@ -4349,12 +4349,18 @@ _DOCUMENTARY_STAGE_KEYS = {
 }
 _DOCUMENTARY_TOTAL_STAGES = 12
 
-# AI-üretimi video görselleri (fal.ai/Kling, kullanıcı onaylı, opt-in) --
-# maliyet tahmini SADECE varsayılan model tier'ına (config'teki
-# fal_kling_model varsayılanı: v1.0 standard) dayanıyor, kesin fatura değil
-# -- kullanıcı config'te farklı bir tier'a geçerse tahmin sapabilir, bu
-# yüzden UI'da her zaman bir "tahmini" uyarısı gösteriliyor.
+# AI-üretimi video görselleri (fal.ai/Kling veya Veo, kullanıcı onaylı,
+# opt-in) -- maliyet tahmini SADECE varsayılan model tier'ına dayanıyor,
+# kesin fatura değil -- kullanıcı config'te farklı bir tier'a geçerse
+# tahmin sapabilir, bu yüzden UI'da her zaman bir "tahmini" uyarısı
+# gösteriliyor.
 _FAL_KLING_PRICE_PER_SECOND_USD = 0.045
+# GÖREV 3 (gece oturumu): Veo 3.1 Fast, 720p, sessiz (generate_audio=False)
+# -- fal.ai'nin en ucuz Veo kademesi, yine de Kling'in ~2x'i. Hailuo
+# BİLİNÇLİ OLARAK burada yok (9:16 desteklemiyor, önceki ADIM 3'te webui'den
+# tamamen gizli tutulmuştu, o karar değişmedi).
+_FAL_VEO_PRICE_PER_SECOND_USD = 0.10
+_DOCUMENTARY_AI_VIDEO_PROVIDERS = ("kling", "veo")
 _DOCUMENTARY_STOCK_VIDEO_SOURCE = "stock"
 
 # ADIM 1 (Provider Sistemi keşif raporu, kullanıcı onaylı, TAM OTONOMİ):
@@ -4378,7 +4384,7 @@ _DOCUMENTARY_STOCK_PROVIDER_MISSING_KEY_LABEL = {
 }
 
 
-def _estimate_ai_video_cost_usd(pacing_value: str) -> float:
+def _estimate_ai_video_cost_usd(pacing_value: str, ai_video_provider: str = "kling") -> float:
     try:
         spec = PACING_SCENE_SPEC[Pacing(pacing_value)]
     except ValueError:
@@ -4389,6 +4395,14 @@ def _estimate_ai_video_cost_usd(pacing_value: str) -> float:
     # burada ayrı, private bir fonksiyonu import etmek yerine küçük mantık
     # tekrarlandı).
     billed_seconds_per_clip = 5 if spec["scene_duration"] <= 5.0 else 10
+    if ai_video_provider == "veo":
+        # Veo'nun kendi duration enum'ı ("4s"/"6s"/"8s"), Kling'inkinden
+        # ("5"/"10") farklı -- fal_video._VEO_DURATION_MAP ile AYNI eşleme
+        # (istek anında gerçekten neyin faturalandığıyla tutarlı kalsın diye
+        # burada da küçük mantık tekrarlandı, yukarıdaki Kling yuvarlamasıyla
+        # aynı gerekçeyle).
+        veo_billed_seconds = 6 if billed_seconds_per_clip == 5 else 8
+        return spec["scene_count"] * veo_billed_seconds * _FAL_VEO_PRICE_PER_SECOND_USD
     return spec["scene_count"] * billed_seconds_per_clip * _FAL_KLING_PRICE_PER_SECOND_USD
 
 
@@ -5062,11 +5076,27 @@ def _render_shared_documentary_form(video_source_fixed: str) -> None:
             st.warning(tr("Documentary AI Video Not Configured"))
             ai_video_cost_confirmed = False
         else:
+            # GÖREV 3 (gece oturumu, TAM OTONOMİ): Kling/Veo seçimi -- Hailuo
+            # BİLİNÇLİ OLARAK burada yok (9:16 desteklemiyor, ADIM 3'ten beri
+            # webui'den tamamen gizli). config.app'e YAZILIYOR (save_config()
+            # ÇAĞRILMIYOR -- config.toml dosyası hiç değişmiyor, tıpkı Klasik
+            # Mod'un video_source seçicisi gibi sadece bu çalışan sürecin
+            # bellekteki durumunu güncelliyor) çünkü fal_video_service
+            # singleton'ı provider'ı config.app'ten okuyor, bu formdan
+            # doğrudan bir parametre almıyor.
+            ai_video_provider = st.selectbox(
+                tr("Documentary AI Video Provider"),
+                options=list(_DOCUMENTARY_AI_VIDEO_PROVIDERS),
+                index=0,
+                key="documentary_ai_video_provider",
+                format_func=lambda v: tr(f"Documentary AI Video Provider: {v}"),
+            )
+            config.app["fal_ai_video_model"] = ai_video_provider
             # Publisher'daki "geri alınamaz eylem -> önce göster, sonra
             # manuel onay" ilkesiyle tutarlı (bkz. _render_publish_section) --
             # burada daha da erken devreye giriyor, çünkü maliyet üretimin
             # KENDİSİ sırasında oluşuyor, yayın gibi ayrı bir adımda değil.
-            estimated_cost = _estimate_ai_video_cost_usd(pacing)
+            estimated_cost = _estimate_ai_video_cost_usd(pacing, ai_video_provider)
             st.info(f"{tr('Documentary AI Video Cost Estimate')}: ~${estimated_cost:.2f}")
             st.caption(tr("Documentary AI Video Cost Disclaimer"))
             if pacing == Pacing.extended.value:

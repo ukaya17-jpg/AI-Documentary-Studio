@@ -3628,3 +3628,73 @@ fast-forward, geçmişi yeniden yazmıyor, gerektiğinde `main`'i eski
 commit'e resetlemek trivial. Bu yüzden: her GÖREV'in testleri yeşil
 olduktan sonra `overnight/...` dalındaki commit main'e fast-forward
 edilip push+deploy ediliyor, dal çalışma alanı olarak devam ediyor.
+
+## Gece oturumu -- GÖREV 2 (durum kontrolü, iş gerekmedi)
+
+"Video Konusu" etiket değişikliği (`d454bb7`, main'in tabanında zaten
+mevcuttu) tam olarak doğrulandı: 9 locale'in `"Documentary Topic"`/
+`"Generate Documentary"` i18n değerleri hepsi "Video ..." diyor,
+`grep -rn "Belgesel Konusu\|Belgesel Oluştur" webui/` sıfır sonuç
+döndürdü. Ek iş gerekmedi.
+
+## Gece oturumu -- GÖREV 3: Google Veo entegrasyonu
+
+**Araştırma:** Google Veo, fal.ai üzerinden GERÇEKTEN erişilebilir --
+Vertex AI/GCP servis hesabı GEREKMİYOR (Kural 6'nın durma koşulu
+tetiklenmedi). Mevcut `fal_api_key` (Kling/Hailuo ile paylaşılan) aynen
+geçerli. Üç fal.ai Veo kademesi karşılaştırıldı:
+- Veo 2 (`fal-ai/veo2`): $0.50/s -- en pahalısı.
+- Veo 3.1 standard (`fal-ai/veo3.1`): $0.20-0.40/s (çözünürlük/ses'e göre).
+- **Veo 3.1 Fast (`fal-ai/veo3.1/fast`), 720p, sessiz: $0.10/s** -- fal.ai
+  üzerindeki en ucuz Veo seçeneği, bu yüzden varsayılan olarak seçildi.
+  Yine de Kling'in (~$0.045/s) **~2.2x'i** -- bu bir maliyet uyarısı
+  olarak PROGRESS'e ve webui'nin maliyet tahminine yansıtıldı, bir engel
+  değil.
+
+**GERÇEK API İLE DOĞRULANDI (bkz. Kural 2 bütçesi, 2/8 kullanıldı):**
+gerçek bir 6sn'lik klip üretildi (`aspect_ratio="9:16"`), indirildi,
+`ffprobe` ile ölçüldü: **720x1280 -- tam 9:16 dikey**, `duration=6.0`.
+Hailuo'nun aksine (o zaman 9:16 istenmesine rağmen HER ZAMAN 1366x768
+yatay döndüğü bulunmuştu), Veo GERÇEKTEN dikey üretiyor. Örnek kare
+sinematik kalitede (çöl harabeleri, gün batımı) -- prompt'a tam uyumlu.
+
+**Kod değişiklikleri (`app/services/fal_video.py`):**
+- `DEFAULT_VEO_MODEL = "fal-ai/veo3.1/fast"`, `_VEO_DURATION_MAP =
+  {"5": "6s", "10": "8s"}` (Veo sadece "4s"/"6s"/"8s" kabul ediyor;
+  Kling'in "5"i tam ortada olduğu için YUKARI, "10"u azami "8s"in
+  üzerinde olduğu için AŞAĞI yuvarlandı).
+- `_build_veo_payload()`: `generate_audio=False` KASITLI (ekstra maliyet
+  + bu projenin kendi narrasyon sesiyle çakışan gereksiz ikinci ses
+  katmanı istenmiyor), `resolution="720p"` (en ucuz kademe).
+- `FalVideoService.__init__` → **property'lere dönüştürüldü**
+  (`api_key`/`provider`/`model`). OTONOM KARAR/kök neden: `fal_video_
+  service` process başına BİR KEZ import edilen bir singleton (Streamlit
+  script'i yeniden çalıştırıyor ama modül cache'i kalıcı) -- bunlar
+  `__init__`'te sabitlenirse, webui'den bir provider değişikliği tam bir
+  servis restart'ı olmadan HİÇ etkili olmazdı (bu, GÖREV 3'ün asıl
+  istediği "kullanıcı webui'den Veo seçsin" özelliğini sessizce
+  bozardı) -- bu, GÖREV 3'ü kodlarken keşfedilen, önceden var olan bir
+  gecikme/staleness sorunuydu, mevcut 23 testin hiçbiri kırılmadı
+  (hepsi construct-then-immediately-read deseninde).
+
+**webui (`webui/Main.py`):** "Belgesel Niteliği" sayfasında yeni bir
+"AI Video Sağlayıcısı" seçici (Kling/Veo) -- Hailuo BİLİNÇLİ OLARAK YOK
+(9:16 desteklemiyor, ADIM 3'ten beri webui'den gizli, bu karar
+değişmedi). Seçim `config.app["fal_ai_video_model"]`'e yazılıyor
+(`save_config()` ÇAĞRILMIYOR -- config.toml dosyası hiç değişmiyor,
+Klasik Mod'un `video_source` seçicisiyle AYNI desen). Maliyet tahmini
+(`_estimate_ai_video_cost_usd`) artık `ai_video_provider` parametresi
+alıyor, Veo için ayrı fiyat/duration-yuvarlama mantığıyla.
+
+**i18n:** `"Documentary AI Video Provider"` + `": kling"`/`": veo"`
+anahtarları 9 locale'e eklendi (hepsi JSON-geçerliliği doğrulandı).
+
+**Test:** `test_fal_video.py`'ye `TestVeoProviderSelection` (4 test,
+biri özellikle live-config-reload davranışını kilitliyor) +
+`TestSubmitVideoJob`'a 2 Veo payload testi. `test_webui_ai_video_source.py`'ye
+2 yeni test (seçici varsayılanı + Veo seçilince maliyet tahmini
+değişimi). Tam suite: **864 passed, 11 skipped** (856'dan +8, sıfır
+regresyon). `ruff` temiz.
+
+**config.example.toml:** `fal_veo_model = "fal-ai/veo3.1/fast"` eklendi,
+`fal_ai_video_model` yorumu güncellendi.

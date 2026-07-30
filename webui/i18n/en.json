@@ -490,6 +490,9 @@
     "Documentary Stock Provider": "Stock Provider",
     "Documentary Stock Provider: pexels": "Pexels",
     "Documentary Stock Provider: pixabay": "Pixabay",
-    "Documentary Stock Provider: coverr": "Coverr"
+    "Documentary Stock Provider: coverr": "Coverr",
+    "Documentary AI Video Provider": "AI Video Provider",
+    "Documentary AI Video Provider: kling": "Kling",
+    "Documentary AI Video Provider: veo": "Veo"
   }
 }

@@ -35,6 +35,11 @@ _DOWNLOAD_TIMEOUT = 120
 
 DEFAULT_KLING_MODEL = "fal-ai/kling-video/v1/standard/text-to-video"
 DEFAULT_HAILUO_MODEL = "fal-ai/minimax/hailuo-02/standard/text-to-video"
+# GÖREV 3 (gece oturumu, TAM OTONOMİ): "veo3.1/fast" -- Veo 2 ($0.50/s,
+# fal.ai fiyatlandırmasına göre) ve Veo 3.1 standard ($0.20-0.40/s) yerine
+# kasıtlı olarak Veo'nun EN UCUZ kademesi (720p, sessiz: $0.10/s) seçildi.
+# Yine de Kling'in (~$0.045/s) ~2x'i -- bkz. PROGRESS.md maliyet notu.
+DEFAULT_VEO_MODEL = "fal-ai/veo3.1/fast"
 _DEFAULT_VIDEO_PROVIDER = "kling"
 
 # Kling ("5"/"10") ve Hailuo ("6"/"10", resmi API dokümantasyonuna göre)
@@ -45,15 +50,39 @@ _DEFAULT_VIDEO_PROVIDER = "kling"
 # giden payload'da, en yakın geçerli Hailuo değerine eşleniyor.
 _HAILUO_DURATION_MAP = {"5": "6", "10": "10"}
 
+# Veo yalnızca "4s"/"6s"/"8s" kabul ediyor (fal.ai dokümantasyonuna göre) --
+# Kling'in "5"i tam ortada, kısa kalmaması için YUKARI (6s) yuvarlanıyor;
+# "10" Veo'nun desteklediği maksimumun (8s) üzerinde olduğu için aşağı
+# kırpılıyor (daha yüksek bir seçenek yok).
+_VEO_DURATION_MAP = {"5": "6s", "10": "8s"}
+
 
 class FalVideoService:
-    def __init__(self):
-        self.api_key = config.app.get("fal_api_key", "")
-        self.provider = config.app.get("fal_ai_video_model", _DEFAULT_VIDEO_PROVIDER)
+    """`api_key`/`provider`/`model` are properties (not __init__-assigned
+    attributes) so config.toml changes take effect immediately for the
+    module-level `fal_video_service` singleton below -- it's imported once
+    per process (Streamlit reruns the script but not the module cache), so
+    freezing these at construction time would require a full service
+    restart for a provider switch to ever take effect. Needed for GÖREV 3's
+    webui provider selector (Kling/Veo) to actually work within one running
+    session, not just after a restart.
+    """
+
+    @property
+    def api_key(self) -> str:
+        return config.app.get("fal_api_key", "")
+
+    @property
+    def provider(self) -> str:
+        return config.app.get("fal_ai_video_model", _DEFAULT_VIDEO_PROVIDER)
+
+    @property
+    def model(self) -> str:
         if self.provider == "hailuo":
-            self.model = config.app.get("fal_hailuo_model", DEFAULT_HAILUO_MODEL)
-        else:
-            self.model = config.app.get("fal_kling_model", DEFAULT_KLING_MODEL)
+            return config.app.get("fal_hailuo_model", DEFAULT_HAILUO_MODEL)
+        if self.provider == "veo":
+            return config.app.get("fal_veo_model", DEFAULT_VEO_MODEL)
+        return config.app.get("fal_kling_model", DEFAULT_KLING_MODEL)
 
     def is_configured(self) -> bool:
         return bool(self.api_key)
@@ -107,6 +136,26 @@ class FalVideoService:
             "duration": _HAILUO_DURATION_MAP.get(duration, duration),
         }
 
+    def _build_veo_payload(
+        self, prompt: str, duration: str, aspect_ratio: str, negative_prompt: str
+    ) -> dict:
+        """Veo 3.1 (fal-ai/veo3.1, "fast" tier) -- GERÇEK API İLE DOĞRULANDI
+        (bkz. PROGRESS.md GÖREV 3): 9:16 (dikey) DESTEKLENİYOR, Hailuo'nun
+        aksine. `generate_audio` kasıtlı olarak False -- Veo'nun kendi ses
+        üretimi hem ekstra maliyet (~1.5x) hem de bu projenin KENDİ narrasyon/
+        altyazı sesiyle çakışan, gereksiz bir ikinci ses katmanı demek.
+        """
+        payload = {
+            "prompt": prompt,
+            "duration": _VEO_DURATION_MAP.get(duration, "8s"),
+            "aspect_ratio": aspect_ratio,
+            "resolution": "720p",
+            "generate_audio": False,
+        }
+        if negative_prompt:
+            payload["negative_prompt"] = negative_prompt
+        return payload
+
     def submit_video_job(
         self,
         prompt: str,
@@ -133,6 +182,8 @@ class FalVideoService:
 
         if self.provider == "hailuo":
             payload = self._build_hailuo_payload(prompt, duration)
+        elif self.provider == "veo":
+            payload = self._build_veo_payload(prompt, duration, aspect_ratio, negative_prompt)
         else:
             payload = self._build_kling_payload(prompt, duration, aspect_ratio, negative_prompt)
 

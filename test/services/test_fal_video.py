@@ -98,6 +98,51 @@ class TestHailuoProviderSelection(unittest.TestCase):
         self.assertEqual(FalVideoService()._app_id, "fal-ai/minimax")
 
 
+_VEO_CONFIGURED = {
+    "fal_api_key": "test-fal-key",
+    "fal_ai_video_model": "veo",
+}
+
+
+class TestVeoProviderSelection(unittest.TestCase):
+    """GÖREV 3 (gece oturumu, TAM OTONOMİ): Google Veo, fal.ai üzerinden
+    (Kling/Hailuo ile aynı desende) eklendi -- Hailuo'nun aksine 9:16
+    destekliyor (gerçek API ile doğrulandı, bkz. PROGRESS.md), o yüzden
+    webui'de kullanıcıya sunulan bir seçenek.
+    """
+
+    @patch("app.services.fal_video.config.app", _VEO_CONFIGURED)
+    def test_uses_veo_model_when_selected(self):
+        from app.services.fal_video import DEFAULT_VEO_MODEL
+
+        service = FalVideoService()
+        self.assertEqual(service.provider, "veo")
+        self.assertEqual(service.model, DEFAULT_VEO_MODEL)
+
+    @patch(
+        "app.services.fal_video.config.app",
+        {**_VEO_CONFIGURED, "fal_veo_model": "fal-ai/veo3.1"},
+    )
+    def test_uses_configured_veo_model_override(self):
+        service = FalVideoService()
+        self.assertEqual(service.model, "fal-ai/veo3.1")
+
+    @patch("app.services.fal_video.config.app", _VEO_CONFIGURED)
+    def test_app_id_strips_subpath_for_veo_too(self):
+        self.assertEqual(FalVideoService()._app_id, "fal-ai/veo3.1")
+
+    @patch("app.services.fal_video.config.app", {**_CONFIGURED})
+    def test_provider_reflects_live_config_not_construction_time(self):
+        # fal_video_service is a module-level singleton imported once per
+        # process -- provider/model must re-read config.app live on every
+        # access, or a webui provider switch would silently do nothing
+        # until a full service restart.
+        service = FalVideoService()
+        self.assertEqual(service.provider, "kling")
+        with patch("app.services.fal_video.config.app", _VEO_CONFIGURED):
+            self.assertEqual(service.provider, "veo")
+
+
 class TestSubmitVideoJob(unittest.TestCase):
     @patch("app.services.fal_video.config.app", _UNCONFIGURED)
     @patch("app.services.fal_video.requests.post")
@@ -171,6 +216,38 @@ class TestSubmitVideoJob(unittest.TestCase):
         FalVideoService().submit_video_job("a wide shot", duration="10")
 
         self.assertEqual(mock_post.call_args.kwargs["json"]["duration"], "10")
+
+    @patch("app.services.fal_video.config.app", _VEO_CONFIGURED)
+    @patch("app.services.fal_video.requests.post")
+    def test_veo_payload_supports_9_16_and_disables_audio(self, mock_post):
+        """GERÇEK API İLE DOĞRULANDI (bkz. PROGRESS.md GÖREV 3): Veo 3.1
+        Fast 9:16'yı destekliyor, Hailuo'nun aksine. generate_audio=False
+        kasıtlı -- ekstra maliyet ve bu projenin kendi narrasyon sesiyle
+        çakışan bir ikinci ses katmanı istenmiyor.
+        """
+        mock_post.return_value = _response({"request_id": "req-veo-1"})
+
+        result = FalVideoService().submit_video_job(
+            "a wide shot of ancient ruins", duration="5", aspect_ratio="9:16"
+        )
+
+        self.assertTrue(result["success"])
+        call = mock_post.call_args
+        self.assertEqual(call.args[0], "https://queue.fal.run/fal-ai/veo3.1/fast")
+        sent_payload = call.kwargs["json"]
+        self.assertEqual(sent_payload["aspect_ratio"], "9:16")
+        self.assertEqual(sent_payload["duration"], "6s")
+        self.assertFalse(sent_payload["generate_audio"])
+        self.assertEqual(sent_payload["resolution"], "720p")
+
+    @patch("app.services.fal_video.config.app", _VEO_CONFIGURED)
+    @patch("app.services.fal_video.requests.post")
+    def test_veo_duration_ten_maps_to_max_8s(self, mock_post):
+        mock_post.return_value = _response({"request_id": "req-veo-2"})
+
+        FalVideoService().submit_video_job("a wide shot", duration="10")
+
+        self.assertEqual(mock_post.call_args.kwargs["json"]["duration"], "8s")
 
     @patch("app.services.fal_video.config.app", _CONFIGURED)
     @patch("app.services.fal_video.requests.post")

@@ -95,6 +95,38 @@ def test_long_pacing_rounds_billed_duration_up_to_ten_seconds(_mock_configured):
     assert any("3.15" in w.value for w in app.info)
 
 
+@patch("webui.Main.fal_video_service.is_configured", return_value=True)
+def test_ai_video_provider_selector_defaults_to_kling(_mock_configured):
+    # GÖREV 3 (gece oturumu): Kling/Veo seçici -- Hailuo BİLİNÇLİ OLARAK
+    # burada yok (9:16 desteklemiyor, ADIM 3'ten beri webui'den gizli).
+    app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+    app._page_hash = _QUALITY_PAGE_HASH
+    app.run()
+
+    assert not app.exception
+    provider_select = next(
+        s for s in app.selectbox if str(getattr(s, "key", "")) == "documentary_ai_video_provider"
+    )
+    assert provider_select.value == "kling"
+    # .options exposes the format_func-rendered display labels, not the raw
+    # underlying values.
+    assert list(provider_select.options) == ["Kling", "Veo"]
+
+
+@patch("webui.Main.fal_video_service.is_configured", return_value=True)
+def test_selecting_veo_updates_cost_estimate(_mock_configured):
+    app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+    app._page_hash = _QUALITY_PAGE_HASH
+    app.session_state["documentary_pacing"] = "short"
+    app.session_state["documentary_ai_video_provider"] = "veo"
+    app.run()
+
+    assert not app.exception
+    # short pacing: 7 scenes x 6s billed (5s scene rounds UP to Veo's "6s",
+    # nearest of "4s"/"6s"/"8s") x $0.10/s = $4.20
+    assert any("4.20" in w.value for w in app.info)
+
+
 if __name__ == "__main__":
     import unittest
 

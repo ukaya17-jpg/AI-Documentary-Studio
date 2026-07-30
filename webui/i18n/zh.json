@@ -490,6 +490,9 @@
     "Documentary Stock Provider": "素材来源",
     "Documentary Stock Provider: pexels": "Pexels",
     "Documentary Stock Provider: pixabay": "Pixabay",
-    "Documentary Stock Provider: coverr": "Coverr"
+    "Documentary Stock Provider: coverr": "Coverr",
+    "Documentary AI Video Provider": "AI 视频提供商",
+    "Documentary AI Video Provider: kling": "Kling",
+    "Documentary AI Video Provider: veo": "Veo"
   }
 }
