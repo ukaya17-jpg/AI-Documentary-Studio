@@ -1139,6 +1139,75 @@ class TestElevenLabsVoice(unittest.TestCase):
         result = vs.elevenlabs_tts("  ", "abc123", "/tmp/test.mp3")
         self.assertIsNone(result)
 
+    def test_elevenlabs_tts_timeout_scales_with_text_length(self):
+        # ACİL prod fix: "extended" pacing scripts (~7-8bin karakter) 60sn'de
+        # bitmiyordu (GERÇEK API ile doğrulandı -- 3 deneme de aynı "Read
+        # timed out" ile başarısız). Kısa metinler değişmemeli (60sn taban).
+        self.assertEqual(vs._elevenlabs_tts_timeout(0), 60)
+        self.assertEqual(vs._elevenlabs_tts_timeout(100), 60)
+        self.assertEqual(vs._elevenlabs_tts_timeout(7759), 517)
+        # Çok uzun metinlerde bile 600sn tavanını (elevenlabs_music.py'nin
+        # kendi tavanıyla tutarlı) aşmamalı.
+        self.assertEqual(vs._elevenlabs_tts_timeout(1_000_000), 600)
+
+    @patch("app.services.voice.requests.post")
+    @patch("app.services.voice.config")
+    def test_elevenlabs_tts_sends_length_scaled_timeout(self, mock_config, mock_post):
+        mock_config.elevenlabs.get.return_value = "fake-api-key"
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.json.return_value = {
+            "audio_base64": base64.b64encode(b"fake-mp3-bytes").decode("ascii"),
+            "alignment": {},
+        }
+        with patch("app.services.voice.AudioFileClip") as mock_clip_cls:
+            mock_clip_cls.return_value.duration = 3.0
+            mock_clip_cls.return_value.close = lambda: None
+            long_text = "word " * 2000  # 10000 chars
+            with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
+                out_path = f.name
+            try:
+                result = vs.elevenlabs_tts(long_text, "abc123", out_path)
+                self.assertIsNotNone(result)
+            finally:
+                if os.path.exists(out_path):
+                    os.remove(out_path)
+        self.assertEqual(mock_post.call_args.kwargs["timeout"], vs._elevenlabs_tts_timeout(len(long_text)))
+        self.assertGreater(mock_post.call_args.kwargs["timeout"], 60)
+
+    @patch("app.services.voice.requests.post")
+    @patch("app.services.voice.config")
+    def test_elevenlabs_tts_quota_exceeded_is_not_retried(self, mock_config, mock_post):
+        mock_config.elevenlabs.get.return_value = "fake-api-key"
+        mock_post.return_value.status_code = 401
+        mock_post.return_value.json.return_value = {
+            "detail": {
+                "status": "quota_exceeded",
+                "message": "This request exceeds your quota of 165000.",
+            }
+        }
+        mock_post.return_value.text = "quota_exceeded"
+
+        result = vs.elevenlabs_tts("Hello world", "abc123", "/tmp/test.mp3")
+
+        self.assertIsNone(result)
+        # Non-retryable: exactly one request, not three.
+        self.assertEqual(mock_post.call_count, 1)
+
+    @patch("app.services.voice.requests.post")
+    @patch("app.services.voice.config")
+    def test_elevenlabs_tts_timeout_exception_retries_up_to_three_times(
+        self, mock_config, mock_post
+    ):
+        import requests as req_lib
+
+        mock_config.elevenlabs.get.return_value = "fake-api-key"
+        mock_post.side_effect = req_lib.exceptions.ReadTimeout("Read timed out")
+
+        result = vs.elevenlabs_tts("Hello world", "abc123", "/tmp/test.mp3")
+
+        self.assertIsNone(result)
+        self.assertEqual(mock_post.call_count, 3)
+
 
 if __name__ == "__main__":
     # python -m unittest test.services.test_voice.TestVoiceService.test_azure_tts_v1

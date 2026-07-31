@@ -1350,6 +1350,31 @@ def mimo_tts(
     return None
 
 
+# ACİL prod fix (kök neden): tam script (script.full_text) TEK bir istekte
+# gönderiliyor (audio_renderer.render_narration -> voice.tts), sabit 60sn
+# timeout ile. "extended" pacing (10dk video) ~7-8bin karakterlik bir
+# script üretiyor -- GERÇEK API ile doğrulandı: bu uzunlukta bir istek
+# ElevenLabs sunucusunda 60sn içinde bitmiyor (3 deneme de aynı "Read timed
+# out (read timeout=60)" ile başarısız oluyor, retry hiçbir şeyi
+# değiştirmiyor çünkü sorun ağ değil, sabit süre limiti). Metin uzunluğuna
+# göre ölçeklenen bir timeout kullanılıyor -- elevenlabs_music.py'nin kendi
+# 600sn tavanıyla tutarlı. Kısa metinler (TTS'in asıl, sık kullanılan
+# durumu) hâlâ ~saniyeler içinde dönüyor, bu değişiklik onları etkilemiyor.
+_MIN_ELEVENLABS_TTS_TIMEOUT_SECONDS = 60
+_MAX_ELEVENLABS_TTS_TIMEOUT_SECONDS = 600
+_ELEVENLABS_TTS_TIMEOUT_CHARS_PER_SECOND = 15
+
+
+def _elevenlabs_tts_timeout(text_length: int) -> int:
+    return min(
+        _MAX_ELEVENLABS_TTS_TIMEOUT_SECONDS,
+        max(
+            _MIN_ELEVENLABS_TTS_TIMEOUT_SECONDS,
+            text_length // _ELEVENLABS_TTS_TIMEOUT_CHARS_PER_SECOND,
+        ),
+    )
+
+
 def elevenlabs_tts(
     text: str,
     voice_id: str,
@@ -1399,14 +1424,19 @@ def elevenlabs_tts(
 
     # Errors where retrying will never help (auth/access/validation failures).
     _NON_RETRYABLE_CODES = {401, 403, 422}
-    _NON_RETRYABLE_STATUSES = {"voice_disabled", "voice_access_denied", "unauthorized"}
+    _NON_RETRYABLE_STATUSES = {"voice_disabled", "voice_access_denied", "unauthorized", "quota_exceeded"}
+
+    request_timeout = _elevenlabs_tts_timeout(len(text))
 
     for i in range(3):
         try:
-            logger.info(f"start elevenlabs tts, voice_id: {voice_id}, try: {i + 1}")
+            logger.info(
+                f"start elevenlabs tts, voice_id: {voice_id}, try: {i + 1}, "
+                f"text_length: {len(text)}, timeout: {request_timeout}s"
+            )
             ensure_file_path_exists(voice_file)
 
-            response = requests.post(url, json=payload, headers=headers, timeout=60)
+            response = requests.post(url, json=payload, headers=headers, timeout=request_timeout)
             if response.status_code != 200:
                 error_status = ""
                 try:
@@ -1417,11 +1447,20 @@ def elevenlabs_tts(
                     pass
 
                 if response.status_code in _NON_RETRYABLE_CODES or error_status in _NON_RETRYABLE_STATUSES:
-                    logger.error(
-                        f"ElevenLabs TTS failed (non-retryable) — voice_id: {voice_id}, "
-                        f"status: {response.status_code}, error: {error_status or response.text[:200]}. "
-                        "Please select a different ElevenLabs voice."
-                    )
+                    if error_status == "quota_exceeded":
+                        logger.error(
+                            f"ElevenLabs TTS failed (non-retryable) — voice_id: {voice_id}, "
+                            f"status: {response.status_code}, error: quota_exceeded: {response.text[:300]}. "
+                            "The ElevenLabs account has run out of character quota for this "
+                            "billing period -- add credits, wait for the next reset, or use a "
+                            "shorter pacing / different TTS provider."
+                        )
+                    else:
+                        logger.error(
+                            f"ElevenLabs TTS failed (non-retryable) — voice_id: {voice_id}, "
+                            f"status: {response.status_code}, error: {error_status or response.text[:200]}. "
+                            "Please select a different ElevenLabs voice."
+                        )
                     return None
 
                 logger.error(

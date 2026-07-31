@@ -3891,3 +3891,81 @@ hesap kurulumu/API key alımı kullanıcının kendi onayını gerektirir.
 `config.example.toml`'a hiçbir yeni anahtar eklenmedi, `material.py`'ye
 hiçbir kod eklenmedi -- bu görev tamamen araştırma/rapor aşamasında
 kaldı.
+
+## ACİL prod fix -- ElevenLabs TTS "failed to synthesize narration audio"
+
+**Bildirilen hata:** Gerçek üretimde TTS başarısız oluyordu, kullanıcı
+GÖREV 6'nın (bir gece önceki ElevenLabs Music entegrasyonu) TTS ile
+çakıştığından şüpheleniyordu.
+
+**Teşhis (`journalctl` + `storage/tasks/`):** En son başarısız görev
+(`04350069`, pacing=`extended`, `voice_name=elevenlabs:...`) incelendi:
+script 7759 karakter. Log'lar aynı deseni gösterdi (09:04 VE 10:53,
+~2 saat arayla): `elevenlabs_tts` 3 denemenin ÜÇÜNDE de AYNI hatayla
+başarısız -- `HTTPSConnectionPool(...): Read timed out. (read
+timeout=60)`.
+
+**GÖREV 6 KESİN OLARAK ELENDİ:** `voice.py` bir önceki gece HİÇ
+değiştirilmemiş (`git log`/`git diff` ile doğrulandı) -- son değişikliği
+haftalar önceki bir GÖREV'e ait. `config.toml`'ın `[elevenlabs]`
+bölümünde de çakışma yok: TTS `api_key`/`model_id` okuyor,
+`elevenlabs_music.py` (GÖREV 6) `api_key`'i PAYLAŞIYOR (kasıtlı, GÖREV
+6'nın kendi tasarımı) ama `music_model_id`/`music_timeout` gibi TAMAMEN
+AYRI anahtarlar kullanıyor -- hiçbiri üzerine yazılmamış. Ayrıca GÖREV
+6'nın kodu pipeline'da stage 12'de (video render) çalışıyor, bu görevin
+BAŞARISIZ olduğu stage 9 (TTS)'dan SONRA -- yani bu spesifik görevde
+GÖREV 6 kodu hiç ÇALIŞMAMIŞ bile.
+
+**Gerçek kök neden:** `audio_renderer.render_narration()`, script'in
+TAMAMINI (`script.full_text`) TEK bir ElevenLabs isteğinde gönderiyor;
+`elevenlabs_tts()` bu isteğe SABİT `timeout=60` uyguluyor. "Extended"
+pacing (10dk video) ~7-8bin karakterlik script üretiyor -- bu uzunlukta
+bir sentezin ElevenLabs sunucusunda tamamlanması genellikle 60sn'yi
+aşıyor (GERÇEK API İLE DOĞRULANDI: aynı 7759 karakterlik script'le
+3 deneme de aynı 60sn timeout'ta başarısız oldu, üçü de aynı desende --
+sorun ağ değil, sabit süre limiti). Bu, GÖREV 6'dan TAMAMEN bağımsız,
+"extended" pacing'in İLK KEZ ElevenLabs TTS ile gerçek, uzun bir
+üretimde karşılaştığı, önceden var olan bir gecikme/kapasite hatası.
+
+**AYRI, İKİNCİ bir bulgu (kod hatası DEĞİL, gerçek bir hesap kısıtı):**
+Teşhis sırasında (ve muhtemelen kullanıcının kendi 2 denemesinde) yapılan
+tekrarlanan 60sn'lik zaman aşımı denemeleri (her biri gerçek quota
+tüketmiş olabilir, sunucu tarafında kabul edilip işlenmeye başlanmış
+olabilir) hesabın bu faturalama dönemindeki kotasını sıkıştırmış:
+gerçek bir API çağrısı `401 quota_exceeded` döndürdü ("quota of 165000
+... 2427 credits remaining, 3880 required"). Kota sıfırlanması:
+**2026-08-18**. Bu, KOD DEĞİL, gerçek bir hesap/kullanım kısıtı --
+düzeltilemez, sadece raporlanabilir. Kullanıcının seçenekleri: kredi
+ekleme, sıfırlanmayı bekleme, veya çok uzun (extended pacing) üretimler
+için farklı bir TTS sağlayıcısı kullanma.
+
+**Düzeltme (`app/services/voice.py`):**
+- Yeni `_elevenlabs_tts_timeout(text_length)`: `max(60, len(text) // 15)`,
+  600sn tavanlı (elevenlabs_music.py'nin kendi tavanıyla tutarlı). Kısa
+  metinler (TTS'in asıl, sık kullanılan durumu) hâlâ ~60sn taban alıyor,
+  hiç etkilenmiyor.
+- `_NON_RETRYABLE_STATUSES`'a `"quota_exceeded"` eklendi (netlik için --
+  401 zaten `_NON_RETRYABLE_CODES`'ta olduğu için pratikte zaten
+  retry'lanmıyordu, ama artık kota hatası için özel, doğru bir log mesajı
+  var: "add credits, wait for the next reset, or use a shorter pacing /
+  different TTS provider" -- eskiden yanlış/alakasız "select a different
+  ElevenLabs voice" mesajı gösteriliyordu).
+
+**Test:** `test_voice.py`'ye 4 yeni test (`_elevenlabs_tts_timeout`'un
+gerçek 7759 karakterlik script için 517sn, kısa metin için 60sn, çok
+uzun metin için 600sn tavanı doğru hesapladığı; gerçek istekte hesaplanan
+timeout'un gönderildiği; quota_exceeded'in TEK denemede durduğu (retry
+yok); gerçek ReadTimeout exception'ının hâlâ 3 kez retry'landığı --
+transient network blip'leri için mevcut davranış korunuyor). Tam suite:
+**882 passed, 11 skipped** (878'den +4, sıfır regresyon). `ruff` temiz.
+
+**Gerçek API doğrulaması (kalan kota göz önünde bulundurularak
+kalibre edildi -- tam 7759 karakterlik script'i tekrar denemek kalan
+kotayı riske atardı):** 4643 karakterlik gerçek narration-stili bir
+metinle (`_elevenlabs_tts_timeout(4643)=309s`) gerçek bir istek
+yapıldı -- **BAŞARILI**, 40.5sn'de tamamlandı, `ffprobe` ile doğrulandı:
+`codec=mp3, duration=268.09s` (4.5 dakikalık gerçek, geçerli ses). Bu
+uzunluğun normal koşullarda 60sn sınırına yakın olması (7759 karakterlik
+orijinal script'in ~60/-70sn civarında olması beklenir), orijinal
+başarısızlığın sınırda bir vaka olduğunu ve yeni timeout'un (309-517sn)
+bunun için bol pay bıraktığını doğruluyor.
