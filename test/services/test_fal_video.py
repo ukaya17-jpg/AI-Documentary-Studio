@@ -269,6 +269,102 @@ class TestSubmitVideoJob(unittest.TestCase):
         self.assertFalse(result["success"])
         self.assertIn("network unreachable", result["error"])
 
+    @patch("app.services.fal_video.config.app", _CONFIGURED)
+    @patch("app.services.fal_video.requests.post")
+    def test_success_returns_app_id_matching_the_submitted_model(self, mock_post):
+        mock_post.return_value = _response({"request_id": "req-123"})
+
+        result = FalVideoService().submit_video_job("a wide shot of ancient ruins")
+
+        self.assertEqual(result["app_id"], "fal-ai/kling-video")
+
+
+_CHARACTER_ELEMENTS = [
+    {
+        "name": "Bao",
+        "frontal_image_url": "data:image/jpeg;base64,front",
+        "reference_image_urls": ["data:image/jpeg;base64,threeq", "data:image/jpeg;base64,back"],
+    }
+]
+
+
+class TestCharacterReferenceVideo(unittest.TestCase):
+    """"Bao" planı (kullanıcı onaylı): character_elements her zaman Kling O1
+    Reference-to-Video'ya yönlendirilmeli -- global fal_ai_video_model
+    sağlayıcı seçimi (kling/hailuo/veo) BİLEREK yok sayılmalı, çünkü ne
+    Hailuo ne Veo karakter tutarlılığını destekliyor (bkz.
+    docs/character-consistency-research.md).
+    """
+
+    @patch("app.services.fal_video.config.app", _CONFIGURED)
+    @patch("app.services.fal_video.requests.post")
+    def test_character_elements_route_to_kling_o1_regardless_of_default_provider(self, mock_post):
+        from app.services.fal_video import DEFAULT_KLING_CHARACTER_MODEL
+
+        mock_post.return_value = _response({"request_id": "req-char-1"})
+
+        result = FalVideoService().submit_video_job(
+            "Take @Element1 as Bao, walking through a bamboo forest.",
+            duration="5",
+            aspect_ratio="9:16",
+            character_elements=_CHARACTER_ELEMENTS,
+        )
+
+        self.assertTrue(result["success"])
+        self.assertEqual(result["app_id"], "fal-ai/kling-video")
+        call = mock_post.call_args
+        self.assertEqual(call.args[0], f"https://queue.fal.run/{DEFAULT_KLING_CHARACTER_MODEL}")
+        sent_payload = call.kwargs["json"]
+        self.assertEqual(sent_payload["elements"], _CHARACTER_ELEMENTS)
+        self.assertEqual(sent_payload["duration"], "5")
+        self.assertEqual(sent_payload["aspect_ratio"], "9:16")
+
+    @patch("app.services.fal_video.config.app", _HAILUO_CONFIGURED)
+    @patch("app.services.fal_video.requests.post")
+    def test_character_elements_bypass_hailuo_provider_selection(self, mock_post):
+        from app.services.fal_video import DEFAULT_KLING_CHARACTER_MODEL
+
+        mock_post.return_value = _response({"request_id": "req-char-2"})
+
+        result = FalVideoService().submit_video_job(
+            "Take @Element1 as Bao.",
+            character_elements=_CHARACTER_ELEMENTS,
+        )
+
+        self.assertTrue(result["success"])
+        call = mock_post.call_args
+        self.assertEqual(call.args[0], f"https://queue.fal.run/{DEFAULT_KLING_CHARACTER_MODEL}")
+
+    @patch("app.services.fal_video.config.app", _VEO_CONFIGURED)
+    @patch("app.services.fal_video.requests.post")
+    def test_character_elements_bypass_veo_provider_selection(self, mock_post):
+        from app.services.fal_video import DEFAULT_KLING_CHARACTER_MODEL
+
+        mock_post.return_value = _response({"request_id": "req-char-3"})
+
+        FalVideoService().submit_video_job(
+            "Take @Element1 as Bao.",
+            character_elements=_CHARACTER_ELEMENTS,
+        )
+
+        call = mock_post.call_args
+        self.assertEqual(call.args[0], f"https://queue.fal.run/{DEFAULT_KLING_CHARACTER_MODEL}")
+
+    @patch("app.services.fal_video.config.app", _CONFIGURED)
+    @patch("app.services.fal_video.requests.post")
+    def test_empty_character_elements_list_falls_back_to_default_provider(self, mock_post):
+        # An empty list is falsy -- same as not passing character_elements at
+        # all, so a caller with no CharacterReference never accidentally
+        # routes to the character model.
+        mock_post.return_value = _response({"request_id": "req-4"})
+
+        FalVideoService().submit_video_job("a wide shot", character_elements=[])
+
+        call = mock_post.call_args
+        self.assertEqual(
+            call.args[0], "https://queue.fal.run/fal-ai/kling-video/v1/standard/text-to-video"
+        )
+
 
 class TestPollJobStatus(unittest.TestCase):
     @patch("app.services.fal_video.config.app", _CONFIGURED)

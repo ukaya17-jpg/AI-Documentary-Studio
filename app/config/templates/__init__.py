@@ -289,6 +289,35 @@ PROFILE_PROMPTS = {
         ),
         "closing": "End on a resonant, open note that lingers rather than a tidy, fully-resolved conclusion.",
     },
+    # "Bao" planı (kullanıcı onaylı): KASITLI İSTİSNA -- her diğer tone
+    # yukarıda "fast-paced, never slow" diye yazılmış (gece oturumu,
+    # YouTube-dynamic temizliği). Bu tone o kuralı BİLEREK ihlal ediyor:
+    # hedef kitle 3-8 yaş, ve hızlı kesmeler/yoğun tempo bu yaş grubu için
+    # ZARARLI (aşırı uyarım, takip edememe) -- bkz. child_safe_guidance
+    # (script_generator.py) ve docs/future-work.md'nin kids-mode uyarısı.
+    Tone.nurturing: {
+        "style": (
+            "Gentle children's YouTube video (ages 3-8), in the warm, slow, "
+            "reassuring style of shows like Bluey or Ms. Rachel. Favor a "
+            "calm, unhurried pace with simple repetition and clear pauses -- "
+            "the OPPOSITE of a fast-cut, high-energy YouTuber delivery -- "
+            "so a young child can follow every beat."
+        ),
+        "opening_hook": (
+            "Open with a warm, simple greeting to the character's everyday "
+            "world -- a familiar, cozy moment, not a dramatic or urgent one."
+        ),
+        "section_guidance": (
+            "Cover a small, relatable everyday situation, the character's "
+            "simple feeling or challenge, a gentle choice guided by the "
+            "episode's value (kindness, friendship, sharing, patience, or "
+            "courage), and a warm, clear resolution."
+        ),
+        "closing": (
+            "End with the value stated plainly and warmly, and a gentle, "
+            "friendly invitation to join the character again next time."
+        ),
+    },
 }
 
 

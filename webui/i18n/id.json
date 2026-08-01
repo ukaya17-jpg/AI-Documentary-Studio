@@ -469,6 +469,13 @@
     "Documentary AI Video Provider: veo": "Veo",
     "Documentary ElevenLabs Background Music": "Musik Latar ElevenLabs (Dihasilkan AI)",
     "Documentary ElevenLabs Music Prompt": "Gaya Musik (wajib)",
-    "Documentary ElevenLabs Music Prompt Help": "Jelaskan suasana/gaya musik latar yang Anda inginkan (wajib), hingga 1000 karakter -- misalnya \"hangat, sinematik, orkestra yang membangun perlahan\"."
+    "Documentary ElevenLabs Music Prompt Help": "Jelaskan suasana/gaya musik latar yang Anda inginkan (wajib), hingga 1000 karakter -- misalnya \"hangat, sinematik, orkestra yang membangun perlahan\".",
+    "Category: values_education": "Nilai untuk Anak",
+    "Category Preview: values_education": "Kisah sehari-hari yang hangat, mengajarkan kebaikan, persahabatan, dan keberanian kepada anak kecil.",
+    "Tone: nurturing": "Penuh Kasih",
+    "Tone Preview: nurturing": "Suara yang hangat, lembut, dan perlahan, dibuat untuk anak kecil.",
+    "Format: kids": "Anak-anak",
+    "Documentary Publish Kids Review Warning": "Ini adalah konten untuk anak-anak -- sebelum menerbitkan, tonton seluruh video dan pastikan sudah sesuai untuk anak kecil.",
+    "Documentary Publish Kids Review Confirm": "Saya telah menonton seluruh video dan memastikan bahwa video ini sesuai untuk anak-anak."
   }
 }

@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from app.config.profile_dimensions import Format, Pacing, Tone, TopicCategory
 from app.models.asset import AssetPlan
 from app.models.audio import AudioPlan
+from app.models.character import CharacterReference
 from app.models.outline import Outline
 from app.models.publish import PublishResult
 from app.models.quality import QualityVerdict
@@ -26,6 +27,13 @@ class DocumentaryProject(BaseModel):
     # format applied", not "not yet resolved" (see resolve_format).
     format: Format | None = None
     pacing: Pacing = Pacing.short
+    # "Bao" planı (kullanıcı onaylı): topic_category/tone/format ile AYNI
+    # yerde, AYNI desende -- stage 1'de bir kez çözülüp asset_generator ve
+    # ai_video_generator'a parametre olarak geçiyor. character_reference ve
+    # format == Format.kids BİLİNÇLİ OLARAK BİRBİRİNDEN BAĞIMSIZ (Tone/Format
+    # gibi ortogonal iki boyut) -- karakter tutarlılığı, kids-güvenliği
+    # olmadan da (veya tam tersi) teorik olarak kullanılabilir.
+    character_reference: CharacterReference | None = None
 
     voice_name: str = ""
     voice_rate: float = 1.0

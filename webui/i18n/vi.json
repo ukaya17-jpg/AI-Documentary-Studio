@@ -469,6 +469,13 @@
     "Documentary AI Video Provider: veo": "Veo",
     "Documentary ElevenLabs Background Music": "Nhạc Nền ElevenLabs (Do AI Tạo)",
     "Documentary ElevenLabs Music Prompt": "Phong Cách Nhạc (bắt buộc)",
-    "Documentary ElevenLabs Music Prompt Help": "Mô tả tâm trạng/phong cách nhạc nền bạn muốn (bắt buộc), tối đa 1000 ký tự -- ví dụ: \"ấm áp, điện ảnh, dàn nhạc xây dựng chậm rãi\"."
+    "Documentary ElevenLabs Music Prompt Help": "Mô tả tâm trạng/phong cách nhạc nền bạn muốn (bắt buộc), tối đa 1000 ký tự -- ví dụ: \"ấm áp, điện ảnh, dàn nhạc xây dựng chậm rãi\".",
+    "Category: values_education": "Giá Trị Cho Trẻ Em",
+    "Category Preview: values_education": "Những câu chuyện đời thường ấm áp dạy trẻ nhỏ về lòng tốt, tình bạn và sự dũng cảm.",
+    "Tone: nurturing": "Ân Cần",
+    "Tone Preview: nurturing": "Một giọng kể ấm áp, chậm rãi và nhẹ nhàng, dành cho trẻ nhỏ.",
+    "Format: kids": "Trẻ Em",
+    "Documentary Publish Kids Review Warning": "Đây là nội dung dành cho trẻ em -- trước khi đăng, hãy xem toàn bộ video và xác nhận nó phù hợp với trẻ nhỏ.",
+    "Documentary Publish Kids Review Confirm": "Tôi đã xem toàn bộ video và xác nhận video này phù hợp với trẻ em."
   }
 }

@@ -18,6 +18,11 @@ class TopicCategory(str, Enum):
     food_culture = "food_culture"
     nature = "nature"
     netflix_style = "netflix_style"
+    # "Bao" planı (kullanıcı onaylı): çocuklara yönelik değerler eğitimi
+    # içeriği -- personal_development'tan KASITLI olarak ayrı (o kategori
+    # yetişkinlere yönelik çerçeveli, "somut hikayeler/araştırma" istiyor;
+    # bu, 3-8 yaş için tamamen farklı bir ses/güvenlik profili gerektiriyor).
+    values_education = "values_education"
 
 
 class Tone(str, Enum):
@@ -36,6 +41,12 @@ class Tone(str, Enum):
     savory = "savory"
     majestic = "majestic"
     gripping = "gripping"
+    # "Bao" planı: diğer 15 tonun HEPSİ kasıtlı olarak "fast-paced, punchy,
+    # never slow" (bkz. script_generator.py, 3bc21c2 + gece oturumu
+    # "documentary" temizliği) -- bu, KASITLI bir istisna. 3-8 yaş için
+    # yavaş, sakin, tekrarlayan bir ritim doğru olan, "fast-paced YouTube"
+    # kalıbının çocuk içeriğinde ZARARLI olacağı TEK ton.
+    nurturing = "nurturing"
 
 
 # One default tone per topic category, chosen to match each category's
@@ -67,18 +78,29 @@ DEFAULT_TONE_BY_CATEGORY = {
     TopicCategory.food_culture: Tone.savory,
     TopicCategory.nature: Tone.majestic,
     TopicCategory.netflix_style: Tone.gripping,
+    # "Bao" planı (kullanıcı onaylı): values_education her zaman nurturing --
+    # tone_override yolu teorik olarak var ama bu kategori için başka bir
+    # tonun anlamı yok (bkz. yukarıdaki nurturing tanımı).
+    TopicCategory.values_education: Tone.nurturing,
 }
 
 
 class Format(str, Enum):
     """What kind of content this is (independent of Tone, which is how it
-    sounds, and Pacing, which is how long/fast it is). `educational` and
-    `corporate` are implemented -- podcast/kids are deliberately not modeled
-    here yet; see PROGRESS.md for why each needs its own separate decision.
+    sounds, and Pacing, which is how long/fast it is). `educational`,
+    `corporate`, and `kids` are implemented -- podcast is deliberately not
+    modeled here yet; see PROGRESS.md for why.
+
+    `kids` MUST always be paired with the mandatory
+    `_child_safe_guidance_instructions()` layer in script_generator.py --
+    see docs/future-work.md's original warning against shipping a
+    vocabulary-only kids mode without a real safety layer. Never treat
+    `kids` as just another style/vocabulary switch.
     """
 
     educational = "educational"
     corporate = "corporate"
+    kids = "kids"
 
 
 class Pacing(str, Enum):

@@ -8,6 +8,7 @@ the actual download/generation.
 
 from app.config.profile_dimensions import TopicCategory
 from app.models.asset import AssetCandidate, AssetPlan
+from app.models.character import CharacterReference
 from app.models.script import Script
 from app.models.storyboard import Storyboard
 
@@ -52,6 +53,7 @@ def build_asset_plan(
     provider: str = "pexels",
     topic_category: TopicCategory | None = None,
     script: Script | None = None,
+    character_reference: CharacterReference | None = None,
 ) -> AssetPlan:
     narration_by_scene = {line.scene_index: line.text for line in script.lines} if script else {}
 
@@ -61,6 +63,12 @@ def build_asset_plan(
             prompt = f"{shot.shot_type}: {shot.description}" if shot.shot_type else shot.description
             if topic_category == TopicCategory.film_highlights:
                 prompt += _FILM_HIGHLIGHTS_LIKENESS_GUARD
+            if character_reference is not None:
+                # Kling O1 Reference-to-Video only applies `elements[]` when
+                # the prompt explicitly addresses it as "@Element1" (see
+                # docs/character-consistency-research.md) -- without this
+                # prefix the reference images are silently ignored.
+                prompt = f"Take @Element1 as {character_reference.name}. {prompt}"
             # script=None (no real narration text available yet, e.g. an
             # isolated/unit-test call) preserves the old, always-"5"
             # behavior exactly -- no regression.

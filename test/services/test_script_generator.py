@@ -282,6 +282,52 @@ class TestGrowthGuidance(unittest.TestCase):
         self.assertIn("a new concrete detail or turn should surface", prompt)
 
 
+class TestChildSafeGuidance(unittest.TestCase):
+    """"Bao" planı (kullanıcı onaylı, ÇOCUK GÜVENLİĞİ -- ZORUNLU): Format.kids
+    dışında hiçbir şey eklememeli (no-op), Format.kids ile ise 7 somut kural
+    HER ZAMAN metinde olmalı -- kapatılamaz, webui'de toggle yok.
+    """
+
+    def test_absent_without_kids_format(self):
+        prompt = script_generator.build_script_prompt(_scene_plan(), "Topic")
+        self.assertNotIn("Child safety requirements", prompt)
+
+    def test_absent_for_other_formats(self):
+        for fmt in (Format.educational, Format.corporate):
+            prompt = script_generator.build_script_prompt(_scene_plan(), "Topic", format=fmt)
+            self.assertNotIn("Child safety requirements", prompt, f"leaked for {fmt}")
+
+    def test_present_and_mandatory_for_kids_format(self):
+        prompt = script_generator.build_script_prompt(_scene_plan(), "Topic", format=Format.kids)
+        self.assertIn("Child safety requirements (mandatory for kids content):", prompt)
+        self.assertIn("Age-appropriate language", prompt)
+        self.assertIn("No violence", prompt)
+        self.assertIn("No death or serious peril", prompt)
+        self.assertIn("No scary imagery", prompt)
+        self.assertIn("No frightening real-world topics", prompt)
+        self.assertIn("Positive resolution", prompt)
+        self.assertIn("No commercial pressure", prompt)
+
+    def test_suppresses_engagement_but_keeps_closing_nudge_for_kids(self):
+        # Yorum-daveti küçük çocuklara uygun değil, ama "bir dahaki bölümde
+        # görüşürüz" tarzı kapanış zararsız/standart -- KORUNUYOR.
+        prompt = script_generator.build_script_prompt(_scene_plan(), "Topic", format=Format.kids)
+        self.assertNotIn("Engagement:", prompt)
+        self.assertIn("Closing nudge:", prompt)
+
+    def test_kids_format_line_present_alongside_child_safety(self):
+        prompt = script_generator.build_script_prompt(_scene_plan(), "Topic", format=Format.kids)
+        self.assertIn("Format:", prompt)
+        self.assertIn(script_generator.FORMAT_GUIDANCE[Format.kids], prompt)
+
+    def test_appears_after_growth_requirements(self):
+        prompt = script_generator.build_script_prompt(_scene_plan(), "Topic", format=Format.kids)
+        self.assertLess(
+            prompt.index("Growth requirements:"),
+            prompt.index("Child safety requirements"),
+        )
+
+
 class TestCustomRequirements(unittest.TestCase):
     """GÖREV F (kullanıcı onaylı): kullanıcının kendi ek talimatları --
     otomatik büyüme ilkelerinin (Growth requirements) YERİNE değil, onun

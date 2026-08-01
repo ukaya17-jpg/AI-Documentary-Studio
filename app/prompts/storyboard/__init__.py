@@ -68,6 +68,13 @@ SHOT_GUIDANCE = {
         "low-light scenes -- avoid search terms referencing any specific "
         "streaming platform or real production by name."
     ),
+    TopicCategory.values_education: (
+        "Favor warm, simple, everyday scenes centered on the recurring "
+        "character: bright daylight settings (a garden, a park, a cozy "
+        "room), soft rounded shapes, gentle character expressions and "
+        "small friendly gestures -- never dim lighting, shadows, or "
+        "tense/dramatic framing."
+    ),
 }
 
 

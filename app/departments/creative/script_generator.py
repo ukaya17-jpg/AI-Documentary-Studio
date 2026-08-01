@@ -43,13 +43,19 @@ TONE_VOICE_GUIDANCE = {
     Tone.savory: "warm and sensory, reacting fast to every bite -- like a food YouTuber devouring the moment on camera, never a slow, lingering food-doc narration",
     Tone.majestic: "grand and reverent, awed by scale, delivered in short punchy bursts -- like a landscape YouTuber reacting live to something vast, never a slow, reverent pan",
     Tone.gripping: "tense and fast-building, escalating stakes every beat -- like a thriller YouTuber racing toward the big reveal, never a slow, withholding prestige-doc pace",
+    # "Bao" planı (kullanıcı onaylı): KASITLI İSTİSNA -- yukarıdaki her ton
+    # bilerek "fast-paced, never slow/hushed/dry" (bkz. dosya üstü GÖREV 2
+    # notu). Bu ton o kuralı BİLEREK ihlal ediyor: 3-8 yaş hedef kitlesi
+    # için hızlı/yoğun tempo ZARARLI -- yavaş, sıcak, tekrarlayan bir ritim
+    # bu tek istisnanın doğru davranışı (bkz. child_safe_guidance).
+    Tone.nurturing: "warm, slow, and gentle, with simple words and clear pauses between ideas -- like a beloved children's show host speaking directly and patiently to a young child, never fast-paced or high-energy",
 }
 
 # Format is orthogonal to Tone: Tone shapes how the narration sounds (voice),
 # Format shapes what job it does for the viewer (structure/purpose) -- an
-# epic-toned space documentary can still be educational. `educational` and
-# `corporate` are implemented; podcast/kids are deliberately not modeled yet
-# (see PROGRESS.md for why each needs its own separate decision).
+# epic-toned space documentary can still be educational. `educational`,
+# `corporate`, and `kids` are implemented; podcast is deliberately not
+# modeled yet (see PROGRESS.md for why).
 FORMAT_GUIDANCE = {
     Format.educational: (
         "structure this as an educational explainer -- briefly define any "
@@ -63,6 +69,12 @@ FORMAT_GUIDANCE = {
         "promotional or salesy language, use a neutral third-person voice "
         "instead of direct address, and ground claims in concrete data, "
         "figures, or verifiable facts rather than vague claims of excellence"
+    ),
+    Format.kids: (
+        "structure this as a gentle children's story -- one simple scenario "
+        "with a clear beginning, a small challenge, and a warm resolution "
+        "that plainly demonstrates the episode's value, told directly to a "
+        "young child listening at home"
     ),
 }
 
@@ -123,12 +135,50 @@ def _growth_guidance_instructions(format: Format | None) -> str:
             "watching or follow along, phrased as a natural continuation of "
             "the story rather than a jingle or direct sales pitch."
         )
-        lines.append(
-            "- Engagement: include one natural open-ended question or "
-            "invitation for the viewer's own view on the topic, phrased so it "
-            "could prompt a reply -- not a forced or robotic call to comment."
-        )
+        # "Bao" planı (kullanıcı onaylı): "yorum yap" davetini küçük çocuklara
+        # yöneltmek uygun değil -- bu satır kids için de bastırılıyor, ama
+        # yukarıdaki "Closing nudge" (bir sonraki bölümü izlemeye davet)
+        # kids için BİLEREK korunuyor (zararsız, çocuk içeriğinde standart).
+        if format != Format.kids:
+            lines.append(
+                "- Engagement: include one natural open-ended question or "
+                "invitation for the viewer's own view on the topic, phrased so it "
+                "could prompt a reply -- not a forced or robotic call to comment."
+            )
     return "\n\nGrowth requirements:\n" + "\n".join(lines)
+
+
+# "Bao" planı (kullanıcı onaylı, ÇOCUK GÜVENLİĞİ -- ZORUNLU, kapatılamaz):
+# _growth_guidance_instructions ile AYNI desen (her zaman açık, webui'de
+# toggle yok) ama TERSİ etkiyle -- o, her formata bir şeyler EKLİYOR; bu,
+# SADECE format == Format.kids olduğunda bir şey ekliyor, aksi halde no-op.
+# docs/future-work.md'nin "vocabulary-only kids mode ASLA gönderilmemeli"
+# uyarısını karşılamak için var -- Format.kids'i BU fonksiyon olmadan asla
+# kullanma.
+def _child_safe_guidance_instructions(format: Format | None) -> str:
+    if format != Format.kids:
+        return ""
+    lines = [
+        "- Age-appropriate language: vocabulary and sentence structure a "
+        "3-8 year old understands -- short sentences, common words, no "
+        "abstract or complex vocabulary.",
+        "- No violence: no fighting, weapons, physical harm, or threats, "
+        "even played for comedy or as cartoon slapstick.",
+        "- No death or serious peril: no character death, near-death "
+        "danger, or life-threatening situations -- conflicts resolve "
+        "through kindness, sharing, or cooperation, never through danger.",
+        "- No scary imagery or atmosphere: no monsters, jump-scares, or "
+        "content designed to frighten.",
+        "- No frightening real-world topics: no war, loss of a family "
+        "member, illness, or other real-world fears -- teach the episode's "
+        "value (e.g. courage) through a gentle, everyday scenario (helping "
+        "a friend, sharing a toy), never through danger or loss.",
+        "- Positive resolution: every episode ends with the value clearly "
+        "and warmly demonstrated -- no ambiguous or unresolved ending.",
+        "- No commercial pressure: no calls to buy anything, no brand "
+        "mentions.",
+    ]
+    return "\n\nChild safety requirements (mandatory for kids content):\n" + "\n".join(lines)
 
 
 def build_script_prompt(
@@ -177,6 +227,7 @@ closely as possible so the timing lines up with the scene's on-screen duration:
             prompt += f"\n\nFormat: {format_guidance}."
     prompt += _story_craft_instructions(scene_plan, outline)
     prompt += _growth_guidance_instructions(format)
+    prompt += _child_safe_guidance_instructions(format)
     # GÖREV F (kullanıcı onaylı): kullanıcının kendi ek talimatları --
     # otomatik büyüme ilkelerinin (yukarıdaki _growth_guidance_instructions)
     # YERİNE değil, onun HEMEN ARDINA ek bir blok olarak ekleniyor, böylece

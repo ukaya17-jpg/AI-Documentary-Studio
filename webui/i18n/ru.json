@@ -469,6 +469,13 @@
     "Documentary AI Video Provider: veo": "Veo",
     "Documentary ElevenLabs Background Music": "Фоновая музыка ElevenLabs (создано ИИ)",
     "Documentary ElevenLabs Music Prompt": "Стиль музыки (обязательно)",
-    "Documentary ElevenLabs Music Prompt Help": "Опишите настроение/стиль фоновой музыки, которую вы хотите (обязательно), до 1000 символов -- например, «тёплый, кинематографичный, медленно нарастающий оркестровый»."
+    "Documentary ElevenLabs Music Prompt Help": "Опишите настроение/стиль фоновой музыки, которую вы хотите (обязательно), до 1000 символов -- например, «тёплый, кинематографичный, медленно нарастающий оркестровый».",
+    "Category: values_education": "Ценности для детей",
+    "Category Preview: values_education": "Тёплые истории из повседневной жизни, которые учат маленьких детей доброте, дружбе и смелости.",
+    "Tone: nurturing": "Заботливый",
+    "Tone Preview: nurturing": "Тёплый, медленный и нежный голос, созданный для маленьких детей.",
+    "Format: kids": "Детский",
+    "Documentary Publish Kids Review Warning": "Это детский контент -- перед публикацией посмотрите видео полностью и убедитесь, что оно подходит для маленьких детей.",
+    "Documentary Publish Kids Review Confirm": "Я посмотрел(а) видео полностью и подтверждаю, что оно подходит для детей."
   }
 }

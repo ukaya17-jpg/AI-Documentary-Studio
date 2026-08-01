@@ -19,6 +19,7 @@ from app.config.profile_dimensions import (
     resolve_pacing,
     resolve_tone,
 )
+from app.models.character import CharacterReference
 from app.models.documentary_project import DocumentaryProject
 from app.models.schema import VideoAspect, VideoConcatMode
 from app.models.script import Script
@@ -80,6 +81,7 @@ def run_pipeline(
     video_music_prompt: str = "",
     custom_system_prompt: str = "",
     custom_requirements: str = "",
+    character_reference: CharacterReference | None = None,
     on_stage_change: Callable[[int, str], None] | None = None,
     on_substage_progress: Callable[[int, int], None] | None = None,
 ) -> DocumentaryProject:
@@ -99,6 +101,14 @@ def run_pipeline(
     take many minutes (each AI clip takes ~6min to generate). Unused (never
     called) for every stock video_source, exactly like on_stage_change,
     `None` changes nothing.
+
+    `character_reference`, if given, is threaded straight into stage 7
+    (asset_generator.build_asset_plan, for the "@Element1" prompt prefix)
+    and stage 8 (ai_video_generator.generate_ai_clips, for the actual
+    Kling O1 API call) -- see docs/character-consistency-research.md. It is
+    orthogonal to `format`/`Format.kids`: a character-consistent project is
+    not required to also be kids-safe, and vice versa (same relationship as
+    `tone`/`format`).
     """
     resolved_pacing = resolve_pacing(pacing)
     # Unlike tone, format doesn't depend on topic_category -- it can be
@@ -120,6 +130,7 @@ def run_pipeline(
         video_music_prompt=video_music_prompt,
         custom_system_prompt=custom_system_prompt,
         custom_requirements=custom_requirements,
+        character_reference=character_reference,
     )
 
     def stage(n: int, name: str):
@@ -194,6 +205,7 @@ def run_pipeline(
             provider=video_source,
             topic_category=project.topic_category,
             script=project.script,
+            character_reference=character_reference,
         )
         utils.save_project_snapshot(project)
 
@@ -205,6 +217,7 @@ def run_pipeline(
                 project.asset_plan,
                 task_id=project.project_id,
                 aspect_ratio=video_aspect,
+                character_reference=character_reference,
                 on_substage_progress=on_substage_progress,
             )
         else:

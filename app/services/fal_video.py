@@ -40,6 +40,14 @@ DEFAULT_HAILUO_MODEL = "fal-ai/minimax/hailuo-02/standard/text-to-video"
 # kasıtlı olarak Veo'nun EN UCUZ kademesi (720p, sessiz: $0.10/s) seçildi.
 # Yine de Kling'in (~$0.045/s) ~2x'i -- bkz. PROGRESS.md maliyet notu.
 DEFAULT_VEO_MODEL = "fal-ai/veo3.1/fast"
+# "Bao" planı (kullanıcı onaylı): karakter-tutarlı üretim, gerçek API ile
+# doğrulandı (docs/character-consistency-research.md) -- ne Hailuo ne Veo bu
+# özelliği destekliyor, o yüzden bu, `fal_ai_video_model` (kling/hailuo/veo)
+# seçiminden AYRI, kendi sabit modeli. Aynı "fal-ai/kling-video" app_id'sini
+# DEFAULT_KLING_MODEL ile paylaşıyor (ikisi de Kling'in aynı fal.ai
+# namespace'inde), bu yüzden status/result endpoint'leri her iki model için
+# de aynı şekilde çalışır.
+DEFAULT_KLING_CHARACTER_MODEL = "fal-ai/kling-video/o1/standard/reference-to-video"
 _DEFAULT_VIDEO_PROVIDER = "kling"
 
 # Kling ("5"/"10") ve Hailuo ("6"/"10", resmi API dokümantasyonuna göre)
@@ -88,8 +96,12 @@ class FalVideoService:
         return bool(self.api_key)
 
     @property
-    def _app_id(self) -> str:
-        """The "owner/app-name" prefix of self.model, WITHOUT the version/
+    def character_model(self) -> str:
+        return config.app.get("fal_kling_character_model", DEFAULT_KLING_CHARACTER_MODEL)
+
+    @staticmethod
+    def _app_id_for(model: str) -> str:
+        """The "owner/app-name" prefix of a model id, WITHOUT the version/
         tier subpath (e.g. "fal-ai/kling-video", not ".../v1/standard/
         text-to-video"). fal.ai's queue status/result/cancel endpoints must
         be called against this base app id -- the full endpoint (with
@@ -97,8 +109,12 @@ class FalVideoService:
         empirically against the real API: including the subpath in a
         status/result GET returns 405 Method Not Allowed.
         """
-        parts = self.model.split("/")
+        parts = model.split("/")
         return "/".join(parts[:2])
+
+    @property
+    def _app_id(self) -> str:
+        return self._app_id_for(self.model)
 
     def _headers(self) -> dict:
         return {
@@ -156,21 +172,48 @@ class FalVideoService:
             payload["negative_prompt"] = negative_prompt
         return payload
 
+    def _build_kling_character_payload(
+        self, prompt: str, duration: str, aspect_ratio: str, character_elements: list[dict]
+    ) -> dict:
+        """fal-ai/kling-video/o1/standard/reference-to-video's real `elements[]`
+        request shape (`OmniVideoElementInput`) -- see
+        docs/character-consistency-research.md for the live schema source and
+        a real, verified test. Duration here is O1's own "3".."10" enum;
+        AssetCandidate.ai_duration only ever produces "5"/"10", both valid in
+        this range too, so unlike Hailuo/Veo no remapping is needed.
+        """
+        return {
+            "prompt": prompt,
+            "elements": character_elements,
+            "duration": duration,
+            "aspect_ratio": aspect_ratio,
+        }
+
     def submit_video_job(
         self,
         prompt: str,
         duration: str = "5",
         aspect_ratio: str = "9:16",
         negative_prompt: str = "",
+        character_elements: list[dict] | None = None,
     ) -> dict:
         """Submit one text-to-video job. Never raises -- always returns
-        {"success": True, "request_id": str} or {"success": False, "error": str}.
+        {"success": True, "request_id": str, "app_id": str} or
+        {"success": False, "error": str}.
 
         `duration` is always given in Kling's "5"/"10" shape regardless of
         the active provider (matches AssetCandidate.ai_duration, the single
         source of truth webui's cost estimate also reads) -- if the active
         provider is Hailuo, it's internally remapped to Hailuo's own
         duration enum before being sent.
+
+        `character_elements`, if given (see CharacterReference.model_dump()),
+        ALWAYS routes to Kling O1 Reference-to-Video regardless of the
+        globally configured `fal_ai_video_model` provider (kling/hailuo/veo)
+        -- only Kling O1 supports character-reference consistency (see
+        docs/character-consistency-research.md), so the provider selector is
+        deliberately bypassed here rather than silently generating a
+        character-inconsistent clip on Hailuo/Veo.
         """
         if not self.is_configured():
             return {
@@ -180,16 +223,24 @@ class FalVideoService:
         if not prompt.strip():
             return {"success": False, "error": "prompt is empty"}
 
-        if self.provider == "hailuo":
+        if character_elements:
+            model = self.character_model
+            payload = self._build_kling_character_payload(
+                prompt, duration, aspect_ratio, character_elements
+            )
+        elif self.provider == "hailuo":
+            model = self.model
             payload = self._build_hailuo_payload(prompt, duration)
         elif self.provider == "veo":
+            model = self.model
             payload = self._build_veo_payload(prompt, duration, aspect_ratio, negative_prompt)
         else:
+            model = self.model
             payload = self._build_kling_payload(prompt, duration, aspect_ratio, negative_prompt)
 
         try:
             response = requests.post(
-                f"{_QUEUE_BASE}/{self.model}",
+                f"{_QUEUE_BASE}/{model}",
                 headers=self._headers(),
                 json=payload,
                 timeout=_SUBMIT_TIMEOUT,
@@ -199,18 +250,29 @@ class FalVideoService:
             request_id = data.get("request_id", "")
             if not request_id:
                 return {"success": False, "error": "fal.ai response missing request_id"}
-            return {"success": True, "request_id": request_id}
+            return {
+                "success": True,
+                "request_id": request_id,
+                "app_id": self._app_id_for(model),
+            }
         except Exception as e:
             logger.warning(f"fal_video: submit_video_job failed: {e}")
             return {"success": False, "error": str(e)}
 
-    def poll_job_status(self, request_id: str) -> dict:
+    def poll_job_status(self, request_id: str, app_id: str | None = None) -> dict:
         """Returns {"success": True, "status": "IN_QUEUE"|"IN_PROGRESS"|"COMPLETED"}
         or {"success": False, "error": str}.
+
+        `app_id`, if given, overrides the app id derived from the currently
+        configured provider (self._app_id) -- needed so a job submitted for
+        one model (e.g. a character job, always Kling regardless of the
+        active provider) is still polled against the SAME app id even if the
+        global provider setting changes in between (see submit_video_job's
+        returned "app_id").
         """
         try:
             response = requests.get(
-                f"{_QUEUE_BASE}/{self._app_id}/requests/{request_id}/status",
+                f"{_QUEUE_BASE}/{app_id or self._app_id}/requests/{request_id}/status",
                 headers=self._headers(),
                 timeout=_STATUS_TIMEOUT,
             )
@@ -224,11 +286,14 @@ class FalVideoService:
             logger.warning(f"fal_video: poll_job_status failed for {request_id}: {e}")
             return {"success": False, "error": str(e)}
 
-    def get_job_result(self, request_id: str) -> dict:
-        """Returns {"success": True, "video_url": str} or {"success": False, "error": str}."""
+    def get_job_result(self, request_id: str, app_id: str | None = None) -> dict:
+        """Returns {"success": True, "video_url": str} or {"success": False, "error": str}.
+
+        See poll_job_status's `app_id` docstring -- same override reason.
+        """
         try:
             response = requests.get(
-                f"{_QUEUE_BASE}/{self._app_id}/requests/{request_id}",
+                f"{_QUEUE_BASE}/{app_id or self._app_id}/requests/{request_id}",
                 headers=self._headers(),
                 timeout=_RESULT_TIMEOUT,
             )

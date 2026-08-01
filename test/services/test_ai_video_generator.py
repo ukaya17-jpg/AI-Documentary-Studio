@@ -184,11 +184,80 @@ class TestGenerateAiClips(unittest.TestCase):
         ai_video_generator.generate_ai_clips(plan, self.task_id, aspect_ratio="9:16")
 
         mock_service.submit_video_job.assert_any_call(
-            "wide shot of ancient ruins", duration="5", aspect_ratio="9:16"
+            "wide shot of ancient ruins",
+            duration="5",
+            aspect_ratio="9:16",
+            character_elements=None,
         )
         mock_service.submit_video_job.assert_any_call(
-            "close-up of stone carvings", duration="10", aspect_ratio="9:16"
+            "close-up of stone carvings",
+            duration="10",
+            aspect_ratio="9:16",
+            character_elements=None,
         )
+
+    @patch("app.departments.production.ai_video_generator.time.sleep")
+    @patch("app.departments.production.ai_video_generator.fal_video_service")
+    def test_character_reference_is_passed_as_character_elements(self, mock_service, mock_sleep):
+        """"Bao" planı: character_reference verildiğinde her submit_video_job
+        çağrısı, model_dump()'ı character_elements listesi içinde alır --
+        Kling O1'in elements[] şeması (bkz. docs/character-consistency-research.md).
+        """
+        from app.models.character import CharacterReference
+
+        plan = _plan({0: "wide shot of ancient ruins"})
+        character_reference = CharacterReference(
+            name="Bao", frontal_image_url="data:image/jpeg;base64,front"
+        )
+        mock_service.submit_video_job.return_value = {
+            "success": True,
+            "request_id": "req-0",
+            "app_id": "fal-ai/kling-video",
+        }
+        mock_service.poll_job_status.return_value = {"success": True, "status": "COMPLETED"}
+        mock_service.get_job_result.return_value = {
+            "success": True,
+            "video_url": "https://v2.fal.media/clip.mp4",
+        }
+        mock_service.download_video.return_value = True
+
+        ai_video_generator.generate_ai_clips(
+            plan, self.task_id, character_reference=character_reference
+        )
+
+        mock_service.submit_video_job.assert_any_call(
+            "wide shot of ancient ruins",
+            duration="5",
+            aspect_ratio="9:16",
+            character_elements=[character_reference.model_dump()],
+        )
+
+    @patch("app.departments.production.ai_video_generator.time.sleep")
+    @patch("app.departments.production.ai_video_generator.fal_video_service")
+    def test_app_id_from_submit_is_passed_to_poll_and_result(self, mock_service, mock_sleep):
+        """poll_job_status/get_job_result must be called with the SAME app_id
+        submit_video_job returned -- not silently re-derived from whatever
+        the live provider config says at poll time (see fal_video.py's
+        app_id override docstrings; this matters when a character job is
+        submitted while a different provider is globally selected).
+        """
+        plan = _plan({0: "wide shot of ancient ruins"})
+        mock_service.submit_video_job.return_value = {
+            "success": True,
+            "request_id": "req-0",
+            "app_id": "fal-ai/kling-video",
+        }
+        mock_service.poll_job_status.return_value = {"success": True, "status": "COMPLETED"}
+        mock_service.get_job_result.return_value = {
+            "success": True,
+            "video_url": "https://v2.fal.media/clip.mp4",
+        }
+        mock_service.download_video.return_value = True
+
+        ai_video_generator.generate_ai_clips(plan, self.task_id)
+
+        mock_service.poll_job_status.assert_any_call("req-0", app_id="fal-ai/kling-video")
+        mock_service.get_job_result.assert_any_call("req-0", app_id="fal-ai/kling-video")
 
 
 if __name__ == "__main__":

@@ -469,6 +469,13 @@
     "Documentary AI Video Provider: veo": "Veo",
     "Documentary ElevenLabs Background Music": "ElevenLabs Arka Plan Müziği (AI Üretimi)",
     "Documentary ElevenLabs Music Prompt": "Müzik Stili (zorunlu)",
-    "Documentary ElevenLabs Music Prompt Help": "İstediğiniz arka plan müziğinin ruh halini/stilini tarif edin (zorunlu), en fazla 1000 karakter -- örn. \"sıcak, sinematik, yavaş yükselen orkestral\"."
+    "Documentary ElevenLabs Music Prompt Help": "İstediğiniz arka plan müziğinin ruh halini/stilini tarif edin (zorunlu), en fazla 1000 karakter -- örn. \"sıcak, sinematik, yavaş yükselen orkestral\".",
+    "Category: values_education": "Çocuklar İçin Değerler",
+    "Category Preview: values_education": "Küçük çocuklara iyilik, arkadaşlık ve cesareti öğreten sıcak, günlük hikayeler.",
+    "Tone: nurturing": "Şefkatli",
+    "Tone Preview: nurturing": "Küçük çocuklar için sıcak, yavaş ve nazik bir anlatım.",
+    "Format: kids": "Çocuklar",
+    "Documentary Publish Kids Review Warning": "Bu, çocuklara yönelik bir içerik -- yayınlamadan önce videonun tamamını izleyip çocuklar için uygun olduğunu onaylayın.",
+    "Documentary Publish Kids Review Confirm": "Bu videoyu tamamen izledim ve çocuklar için uygun olduğunu onaylıyorum."
   }
 }

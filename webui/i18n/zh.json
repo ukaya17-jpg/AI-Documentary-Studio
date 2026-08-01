@@ -496,6 +496,13 @@
     "Documentary AI Video Provider: veo": "Veo",
     "Documentary ElevenLabs Background Music": "ElevenLabs 背景音乐（AI 生成）",
     "Documentary ElevenLabs Music Prompt": "音乐风格（必填）",
-    "Documentary ElevenLabs Music Prompt Help": "描述您想要的背景音乐情绪/风格（必填），最多1000个字符——例如“温暖、电影感、缓慢渐强的管弦乐”。"
+    "Documentary ElevenLabs Music Prompt Help": "描述您想要的背景音乐情绪/风格（必填），最多1000个字符——例如“温暖、电影感、缓慢渐强的管弦乐”。",
+    "Category: values_education": "儿童品格教育",
+    "Category Preview: values_education": "温暖的日常故事，教小朋友学会善良、友谊与勇气。",
+    "Tone: nurturing": "温柔呵护",
+    "Tone Preview: nurturing": "为幼儿打造的温暖、舒缓、轻柔的讲述声音。",
+    "Format: kids": "儿童向",
+    "Documentary Publish Kids Review Warning": "这是儿童内容——发布前请完整观看整个视频，并确认内容适合幼儿观看。",
+    "Documentary Publish Kids Review Confirm": "我已完整观看整个视频，确认其内容适合儿童。"
   }
 }

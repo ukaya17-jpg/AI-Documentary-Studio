@@ -70,6 +70,12 @@ CATEGORY_KEYWORDS = {
         "true crime", "docuseries", "investigative documentary", "prestige documentary",
         "streaming documentary", "gerilim belgeseli", "belgesel dizi",
     ],
+    TopicCategory.values_education: [
+        "kindness", "friendship", "sharing", "perseverance", "courage",
+        "children's story", "kids show", "moral lesson", "values for kids",
+        "iyilik", "arkadaşlık", "paylaşma", "azim", "kahramanlık",
+        "çocuk hikayesi", "değerler eğitimi",
+    ],
 }
 
 

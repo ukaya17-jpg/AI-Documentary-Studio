@@ -28,6 +28,7 @@ from typing import Callable
 from loguru import logger
 
 from app.models.asset import AssetPlan
+from app.models.character import CharacterReference
 from app.services.fal_video import fal_video_service
 from app.utils import utils
 
@@ -67,6 +68,7 @@ def generate_ai_clips(
     asset_plan: AssetPlan,
     task_id: str,
     aspect_ratio: str = "9:16",
+    character_reference: CharacterReference | None = None,
     on_substage_progress: Callable[[int, int], None] | None = None,
 ) -> AssetPlan:
     """Generate one AI video clip per asset_plan candidate via fal.ai/Kling.
@@ -77,6 +79,11 @@ def generate_ai_clips(
     only the specific scenes whose real narration actually needs the extra
     seconds get billed for "10"; scenes that fit in "5" stay at "5" (see
     asset_generator._kling_duration_for_word_count for the cost rationale).
+
+    `character_reference`, if given, is passed to every submit_video_job()
+    call as `character_elements` -- see docs/character-consistency-research.md
+    and fal_video.submit_video_job's docstring for why this always routes to
+    Kling O1 regardless of the globally configured AI video provider.
 
     Submits every candidate's job up front, then polls all still-pending
     jobs together each iteration until each one completes, fails, or the
@@ -102,15 +109,23 @@ def generate_ai_clips(
 
     total = len(candidates)
     task_directory = utils.task_dir(task_id)
+    character_elements = [character_reference.model_dump()] if character_reference else None
 
-    jobs: dict[int, str] = {}
+    # app_id is carried alongside request_id (not re-derived from the live
+    # provider config at poll time) so a character job stays correctly
+    # addressed even if the global fal_ai_video_model setting changes while
+    # it's in flight -- see fal_video.submit_video_job's returned "app_id".
+    jobs: dict[int, tuple[str, str]] = {}
     failures: list[tuple[int, str]] = []
     for candidate in candidates:
         result = fal_video_service.submit_video_job(
-            candidate.prompt, duration=candidate.ai_duration, aspect_ratio=aspect_ratio
+            candidate.prompt,
+            duration=candidate.ai_duration,
+            aspect_ratio=aspect_ratio,
+            character_elements=character_elements,
         )
         if result["success"]:
-            jobs[candidate.scene_index] = result["request_id"]
+            jobs[candidate.scene_index] = (result["request_id"], result.get("app_id", ""))
         else:
             failures.append((candidate.scene_index, result["error"]))
             logger.warning(
@@ -122,8 +137,8 @@ def generate_ai_clips(
     for _ in range(_MAX_POLL_ITERATIONS):
         if not pending:
             break
-        for scene_index, request_id in list(pending.items()):
-            status_result = fal_video_service.poll_job_status(request_id)
+        for scene_index, (request_id, app_id) in list(pending.items()):
+            status_result = fal_video_service.poll_job_status(request_id, app_id=app_id)
             if not status_result["success"]:
                 failures.append((scene_index, status_result["error"]))
                 del pending[scene_index]
@@ -137,7 +152,7 @@ def generate_ai_clips(
             if status != _TERMINAL_STATUS:
                 continue  # IN_QUEUE / IN_PROGRESS -- check again next iteration
 
-            result = fal_video_service.get_job_result(request_id)
+            result = fal_video_service.get_job_result(request_id, app_id=app_id)
             if not result["success"]:
                 failures.append((scene_index, result["error"]))
                 del pending[scene_index]

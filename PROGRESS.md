@@ -4091,3 +4091,84 @@ YAPISAL: LLM'e giden 16 farklı prompt'tan (14 PROFILE_PROMPTS style +
 kaldırıldı -- kullanıcının "hâlâ belgesel hissi veriyor" şikayetinin
 gerçek, ölçülebilir kaynağıydı bu, tek bir örnek çıktıdaki öznel fark
 değil.
+
+## "Bao" — karakterli çocuk değerler eğitimi serisi (kullanıcı onaylı, ÇOCUK GÜVENLİĞİ)
+
+**Context:** Bir önceki oturumda `fal-ai/kling-video/o1/standard/reference-to-video`
+ile karakter tutarlılığı gerçek bir API testiyle doğrulanmıştı (bkz.
+`docs/character-consistency-research.md`, panda "Bao" karakteri) -- ama o
+araştırma KASITLI olarak hiçbir pipeline entegrasyonu içermiyordu. Kullanıcı
+bu temel üzerine, "Bao" karakterli 10 bölümlük bir çocuk değerler eğitimi
+serisi (İyilik, Arkadaşlık, Paylaşma, Azim, Kahramanlık) başlattı. Bu, ÇOCUK
+GÜVENLİĞİ gerektiren ilk özellik olduğu için kod yazmadan önce sadece
+kapsamlı bir plan verildi, kullanıcı onayı beklendi (tam otonomi
+VERİLMEDİ) -- `docs/future-work.md`'nin daha önceki "vocabulary-only kids
+mode ASLA gönderilmemeli" uyarısını tam karşılayacak şekilde, karakter
+entegrasyonu VE zorunlu güvenlik katmanı BİRLİKTE teslim edildi.
+
+**Teknik entegrasyon (minimal, cerrahi -- yeni bir akış DEĞİL):**
+- `TopicCategory.values_education` + `Tone.nurturing` (KASITLI İSTİSNA: diğer
+  15 ton "hep hızlı/punchy" iken, bu ton bilerek yavaş/sıcak/sakin --
+  3-8 yaş hedef kitlesi için hızlı tempo zararlı).
+- `Format.kids` -- `docs/future-work.md`'nin şartı gereği, güvenlik
+  katmanıyla AYNI commit'te.
+- `CharacterReference` modeli (`app/models/character.py`) +
+  `DocumentaryProject.character_reference` alanı -- `topic_category`/
+  `tone`/`format` ile AYNI desende, stage 1'de projeye bağlanıyor.
+- `fal_video.py`: yeni `character_elements` parametresi `submit_video_job()`'a
+  eklendi -- verildiğinde, global `fal_ai_video_model` sağlayıcı seçimini
+  (kling/hailuo/veo) BİLEREK atlayıp her zaman Kling O1'e yönlendiriyor
+  (ne Hailuo ne Veo karakter tutarlılığını destekliyor). Bu sırada gerçek
+  bir kenar-durum bug'ı bulunup düzeltildi: `poll_job_status`/`get_job_result`
+  submit anındaki `app_id`'yi ALMIYORDU, her zaman O ANKİ provider config'inden
+  yeniden türetiyordu -- global sağlayıcı bir karakter işi devam ederken
+  değişirse yanlış endpoint'i poll ederdi. Artık `submit_video_job`'un
+  döndürdüğü `app_id` açıkça `ai_video_generator.py` üzerinden taşınıyor.
+- `asset_generator.py`: `character_reference` verildiğinde her AI-video
+  prompt'una `"Take @Element1 as {name}. "` öneki ekliyor (Kling O1'in
+  `elements[]`'i tetiklemesi için zorunlu).
+- `resource/characters/bao/` (front/three_quarter/back, önceki gerçek testte
+  zaten kullanılan kırpılmış görseller) + `resource/characters/
+  bao_content_calendar.yaml` (10 bölümün basit, salt-okunur planı -- hiçbir
+  kod bunu OKUMUYOR, sadece insan referansı).
+- Maliyet: `long` pacing (~1dk/bölüm) seçildi, 10 bölüm için tahmini **$62.72**
+  (karaktersiz Kling varsayılanına göre fark ~$37.66).
+
+**Çocuk güvenliği (ZORUNLU, kapatılamaz):**
+`app/departments/creative/script_generator.py`'ye `_child_safe_guidance_
+instructions()` eklendi -- `_growth_guidance_instructions` ile AYNI desen
+(her zaman açık, webui'de toggle yok), `format != Format.kids` olduğunda
+no-op. `Format.kids` olduğunda 7 somut kural ekliyor: yaş-uygun kelime
+dağarcığı, şiddet yok, ölüm/ciddi tehlike yok, korkutucu görsel/atmosfer
+yok, korkutucu gerçek-dünya temaları yok, her bölüm sıcak bir çözümle
+bitmeli, ticari baskı yok. `build_script_prompt()`'a koşulsuz ekleniyor
+(satır: `prompt += _child_safe_guidance_instructions(format)`), kullanıcının
+kendi `custom_requirements`'ından ÖNCE. Ayrıca `_growth_guidance_
+instructions`'ın "yorum yap" daveti kids için de bastırıldı (Closing nudge
+kasıtlı olarak korundu -- zararsız/standart).
+
+Publish tarafında: Documentary Studio zaten hiçbir otomatik yayın yolu
+içermiyordu (sadece `_render_publish_section`'ın manuel butonu) -- bunun
+üstüne, `format == Format.kids` için EK bir zorunlu onay kutusu eklendi
+("Bu videoyu tamamen izledim ve çocuklar için uygun olduğunu onaylıyorum"),
+Publish butonu bu işaretlenmeden disabled kalıyor.
+
+**Doğrulama:**
+- Yeni birim testleri (child-safe guidance içeriği, karakter-payload
+  dispatch/bypass, `@Element1` öneki, `app_id` taşıma, publish-checkbox
+  gating) + tam suite: sıfır regresyon.
+- **Gerçek, ücretli uçtan-uca test** ($1.12, gerçek Kling O1 çağrısı):
+  gerçek `script_generator.generate_script(format=Format.kids,
+  tone=Tone.nurturing)` çağrısı gerçekten çocuk-güvenli bir anlatım
+  üretti ("Bao had one bamboo stick; hungry Bird had none, so Bao
+  shared."), gerçek `asset_generator`/`ai_video_generator` zinciri
+  üzerinden gerçek bir 720x1280/10s klip üretildi -- görsel olarak Bao'nun
+  kimliği (yüz işaretleri, sarı hasır yelek, sırt çantası) yeni bir
+  sahnede/pozda tutarlı kaldı, sahne anlatımla (paylaşma) birebir eşleşti.
+
+**Kapsam dışı bırakılan, açıkça belirtilen noktalar:** YouTube'un "Made for
+Kids" (COPPA) etiketinin `publisher.py`'de ayarlanıp ayarlanmadığı ayrı bir
+araştırma konusu, bu turda çözülmedi. `values_education`'ın tam
+`PROFILE_PROMPTS`/`SHOT_GUIDANCE` metni ilk bölüm üretilirken daha da
+netleşebilir. 10 bölümün otomatik/sıralı üretimi bilinçli olarak
+YAPILMADI -- her bölüm hâlâ webui'den tek tek, insan onayıyla üretiliyor.

@@ -4036,6 +4036,12 @@ def _render_publish_section(last_project: dict):
     automatically after generation.
     """
     already_published = (last_project or {}).get("publish_result")
+    # "Bao" planı (kullanıcı onaylı, ÇOCUK GÜVENLİĞİ): kids içeriği için,
+    # yukarıdaki (herkese uygulanan) manuel yayın onayı yeterli değil --
+    # kullanıcının videoyu GERÇEKTEN İZLEDİĞİNİ ayrıca, açıkça onaylaması
+    # gerekiyor. documentary_ai_video_cost_confirmed ile AYNI desen (üretim
+    # ANINDAki maliyet onayı) -- burada yayın anında, çocuk güvenliği için.
+    is_kids_content = (last_project or {}).get("format") == Format.kids.value
 
     with st.expander(tr("Documentary Publish"), expanded=False):
         st.caption(tr("Documentary Publish Help"))
@@ -4078,10 +4084,18 @@ def _render_publish_section(last_project: dict):
                 key="documentary_publish_youtube_privacy",
             )
 
+        kids_review_confirmed = True
+        if is_kids_content:
+            st.warning(tr("Documentary Publish Kids Review Warning"))
+            kids_review_confirmed = st.checkbox(
+                tr("Documentary Publish Kids Review Confirm"),
+                key="documentary_publish_kids_review_confirmed",
+            )
+
         publish_clicked = st.button(
             tr("Documentary Publish Button"),
             key="documentary_publish_button",
-            disabled=not platform_choices,
+            disabled=not platform_choices or not kids_review_confirmed,
         )
         if publish_clicked:
             project = DocumentaryProject(**last_project)
@@ -4303,6 +4317,7 @@ _CATEGORY_ICONS = {
     TopicCategory.food_culture.value: "🍽️",
     TopicCategory.nature.value: "🏞️",
     TopicCategory.netflix_style.value: "🍿",
+    TopicCategory.values_education.value: "🐼",
 }
 
 _TONE_ICONS = {
@@ -4322,6 +4337,7 @@ _TONE_ICONS = {
     Tone.savory.value: "😋",
     Tone.majestic.value: "🏔️",
     Tone.gripping.value: "😲",
+    Tone.nurturing.value: "🧸",
 }
 
 _CATEGORY_CARDS_PER_ROW = 4

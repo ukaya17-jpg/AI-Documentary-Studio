@@ -5,6 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from app.config.profile_dimensions import TopicCategory
+from app.models.character import CharacterReference
 from app.models.script import Script, ScriptLine
 from app.models.storyboard import Storyboard, StoryboardShot
 from app.departments.production import asset_generator
@@ -175,6 +176,72 @@ class TestBuildAssetPlan(unittest.TestCase):
 
         self.assertEqual(plan.candidates[0].search_term, "ancient ruins")
         self.assertEqual(plan.candidates[0].ai_duration, "5")
+
+
+class TestCharacterReferencePrefix(unittest.TestCase):
+    """"Bao" planı (kullanıcı onaylı): character_reference verildiğinde her
+    AI-video prompt'una "@Element1" öneki eklenmeli -- Kling O1'in
+    elements[] listesini bu şekilde referans göstermesi ZORUNLU, aksi halde
+    görmezden gelinir (bkz. docs/character-consistency-research.md).
+    """
+
+    def _character(self) -> CharacterReference:
+        return CharacterReference(
+            name="Bao",
+            frontal_image_url="data:image/jpeg;base64,front",
+            reference_image_urls=["data:image/jpeg;base64,threeq"],
+        )
+
+    def test_prefixes_ai_generated_prompt_with_element_reference(self):
+        storyboard = Storyboard(
+            shots=[
+                StoryboardShot(
+                    scene_index=0, description="walking through a bamboo forest", shot_type="wide"
+                )
+            ]
+        )
+        plan = asset_generator.build_asset_plan(
+            storyboard, provider="ai_generated", character_reference=self._character()
+        )
+
+        self.assertEqual(
+            plan.candidates[0].prompt,
+            "Take @Element1 as Bao. wide: walking through a bamboo forest",
+        )
+
+    def test_no_prefix_when_character_reference_omitted(self):
+        storyboard = Storyboard(
+            shots=[StoryboardShot(scene_index=0, description="a lone ruin")]
+        )
+        plan = asset_generator.build_asset_plan(storyboard, provider="ai_generated")
+
+        self.assertNotIn("@Element1", plan.candidates[0].prompt)
+
+    def test_no_prefix_for_stock_provider_even_with_character_reference(self):
+        # Karakter referansı sadece AI-video prompt'una anlamlı -- stok
+        # search_term'e sızmamalı.
+        storyboard = Storyboard(
+            shots=[StoryboardShot(scene_index=0, description="ruins", search_terms=["ancient ruins"])]
+        )
+        plan = asset_generator.build_asset_plan(
+            storyboard, provider="pexels", character_reference=self._character()
+        )
+
+        self.assertEqual(plan.candidates[0].search_term, "ancient ruins")
+
+    def test_character_prefix_coexists_with_film_highlights_likeness_guard(self):
+        storyboard = Storyboard(
+            shots=[StoryboardShot(scene_index=0, description="a dramatic on-set moment")]
+        )
+        plan = asset_generator.build_asset_plan(
+            storyboard,
+            provider="ai_generated",
+            topic_category=TopicCategory.film_highlights,
+            character_reference=self._character(),
+        )
+
+        self.assertIn("@Element1 as Bao", plan.candidates[0].prompt)
+        self.assertIn("Avoid recreating the likeness", plan.candidates[0].prompt)
 
 
 class TestKlingDurationForWordCount(unittest.TestCase):
