@@ -86,3 +86,65 @@ def test_short_pacing_with_ai_video_shows_no_extended_warning(_mock_configured):
 
     assert not app.exception
     assert len(app.warning) == 0
+
+
+def _aspect_value(app):
+    return next(s for s in app.selectbox if s.key == "documentary_video_aspect").value
+
+
+# GÖREV 1 (gece oturumu): kullanıcı "Uzun" (Pacing.long) ile "Belgesel
+# Uzunluğunda (10+ dk)" (Pacing.extended) etiketlerini karıştırıp extended
+# seçtiğinde video hâlâ dikey (9:16) çıkıyordu -- Aspect Ratio, Pacing'den
+# TAMAMEN bağımsızdı (GÖREV 2'den beri hiç otomatik bağlanmamıştı, bu bir
+# regresyon değildi). Artık short/long -> extended CANLI geçişinde Aspect
+# Ratio otomatik 16:9'a geçiyor.
+#
+# `documentary_pacing_last_seen` ön-seed edilerek "kullanıcı bu oturumda
+# zaten sayfadaydı" simüle ediliyor -- bu sayfada ikinci bir .run()
+# format_func'lı selectbox'ları kırdığı için (bkz. yukarıdaki GÖREV 2
+# yorumu), geçiş TEK bir .run() içinde, session_state'i geçiş ÖNCESİ
+# duruma göre önceden yazarak test ediliyor.
+def test_switching_to_extended_pacing_auto_selects_landscape_aspect():
+    app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+    app.session_state["documentary_pacing_last_seen"] = "short"
+    app.session_state["documentary_pacing"] = "extended"
+    app.run()
+
+    assert not app.exception
+    assert _aspect_value(app) == "16:9"
+
+
+def test_switching_to_long_pacing_does_not_change_aspect():
+    app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+    app.session_state["documentary_pacing_last_seen"] = "short"
+    app.session_state["documentary_pacing"] = "long"
+    app.run()
+
+    assert not app.exception
+    assert _aspect_value(app) == "9:16"
+
+
+def test_fresh_session_with_extended_prepopulated_does_not_force_aspect_change():
+    # Taze bir oturumda (ör. bir görev geri yüklemesi) pacing zaten
+    # "extended" olarak gelmiş olabilir -- documentary_pacing_last_seen
+    # hiç set edilmemiş (canlı bir geçiş YOK), aspect ratio'ya
+    # dokunulmamalı.
+    app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+    app.session_state["documentary_pacing"] = "extended"
+    app.run()
+
+    assert not app.exception
+    assert _aspect_value(app) == "9:16"
+
+
+def test_user_can_override_back_to_vertical_after_auto_switch():
+    # pacing zaten extended'te KALIYOR (geçiş yok) -- kullanıcının elle
+    # 9:16'ya geri döndürdüğü değer TEKRAR ezilmemeli.
+    app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+    app.session_state["documentary_pacing_last_seen"] = "extended"
+    app.session_state["documentary_pacing"] = "extended"
+    app.session_state["documentary_video_aspect"] = "9:16"
+    app.run()
+
+    assert not app.exception
+    assert _aspect_value(app) == "9:16"

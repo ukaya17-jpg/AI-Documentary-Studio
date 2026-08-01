@@ -3969,3 +3969,47 @@ uzunluğun normal koşullarda 60sn sınırına yakın olması (7759 karakterlik
 orijinal script'in ~60/-70sn civarında olması beklenir), orijinal
 başarısızlığın sınırda bir vaka olduğunu ve yeni timeout'un (309-517sn)
 bunun için bol pay bıraktığını doğruluyor.
+
+## Gece oturumu (overnight/narration-and-aspect-fix) -- GÖREV 1: Long pacing hâlâ 9:16 çıkıyordu
+
+**Teşhis:** `storage/tasks/` kullanıcı tarafından Task Manager'dan az önce
+temizlenmiş (08:28, `_delete_task` log'ları) -- geçmiş "long" pacing
+üretimi incelenemedi, doğrudan kod yoluna ve gerçek bir yeniden-üretime
+geçildi.
+
+**Kök neden (kullanıcı ile aynı fikirde DEĞİL bir bulgu):** Bu bir
+regresyon değil -- Aspect Ratio seçicisi GÖREV 2'de (önceki oturum,
+`794a365`) Pacing'den TAMAMEN BAĞIMSIZ olarak eklenmişti, hiçbir zaman
+otomatik bağlanmamıştı (her zaman sabit "9:16" varsayılanı). Asıl
+sorun bir İSİMLENDİRME KARIŞIKLIĞI: Pacing dropdown'ında "Uzun" etiketi
+`Pacing.long`'a ait (7 sahne x 8s ≈ 56sn, hâlâ Shorts-tarzı bir format,
+9:16 için doğru varsayılan) -- GERÇEK 10+ dakikalık, 16:9'a uygun
+"belgesel" tier'ı ayrı bir enum değeri, `Pacing.extended`, ve dropdown'da
+"Belgesel Uzunluğunda (10+ dk)" olarak etiketli. Kullanıcı "uzun video"
+isteyince doğal olarak "Uzun"u seçmiş, ama bu `Pacing.extended` DEĞİL.
+
+**Düzeltme (`webui/Main.py`):** Pacing selectbox'ından hemen sonra,
+short/long -> extended CANLI geçişini (`documentary_pacing_last_seen`
+session_state ile) izleyen ve SADECE bu geçiş anında Aspect Ratio'yu
+otomatik 16:9'a çeviren bir blok eklendi. `Pacing.long` bilinçli olarak
+etkilenmiyor (9:16 onun için hâlâ doğru varsayılan). Taze bir oturumda
+(ör. görev geri yükleme) pacing zaten "extended" olarak gelmişse
+DOKUNULMUYOR (`previous_pacing is not None` şartı) -- kullanıcının
+BİLEREK bıraktığı bir 9:16+extended kombinasyonunu ezmemek için. Tek
+seferlik bir varsayılan-değiştirme, kilit değil -- kullanıcı sonrasında
+elle 9:16'ya geri dönebilir.
+
+**Test:** `test_webui_long_form.py`'ye 4 yeni test (canlı geçişte 16:9'a
+otomatik geçiş; `Pacing.long`'un etkilenmediği; taze oturumda zorla
+değiştirmediği; kullanıcının elle geri aldığı 9:16'nın tekrar
+ezilmediği). Tam suite: **886 passed, 11 skipped** (882'den +4, sıfır
+regresyon). `ruff` temiz.
+
+**Gerçek doğrulama (stok video, ücretsiz, GECE bütçesine dahil değil --
+Pexels ücretsiz):** `run_pipeline(..., pacing=Pacing.short,
+video_aspect="16:9", video_source="pexels")` gerçekten çalıştırıldı --
+gerçek `final.mp4` üretildi, `ffprobe` ile doğrulandı: **1920x1080**,
+tam istenen 16:9. Bu, downstream pipeline'ın (video_renderer/
+timeline_builder/asset_downloader) `video_aspect="16:9"` parametresini
+hâlâ doğru onurlandırdığını -- son gece değişikliklerinden (Veo, 3-sayfa
+restructuring) hiç etkilenmediğini -- kanıtlıyor.

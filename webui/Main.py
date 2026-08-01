@@ -5053,6 +5053,37 @@ def _render_shared_documentary_form(video_source_fixed: str) -> None:
             key="documentary_pacing",
             format_func=_documentary_pacing_label,
         )
+
+    # GÖREV 1 (gece oturumu): kullanıcı "Uzun" (Pacing.long, "Kısa"nın hâlâ
+    # Shorts-tarzı bir devamı) ile "Belgesel Uzunluğunda (10+ dk)"
+    # (Pacing.extended, GERÇEK uzun-form tier) etiketlerini karıştırıp
+    # extended'i seçtiğinde videonun hâlâ dikey (9:16) çıktığını bildirdi.
+    # Kök neden: Aspect Ratio seçicisi (aşağıda, col4) Pacing'den TAMAMEN
+    # BAĞIMSIZDI -- GÖREV 2'de (önceki oturum) hiç otomatik bağlanmamış,
+    # her zaman sabit "9:16" varsayılanıyla başlıyordu (regresyon değil,
+    # baştan beri hiç var olmayan bir davranış). Extended'in kendi etiketi
+    # "Belgesel Uzunluğunda" diyor -- gerçek belgeseller neredeyse hep
+    # 16:9 -- bu yüzden SADECE extended'e GEÇİLDİĞİNDE (short/long ->
+    # extended) Aspect Ratio otomatik 16:9'a geçiyor. Pacing.long BİLİNÇLİ
+    # OLARAK etkilenmiyor -- hâlâ Shorts-tarzı bir format, 9:16 onun için
+    # doğru varsayılan olarak kalıyor. Tek seferlik bir varsayılan-
+    # değiştirme, kilit değil -- kullanıcı sonrasında elle 9:16'ya geri
+    # dönebilir.
+    previous_pacing = st.session_state.get("documentary_pacing_last_seen")
+    # `previous_pacing is not None` şartı kasıtlı: tamamen taze bir oturumda
+    # (veya bir görev geri yüklemesinde) pacing zaten "extended" olarak
+    # gelmiş olabilir -- bu durumda kullanıcının aspect ratio'yu BİLEREK
+    # 9:16 bıraktığı bir senaryo (ör. eski bir görevi geri yükleme)
+    # olabilir, üzerine yazmamalıyız. Sadece AYNI oturumda GERÇEKTEN
+    # canlı bir short/long -> extended geçişi görürsek devreye giriyor.
+    if (
+        pacing == Pacing.extended.value
+        and previous_pacing is not None
+        and previous_pacing != Pacing.extended.value
+    ):
+        st.session_state["documentary_video_aspect"] = VideoAspect.landscape.value
+    st.session_state["documentary_pacing_last_seen"] = pacing
+
     with col3:
         format_options = ["standard"] + [f.value for f in Format]
         format_choice = st.selectbox(
