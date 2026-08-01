@@ -85,6 +85,11 @@ class DocumentaryProject(BaseModel):
     # quick A/B compare -- best-effort like thumbnail_path, "" if skipped/
     # failed. See app.departments.growth.thumbnail_generator.generate_thumbnail_variant_b.
     thumbnail_variant_b_path: str = ""
+    # "4 varyant" planı (kullanıcı onaylı): C/D, A/B ile AYNI desende (best-
+    # effort, "" if skipped/failed) -- sadece farklı bir sabit zaman noktası.
+    # See generate_thumbnail_variant_c/d.
+    thumbnail_variant_c_path: str = ""
+    thumbnail_variant_d_path: str = ""
     # Never set automatically -- publishing is a public, hard-to-reverse
     # action, so it's only populated after an explicit user-triggered call to
     # app.departments.growth.publisher.publish_project (see webui's Publish

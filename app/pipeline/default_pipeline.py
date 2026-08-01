@@ -340,11 +340,20 @@ def run_pipeline(
                 "documentary pipeline: thumbnail generation unavailable, continuing without one"
             )
 
-        # Second option for a quick A/B compare -- best-effort like the first,
-        # never blocks. Only attempted if the first succeeded (no combined
-        # video means no frame to extract from either).
+        # Additional thumbnail choices (B/C/D) for a quick compare --
+        # best-effort like the first, never blocks. Only attempted if the
+        # first succeeded (no combined video means no frame to extract from
+        # any of them). Each is independent -- one failing doesn't skip the
+        # others (same "informational, never blocks" philosophy as
+        # quality_critic).
         if project.thumbnail_path:
             project.thumbnail_variant_b_path = thumbnail_generator.generate_thumbnail_variant_b(
+                project.timeline.combined_video_path, project.seo, project.project_id
+            )
+            project.thumbnail_variant_c_path = thumbnail_generator.generate_thumbnail_variant_c(
+                project.timeline.combined_video_path, project.seo, project.project_id
+            )
+            project.thumbnail_variant_d_path = thumbnail_generator.generate_thumbnail_variant_d(
                 project.timeline.combined_video_path, project.seo, project.project_id
             )
 
@@ -461,6 +470,12 @@ def regenerate_from_edited_script(
     )
     if project.thumbnail_path:
         project.thumbnail_variant_b_path = thumbnail_generator.generate_thumbnail_variant_b(
+            project.timeline.combined_video_path, project.seo, project.project_id
+        )
+        project.thumbnail_variant_c_path = thumbnail_generator.generate_thumbnail_variant_c(
+            project.timeline.combined_video_path, project.seo, project.project_id
+        )
+        project.thumbnail_variant_d_path = thumbnail_generator.generate_thumbnail_variant_d(
             project.timeline.combined_video_path, project.seo, project.project_id
         )
     utils.save_project_snapshot(project)

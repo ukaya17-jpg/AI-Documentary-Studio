@@ -146,6 +146,14 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
                 "app.pipeline.default_pipeline.thumbnail_generator.generate_thumbnail_variant_b",
                 return_value="/tmp/tasks/proj-1/thumbnail_b.png",
             ),
+            "thumbnail_c": patch(
+                "app.pipeline.default_pipeline.thumbnail_generator.generate_thumbnail_variant_c",
+                return_value="/tmp/tasks/proj-1/thumbnail_c.png",
+            ),
+            "thumbnail_d": patch(
+                "app.pipeline.default_pipeline.thumbnail_generator.generate_thumbnail_variant_d",
+                return_value="/tmp/tasks/proj-1/thumbnail_d.png",
+            ),
         }
         self.started = {name: m.start() for name, m in self.mocks.items()}
         for m in self.mocks.values():
@@ -329,13 +337,25 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         self.assertIs(thumb_args[1], self.seo)
         self.assertEqual(thumb_args[2], "proj-1")
 
-        # A second thumbnail choice (A/B compare) is generated the same way,
-        # only attempted because variant A succeeded above.
+        # Additional thumbnail choices (B/C/D compare) are generated the same
+        # way, only attempted because variant A succeeded above.
         self.assertEqual(project.thumbnail_variant_b_path, "/tmp/tasks/proj-1/thumbnail_b.png")
         thumb_b_args, _ = self.started["thumbnail_b"].call_args
         self.assertEqual(thumb_b_args[0], self.timeline.combined_video_path)
         self.assertIs(thumb_b_args[1], self.seo)
         self.assertEqual(thumb_b_args[2], "proj-1")
+
+        self.assertEqual(project.thumbnail_variant_c_path, "/tmp/tasks/proj-1/thumbnail_c.png")
+        thumb_c_args, _ = self.started["thumbnail_c"].call_args
+        self.assertEqual(thumb_c_args[0], self.timeline.combined_video_path)
+        self.assertIs(thumb_c_args[1], self.seo)
+        self.assertEqual(thumb_c_args[2], "proj-1")
+
+        self.assertEqual(project.thumbnail_variant_d_path, "/tmp/tasks/proj-1/thumbnail_d.png")
+        thumb_d_args, _ = self.started["thumbnail_d"].call_args
+        self.assertEqual(thumb_d_args[0], self.timeline.combined_video_path)
+        self.assertIs(thumb_d_args[1], self.seo)
+        self.assertEqual(thumb_d_args[2], "proj-1")
 
     def test_ai_generated_video_source_calls_ai_video_generator_not_asset_downloader(self):
         # Opt-in AI-generated video clips (fal.ai/Kling) branch at stage 8:
@@ -583,10 +603,14 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
 
         self.assertEqual(project.thumbnail_path, "")
         self.assertEqual(project.final_video_path, "/tmp/tasks/proj-1/final.mp4")
-        # No point extracting a second frame if the first one already failed
-        # (no combined video to extract from either).
+        # No point extracting a second/third/fourth frame if the first one
+        # already failed (no combined video to extract from any of them).
         self.started["thumbnail_b"].assert_not_called()
+        self.started["thumbnail_c"].assert_not_called()
+        self.started["thumbnail_d"].assert_not_called()
         self.assertEqual(project.thumbnail_variant_b_path, "")
+        self.assertEqual(project.thumbnail_variant_c_path, "")
+        self.assertEqual(project.thumbnail_variant_d_path, "")
 
     def test_saves_project_snapshot_to_disk_with_full_content(self):
         project = default_pipeline.run_pipeline(
@@ -606,6 +630,8 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         self.assertEqual(saved["final_video_path"], project.final_video_path)
         self.assertEqual(saved["thumbnail_path"], project.thumbnail_path)
         self.assertEqual(saved["thumbnail_variant_b_path"], project.thumbnail_variant_b_path)
+        self.assertEqual(saved["thumbnail_variant_c_path"], project.thumbnail_variant_c_path)
+        self.assertEqual(saved["thumbnail_variant_d_path"], project.thumbnail_variant_d_path)
         # The exact data the user actually needs for retroactive debugging:
         # per-scene storyboard search_terms and the downloaded asset paths.
         self.assertEqual(
@@ -724,6 +750,14 @@ class TestRegenerateFromEditedScript(unittest.TestCase):
                 "app.pipeline.default_pipeline.thumbnail_generator.generate_thumbnail_variant_b",
                 return_value="/tmp/new_thumb_b.png",
             ),
+            "thumbnail_c": patch(
+                "app.pipeline.default_pipeline.thumbnail_generator.generate_thumbnail_variant_c",
+                return_value="/tmp/new_thumb_c.png",
+            ),
+            "thumbnail_d": patch(
+                "app.pipeline.default_pipeline.thumbnail_generator.generate_thumbnail_variant_d",
+                return_value="/tmp/new_thumb_d.png",
+            ),
             # Görsel-üreten hiçbir aşama çağrılmamalı -- yanlışlıkla çağrılırsa
             # bu mock'lar hemen fırlatır, sessizce geçmez.
             "asset_gen": patch(
@@ -758,6 +792,8 @@ class TestRegenerateFromEditedScript(unittest.TestCase):
         self.assertEqual(result.timeline.combined_video_path, "/tmp/new_combined.mp4")
         self.assertEqual(result.thumbnail_path, "/tmp/new_thumb.png")
         self.assertEqual(result.thumbnail_variant_b_path, "/tmp/new_thumb_b.png")
+        self.assertEqual(result.thumbnail_variant_c_path, "/tmp/new_thumb_c.png")
+        self.assertEqual(result.thumbnail_variant_d_path, "/tmp/new_thumb_d.png")
 
         self.started["asset_gen"].assert_not_called()
         self.started["asset_dl"].assert_not_called()

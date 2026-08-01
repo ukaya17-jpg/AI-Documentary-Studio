@@ -252,5 +252,120 @@ class TestGenerateThumbnailVariantB(unittest.TestCase):
         self.assertEqual(result, "")
 
 
+class TestGenerateThumbnailVariantC(unittest.TestCase):
+    """"4 varyant" planı (kullanıcı onaylı): variant_c, variant_b'nin BİREBİR
+    aynı deseni -- sadece farklı bir sabit fraction/filename.
+    """
+
+    def setUp(self):
+        self.task_id = "variant-c-task"
+        self.addCleanup(
+            lambda: shutil.rmtree(utils.task_dir(self.task_id), ignore_errors=True)
+        )
+
+    @patch("app.departments.growth.thumbnail_generator._overlay_title", return_value=True)
+    @patch(
+        "app.departments.growth.thumbnail_generator._extract_frame_at_fraction",
+        return_value=True,
+    )
+    def test_uses_a_different_filename_and_later_fraction_than_variant_a(
+        self, mock_extract, mock_overlay
+    ):
+        with patch("os.path.exists", return_value=True):
+            result = thumbnail_generator.generate_thumbnail_variant_c(
+                "/tmp/combined.mp4", SeoMetadata(title="The Fall of Rome"), self.task_id
+            )
+
+        self.assertTrue(result.endswith("thumbnail_c.png"))
+        _video_path, _output_path, fraction = mock_extract.call_args[0]
+        self.assertEqual(fraction, thumbnail_generator._VARIANT_C_FRAME_FRACTION)
+        self.assertGreater(thumbnail_generator._VARIANT_C_FRAME_FRACTION, 0.5)
+        mock_overlay.assert_called_once_with(result, "The Fall of Rome")
+
+    @patch(
+        "app.departments.growth.thumbnail_generator._extract_frame_at_fraction",
+        return_value=False,
+    )
+    def test_returns_empty_string_when_frame_extraction_fails(self, mock_extract):
+        with patch("os.path.exists", return_value=True):
+            result = thumbnail_generator.generate_thumbnail_variant_c(
+                "/tmp/combined.mp4", SeoMetadata(title="X"), self.task_id
+            )
+        self.assertEqual(result, "")
+
+
+class TestGenerateThumbnailVariantD(unittest.TestCase):
+    """"4 varyant" planı (kullanıcı onaylı): variant_d, variant_b'nin BİREBİR
+    aynı deseni -- sadece farklı bir sabit fraction/filename.
+    """
+
+    def setUp(self):
+        self.task_id = "variant-d-task"
+        self.addCleanup(
+            lambda: shutil.rmtree(utils.task_dir(self.task_id), ignore_errors=True)
+        )
+
+    @patch("app.departments.growth.thumbnail_generator._overlay_title", return_value=True)
+    @patch(
+        "app.departments.growth.thumbnail_generator._extract_frame_at_fraction",
+        return_value=True,
+    )
+    def test_uses_a_different_filename_and_earliest_fraction(self, mock_extract, mock_overlay):
+        with patch("os.path.exists", return_value=True):
+            result = thumbnail_generator.generate_thumbnail_variant_d(
+                "/tmp/combined.mp4", SeoMetadata(title="The Fall of Rome"), self.task_id
+            )
+
+        self.assertTrue(result.endswith("thumbnail_d.png"))
+        _video_path, _output_path, fraction = mock_extract.call_args[0]
+        self.assertEqual(fraction, thumbnail_generator._VARIANT_D_FRAME_FRACTION)
+        # Distinct from every other variant's fraction, and never the very
+        # first frame (fade-in/black-frame risk -- same reasoning as B not
+        # being 0.0).
+        self.assertGreater(thumbnail_generator._VARIANT_D_FRAME_FRACTION, 0.0)
+        self.assertLess(
+            thumbnail_generator._VARIANT_D_FRAME_FRACTION,
+            thumbnail_generator._VARIANT_B_FRAME_FRACTION,
+        )
+        mock_overlay.assert_called_once_with(result, "The Fall of Rome")
+
+    @patch(
+        "app.departments.growth.thumbnail_generator._extract_frame_at_fraction",
+        return_value=False,
+    )
+    def test_returns_empty_string_when_frame_extraction_fails(self, mock_extract):
+        with patch("os.path.exists", return_value=True):
+            result = thumbnail_generator.generate_thumbnail_variant_d(
+                "/tmp/combined.mp4", SeoMetadata(title="X"), self.task_id
+            )
+        self.assertEqual(result, "")
+
+
+class TestAllFourVariantFractionsAreDistinct(unittest.TestCase):
+    def test_no_two_variants_share_a_fraction(self):
+        fractions = [
+            0.5,  # generate_thumbnail's own default (Variant A)
+            thumbnail_generator._VARIANT_B_FRAME_FRACTION,
+            thumbnail_generator._VARIANT_C_FRAME_FRACTION,
+            thumbnail_generator._VARIANT_D_FRAME_FRACTION,
+        ]
+        self.assertEqual(len(fractions), len(set(fractions)))
+
+    def test_all_fractions_stay_within_the_open_interval(self):
+        # Avoids both the very first frame (fade-in/black-frame risk) and
+        # the very last (end-card/fade-out risk) -- see
+        # _extract_frame_at_fraction's docstring for why a fixed fraction is
+        # used at all instead of scene-aware selection.
+        fractions = [
+            0.5,
+            thumbnail_generator._VARIANT_B_FRAME_FRACTION,
+            thumbnail_generator._VARIANT_C_FRAME_FRACTION,
+            thumbnail_generator._VARIANT_D_FRAME_FRACTION,
+        ]
+        for fraction in fractions:
+            self.assertGreater(fraction, 0.0)
+            self.assertLess(fraction, 1.0)
+
+
 if __name__ == "__main__":
     unittest.main()

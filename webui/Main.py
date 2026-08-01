@@ -4136,22 +4136,34 @@ def _render_project_media_panel(project: dict) -> bool:
     st.video(final_video_path)
 
     thumbnail_path = (project or {}).get("thumbnail_path", "")
-    thumbnail_variant_b_path = (project or {}).get("thumbnail_variant_b_path", "")
     if thumbnail_path and os.path.exists(thumbnail_path):
-        if thumbnail_variant_b_path and os.path.exists(thumbnail_variant_b_path):
-            thumb_col_a, thumb_col_b = st.columns(2)
-            with thumb_col_a:
-                st.image(
-                    thumbnail_path,
-                    caption=tr("Documentary Thumbnail Variant A"),
-                    width=240,
-                )
-            with thumb_col_b:
-                st.image(
-                    thumbnail_variant_b_path,
-                    caption=tr("Documentary Thumbnail Variant B"),
-                    width=240,
-                )
+        # "4 varyant" planı (kullanıcı onaylı): A her zaman ilk -- B/C/D,
+        # sadece GERÇEKTEN üretilmiş (alan dolu + dosya diskte var) olanlar
+        # eklenir. Eski, sadece A+B'li (ya da tek A'lı) kaydedilmiş
+        # projelerde .get(...) boş string döndüğü için otomatik olarak 2
+        # ya da 1 sütuna düşer -- geriye dönük SIFIR regresyon.
+        thumbnail_variants = [(thumbnail_path, "Documentary Thumbnail Variant A")]
+        for field, label_key in (
+            ("thumbnail_variant_b_path", "Documentary Thumbnail Variant B"),
+            ("thumbnail_variant_c_path", "Documentary Thumbnail Variant C"),
+            ("thumbnail_variant_d_path", "Documentary Thumbnail Variant D"),
+        ):
+            variant_path = (project or {}).get(field, "")
+            if variant_path and os.path.exists(variant_path):
+                thumbnail_variants.append((variant_path, label_key))
+
+        if len(thumbnail_variants) > 1:
+            # "4 varyant" planı sırasında GERÇEK tarayıcıda bulunan bir bug:
+            # sabit width=240, 3-4 sütunda (her sütun 240px'ten dar) görsel/
+            # caption üst üste binmesine yol açıyordu -- "stretch" ile her
+            # görsel KENDİ sütununa göre ölçekleniyor, sütun sayısı ne olursa
+            # olsun taşma yok. 2 sütunlu (A+B) eski davranış da GÜNCELLENDİ
+            # (artık 240px sabit değil, sütuna göre ölçekli) -- bu görsel bir
+            # iyileştirme, veri/mantık regresyonu değil.
+            thumb_cols = st.columns(len(thumbnail_variants))
+            for thumb_col, (variant_path, label_key) in zip(thumb_cols, thumbnail_variants):
+                with thumb_col:
+                    st.image(variant_path, caption=tr(label_key), width="stretch")
         else:
             st.image(thumbnail_path, caption=tr("Documentary Thumbnail"), width=240)
 

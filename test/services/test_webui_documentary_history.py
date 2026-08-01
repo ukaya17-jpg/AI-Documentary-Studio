@@ -302,6 +302,100 @@ def test_history_page_renders_shared_media_panel_matching_studio(tmp_path):
     _assert_shared_panel_rendered(app, project)
 
 
+# -----------------------------------------------------------------------------
+# "4 varyant" planı (kullanıcı onaylı): _render_project_media_panel'in
+# dinamik N-kolon thumbnail düzeni -- var olan varyant kadar kolon, eksik
+# olanlar atlanır, eski (sadece A/B'li ya da sadece A'lı) kayıtlar
+# regresyona uğramadan 2/1 kolona düşer.
+# -----------------------------------------------------------------------------
+
+
+def _build_multi_variant_project(base_dir: Path, variants: str = "abcd") -> dict:
+    """Same shape as _build_sample_project but with a real tiny JPEG for
+    whichever of "abcd" thumbnail variants are requested -- letters not
+    included get an empty string, exactly like a project that never
+    generated (or failed to generate) that specific variant.
+    """
+    video_path = base_dir / "final.mp4"
+    video_path.write_bytes(b"fake-mp4-bytes-for-test")
+
+    field_by_variant = {
+        "a": "thumbnail_path",
+        "b": "thumbnail_variant_b_path",
+        "c": "thumbnail_variant_c_path",
+        "d": "thumbnail_variant_d_path",
+    }
+    color_by_variant = {
+        "a": (120, 60, 200),
+        "b": (60, 150, 90),
+        "c": (200, 120, 40),
+        "d": (40, 90, 200),
+    }
+    project = {
+        "topic": "The Roman Empire",
+        "final_video_path": str(video_path),
+        "seo": {"title": "The Rise and Fall of Rome"},
+    }
+    for letter, field in field_by_variant.items():
+        if letter in variants:
+            path = base_dir / f"thumb_{letter}.jpg"
+            Image.new("RGB", (4, 4), color=color_by_variant[letter]).save(path, format="JPEG")
+            project[field] = str(path)
+        else:
+            project[field] = ""
+    return project
+
+
+def _run_studio_page(project: dict):
+    app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+    app.session_state["ui_language"] = "en"
+    app.session_state["documentary_last_project"] = project
+    app.run()
+    return app
+
+
+def test_all_four_thumbnail_variants_render_with_correct_captions(tmp_path):
+    project = _build_multi_variant_project(tmp_path, variants="abcd")
+
+    app = _run_studio_page(project)
+
+    assert not app.exception
+    captions = [caption for img in app.image for caption in img.captions]
+    assert EN_TRANSLATION["Documentary Thumbnail Variant A"] in captions
+    assert EN_TRANSLATION["Documentary Thumbnail Variant B"] in captions
+    assert EN_TRANSLATION["Documentary Thumbnail Variant C"] in captions
+    assert EN_TRANSLATION["Documentary Thumbnail Variant D"] in captions
+
+
+def test_partial_thumbnail_variants_skip_the_missing_one(tmp_path):
+    # C is deliberately missing (e.g. that one frame extraction failed) --
+    # A/B/D must still render, C must not appear anywhere.
+    project = _build_multi_variant_project(tmp_path, variants="abd")
+
+    app = _run_studio_page(project)
+
+    assert not app.exception
+    captions = [caption for img in app.image for caption in img.captions]
+    assert EN_TRANSLATION["Documentary Thumbnail Variant A"] in captions
+    assert EN_TRANSLATION["Documentary Thumbnail Variant B"] in captions
+    assert EN_TRANSLATION["Documentary Thumbnail Variant C"] not in captions
+    assert EN_TRANSLATION["Documentary Thumbnail Variant D"] in captions
+
+
+def test_single_thumbnail_variant_keeps_the_old_unlabeled_caption(tmp_path):
+    # Regresyon garantisi: sadece A varsa (B/C/D hiç üretilmemiş -- eski
+    # kayıtlarda olduğu gibi), tek görsel eskisi gibi harfsiz "Documentary
+    # Thumbnail" etiketiyle, tek (kolonsuz) görsel olarak gösterilir.
+    project = _build_multi_variant_project(tmp_path, variants="a")
+
+    app = _run_studio_page(project)
+
+    assert not app.exception
+    captions = [caption for img in app.image for caption in img.captions]
+    assert EN_TRANSLATION["Documentary Thumbnail"] in captions
+    assert EN_TRANSLATION["Documentary Thumbnail Variant A"] not in captions
+
+
 def test_history_page_wiring_renders_without_error_when_empty(tmp_path):
     """Faz 2'nin Klasik Mod için yaptığı gibi (_LEGACY_PAGE_HASH ile
     doğrudan hedefleme) -- burada Geçmiş Üretimler ("history") sayfasının

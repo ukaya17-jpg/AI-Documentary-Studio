@@ -153,6 +153,14 @@ def _overlay_title(image_path: str, title: str) -> bool:
 # 0.5 default (see _extract_frame_at_fraction's docstring).
 _VARIANT_B_FRAME_FRACTION = 0.25
 
+# "4 varyant" planı (kullanıcı onaylı): A/B ile aynı sabit-fraction, sahne-
+# farkında-olmayan felsefe -- C/D, timeline'ı A(0.5)/B(0.25)'in bıraktığı
+# geniş boşlukları (geç bölüm, çok erken bölüm) kapsayacak şekilde seçildi.
+# 0.0/1.0 BİLEREK atlanıyor (B'nin 0'dan uzak durma gerekçesiyle aynı --
+# fade-in/end-card riski).
+_VARIANT_C_FRAME_FRACTION = 0.75
+_VARIANT_D_FRAME_FRACTION = 0.10
+
 
 def generate_thumbnail(
     combined_video_path: str,
@@ -192,4 +200,29 @@ def generate_thumbnail_variant_b(combined_video_path: str, seo: SeoMetadata | No
         task_id,
         frame_fraction=_VARIANT_B_FRAME_FRACTION,
         filename="thumbnail_b.png",
+    )
+
+
+def generate_thumbnail_variant_c(combined_video_path: str, seo: SeoMetadata | None, task_id: str) -> str:
+    """A third thumbnail choice (a later frame than A/B), same pattern as
+    generate_thumbnail_variant_b() -- best-effort, "" on any failure."""
+    return generate_thumbnail(
+        combined_video_path,
+        seo,
+        task_id,
+        frame_fraction=_VARIANT_C_FRAME_FRACTION,
+        filename="thumbnail_c.png",
+    )
+
+
+def generate_thumbnail_variant_d(combined_video_path: str, seo: SeoMetadata | None, task_id: str) -> str:
+    """A fourth thumbnail choice (an early frame, but not the very first --
+    see _VARIANT_D_FRAME_FRACTION), same pattern as generate_thumbnail_
+    variant_b() -- best-effort, "" on any failure."""
+    return generate_thumbnail(
+        combined_video_path,
+        seo,
+        task_id,
+        frame_fraction=_VARIANT_D_FRAME_FRACTION,
+        filename="thumbnail_d.png",
     )

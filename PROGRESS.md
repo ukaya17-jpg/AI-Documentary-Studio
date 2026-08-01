@@ -4172,3 +4172,55 @@ araştırma konusu, bu turda çözülmedi. `values_education`'ın tam
 `PROFILE_PROMPTS`/`SHOT_GUIDANCE` metni ilk bölüm üretilirken daha da
 netleşebilir. 10 bölümün otomatik/sıralı üretimi bilinçli olarak
 YAPILMADI -- her bölüm hâlâ webui'den tek tek, insan onayıyla üretiliyor.
+
+## Thumbnail A/B → 4 varyant + "duygu etiketi" (kullanıcı onaylı, önce plan)
+
+Kullanıcı, mevcut 2-varyantlı (A/B) thumbnail özelliğini 4 varyanta
+çıkarmak ve her varyanta okunabilir bir "duygu etiketi" eklemek istedi.
+Kod yazmadan önce sadece plan istendi -- 5 net soruya (risk, duygu
+etiketinin görsele mi yoksa metne mi gideceği, seçim/indirme
+entegrasyonu, regresyon, zaman noktası seçimi) yazılı cevap verilip
+onay alındıktan sonra kodlandı.
+
+**Teknik (tamamen additive, sıfır regresyon hedefiyle):**
+- `thumbnail_generator.py`: `generate_thumbnail_variant_c()`/`_d()`
+  eklendi -- `generate_thumbnail_variant_b()`'nin BİREBİR aynı deseni,
+  sadece farklı sabit `frame_fraction` (C=0.75 "later", D=0.10 "early
+  ama ilk kare değil"). `generate_thumbnail()`/`_variant_b()` HİÇ
+  değişmedi.
+- `DocumentaryProject`: `thumbnail_variant_c_path`/`_d_path` alanları.
+- `default_pipeline.py`'nin 2 çağrı noktası (`run_pipeline`,
+  `regenerate_from_edited_script`): variant_b'nin hemen ardına
+  variant_c/d çağrıları eklendi, her biri bağımsız best-effort (biri
+  başarısız olursa diğerini engellemiyor).
+- `webui/Main.py`'nin `_render_project_media_panel`'i: özel-durumlu
+  "B varsa 2 kolon, yoksa 1 kolon" if/else'i, gerçekte var olan (alan
+  dolu + dosya diskte mevcut) varyantların bir listesinden dinamik
+  `st.columns(N)`'e genelleştirildi -- eski, sadece A+B'li ya da tek
+  A'lı kayıtlarda `.get(...)` boş string döndüğü için otomatik 2/1
+  koluna düşüyor, geriye dönük regresyon yok.
+- "Duygu etiketi": GÖRSELE GÖMÜLÜ bir rozet DEĞİL, sadece webui
+  caption metni (kullanıcının önerdiği düşük-risk seçenek) -- mevcut
+  "Variant A/B" i18n deseninin devamı, `_overlay_title`'a dokunulmadı.
+  Dürüstçe belirtildi: bu, karenin gerçekten analiz edilip bir duyguya
+  sınıflandırıldığı anlamına GELMİYOR -- her sabit zaman noktasına
+  önceden atanmış editoryal bir isim (C=0.75 "Doruk/Climax", D=0.10
+  "Açılış/Opening").
+- i18n: `Documentary Thumbnail Variant C/D` key'leri, 9 dilde.
+
+**Gerçek tarayıcı doğrulaması (kullanıcının istediği gibi, commit'ten
+ÖNCE gösterildi):** Ayrı, geçici bir Streamlit süreci (farklı port,
+production'a dokunmadan) gerçek bir tamamlanmış projenin video +
+thumbnail dosyalarıyla başlatıldı, Playwright/gerçek headless Chromium
+ile ekran görüntüsü alındı. **Bu test sırasında gerçek bir bug
+bulundu ve düzeltildi:** sabit `width=240` (eski 2-sütunlu tasarımdan
+kalma), 4 dar sütunda görsel/caption üst üste binmesine yol açıyordu --
+`width="stretch"` ile düzeltildi (her görsel kendi sütununa göre
+ölçekleniyor). Düzeltmeden sonra tekrar doğrulandı: 4 ayrı görsel, üst
+üste binme yok, doğru başlıklar ("Option A"..."Option D — Opening").
+
+**Test:** Yeni birim testleri (`TestGenerateThumbnailVariantC/D`,
+`test_default_pipeline.py`'nin variant_c/d mock+assert'leri, 3 yeni webui
+AppTest -- 4 varyant render, kısmi varyant [C eksik] atlama, tek-varyant
+eski davranış regresyon testi). Tam suite: **916 passed, 11 skipped**
+(907'den +9, sıfır regresyon). `ruff` temiz.
