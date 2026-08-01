@@ -59,9 +59,11 @@ class TestBuildOutlinePromptToneRegression(unittest.TestCase):
 
     _EXPECTED = {
         TopicCategory.travel: (
-            'You are a documentary outline writer.\n'
-            'Style: Travel documentary. Ground the narration in concrete sensory detail '
-            '(sights, sounds, food, local life) and a strong sense of place.\n'
+            'You are a YouTube video outline writer.\n'
+            'Style: Travel YouTube video. Ground the narration in concrete sensory detail '
+            '(sights, sounds, food, local life) and a strong sense of place, delivered '
+            'like a top travel YouTuber narrating quick cuts back-to-back, never '
+            'lingering on one shot.\n'
             'Opening hook guidance: Open with a vivid, specific moment or image from the '
             'destination, not a generic welcome.\n'
             'Section guidance: Cover history/context, standout landmarks or experiences, '
@@ -69,7 +71,7 @@ class TestBuildOutlinePromptToneRegression(unittest.TestCase):
             'Closing guidance: End with a reflective takeaway or an invitation to explore '
             'further.\n\n'
             'Topic: "SAMPLE TOPIC"\n\n'
-            'Produce a documentary outline as a single JSON object with exactly this shape:\n'
+            'Produce a video outline as a single JSON object with exactly this shape:\n'
             '{\n'
             '  "title": "...",\n'
             '  "hook": "...",\n'
@@ -83,10 +85,13 @@ class TestBuildOutlinePromptToneRegression(unittest.TestCase):
     }
 
     def test_default_tone_prompt_matches_pre_refactor_byte_for_byte(self):
-        # Full literal comparison for one category (travel) to prove the
-        # exact prompt text, plus a structural check for all 4 that the
-        # rename didn't alter length/content at all (compares against the
-        # dict's own template text directly, independent of any hand-typed
+        # GÖREV 2 (gece oturumu) sonrası güncellendi: PROFILE_PROMPTS artık
+        # "X documentary" değil "X YouTube video... delivered like a ...
+        # YouTuber" diyor (bkz. app/config/templates/__init__.py). Full
+        # literal comparison for one category (travel) to prove the exact
+        # prompt text, plus a structural check for all 4 that the rename
+        # didn't alter length/content at all (compares against the dict's
+        # own template text directly, independent of any hand-typed
         # expected string, so it can't rot).
         prompt = outline_generator.build_outline_prompt(
             "SAMPLE TOPIC", tone=resolve_tone(TopicCategory.travel, None)

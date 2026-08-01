@@ -1,8 +1,8 @@
 """Outline templates per Tone.
 
 Each template is a plain dict of guidance strings plugged into the outline
-generation prompt: how to open the documentary, what kind of sections to
-favor, and how to close. ``PROFILE_PROMPTS`` keys mirror
+generation prompt: how to open the video, what kind of sections to favor,
+and how to close. ``PROFILE_PROMPTS`` keys mirror
 ``app.config.profile_dimensions.Tone`` values.
 
 Previously keyed directly by ``TopicCategory`` (one hard-locked tone per
@@ -12,6 +12,20 @@ itself is unchanged -- each category's former slot now sits under that
 category's default tone (travel->cinematic, history->credibility,
 space->epic, psychology->scientific), so resolving with no override
 reproduces the exact same prompt text as before.
+
+GÖREV 2 (gece oturumu): every ``"style"`` entry used to open with "X
+documentary." -- this fed outline/research generation (hook, closing,
+section structure), so even after script_generator's own voice/system
+prompt was rewritten to be YouTube-dynamic (3bc21c2, prior session), the
+CONTENT it was asked to narrate (the outline's hook/sections/closing) was
+still conceived under an explicit documentary framing, and that feel
+carried through regardless of the final delivery voice. Every "style" line
+now opens with "X YouTube video." and ends with a "delivered like a ...
+YouTuber..." clause mirroring the SAME persona already used in
+``script_generator.TONE_VOICE_GUIDANCE`` for that tone, so outline/
+research/script generation now pull in the same direction. Every other
+field (opening_hook/section_guidance/closing) was already style-neutral
+narrative-craft guidance and is unchanged.
 """
 
 from app.config.profile_dimensions import Tone
@@ -19,8 +33,10 @@ from app.config.profile_dimensions import Tone
 PROFILE_PROMPTS = {
     Tone.cinematic: {
         "style": (
-            "Travel documentary. Ground the narration in concrete sensory detail "
-            "(sights, sounds, food, local life) and a strong sense of place."
+            "Travel YouTube video. Ground the narration in concrete sensory detail "
+            "(sights, sounds, food, local life) and a strong sense of place, "
+            "delivered like a top travel YouTuber narrating quick cuts "
+            "back-to-back, never lingering on one shot."
         ),
         "opening_hook": (
             "Open with a vivid, specific moment or image from the destination, "
@@ -34,8 +50,10 @@ PROFILE_PROMPTS = {
     },
     Tone.credibility: {
         "style": (
-            "History documentary. Prioritize chronological or cause-effect clarity "
-            "and named people, dates, and turning points."
+            "History YouTube video. Prioritize chronological or cause-effect clarity "
+            "and named people, dates, and turning points, delivered like a top "
+            "history YouTuber who opens with a bold claim and proves it fast, "
+            "never a slow lecture."
         ),
         "opening_hook": (
             "Open with a pivotal moment or dramatic stakes before backing up to context."
@@ -48,8 +66,10 @@ PROFILE_PROMPTS = {
     },
     Tone.epic: {
         "style": (
-            "Space/science documentary. Favor scale, precision, and awe; translate "
-            "technical facts into vivid comparisons a general audience can grasp."
+            "Space/science YouTube video. Favor scale, precision, and awe; translate "
+            "technical facts into vivid comparisons a general audience can grasp, "
+            "delivered like a viral YouTube video that never lets the momentum "
+            "drop."
         ),
         "opening_hook": (
             "Open with a striking scale comparison or an unresolved mystery."
@@ -62,8 +82,10 @@ PROFILE_PROMPTS = {
     },
     Tone.scientific: {
         "style": (
-            "Psychology documentary. Ground abstract concepts in a relatable "
-            "scenario or experiment before generalizing."
+            "Psychology YouTube video. Ground abstract concepts in a relatable "
+            "scenario or experiment before generalizing, delivered like a "
+            "science YouTuber breaking down a study in quick, punchy beats, "
+            "never a dry lecture."
         ),
         "opening_hook": (
             "Open with a relatable everyday scenario or a counterintuitive question."
@@ -76,9 +98,11 @@ PROFILE_PROMPTS = {
     },
     Tone.wondrous: {
         "style": (
-            "Marine/nature documentary. Ground the narration in vivid sensory "
+            "Marine/nature YouTube video. Ground the narration in vivid sensory "
             "detail of the underwater world (light, motion, scale) and a sense "
-            "of wonder at wildlife behavior."
+            "of wonder at wildlife behavior, delivered like a wildlife YouTuber "
+            "marveling at vivid detail as it happens, never a slow, hushed "
+            "narration."
         ),
         "opening_hook": (
             "Open with a striking, specific image or animal behavior from "
@@ -93,9 +117,11 @@ PROFILE_PROMPTS = {
     },
     Tone.reflective: {
         "style": (
-            "Spiritual documentary. Ground abstract or introspective ideas in "
+            "Spiritual YouTube video. Ground abstract or introspective ideas in "
             "concrete traditions, practices, or personal experiences rather "
-            "than abstract philosophy alone."
+            "than abstract philosophy alone, delivered like a YouTuber pausing "
+            "mid-video to think out loud with you, never a detached, monotone "
+            "voiceover."
         ),
         "opening_hook": (
             "Open with a quiet, evocative moment or a timeless question that "
@@ -110,10 +136,11 @@ PROFILE_PROMPTS = {
     },
     Tone.cinephile: {
         "style": (
-            "Film documentary. Discuss films, scenes, and filmmaking techniques "
+            "Film YouTube video. Discuss films, scenes, and filmmaking techniques "
             "and their cultural impact without quoting dialogue verbatim or "
             "fabricating quotes attributed to real actors, directors, or other "
-            "real people."
+            "real people, delivered like a popular YouTube film critic firing "
+            "off enthusiasm in rapid takes, never a slow academic lecture."
         ),
         "opening_hook": (
             "Open with a specific technique, moment, or piece of cultural impact "
@@ -128,8 +155,10 @@ PROFILE_PROMPTS = {
     },
     Tone.dynamic: {
         "style": (
-            "Sports documentary. Favor high-energy, momentum-driven narration "
-            "built around competition, effort, and achievement."
+            "Sports YouTube video. Favor high-energy, momentum-driven narration "
+            "built around competition, effort, and achievement, delivered like "
+            "a sports YouTuber hyping every highlight live, never a measured "
+            "broadcast recap."
         ),
         "opening_hook": (
             "Open with a decisive moment of competition or a striking "
@@ -144,10 +173,12 @@ PROFILE_PROMPTS = {
     },
     Tone.encouraging: {
         "style": (
-            "Health and wellness documentary. Ground narration in practical, "
+            "Health and wellness YouTube video. Ground narration in practical, "
             "evidence-aware guidance rather than absolute medical claims -- "
             "prefer phrasing like 'many people find' or 'research suggests' "
-            "over definitive prescriptions."
+            "over definitive prescriptions, delivered like a health YouTuber "
+            "firing off advice you can use today, never a slow clinical "
+            "rundown."
         ),
         "opening_hook": (
             "Open with a relatable everyday health challenge or a surprising, "
@@ -162,10 +193,12 @@ PROFILE_PROMPTS = {
     },
     Tone.mysterious: {
         "style": (
-            "Mystery/unexplained-discoveries documentary. Favor an atmosphere "
+            "Mystery/unexplained-discoveries YouTube video. Favor an atmosphere "
             "of intrigue -- present verified facts clearly, but frame open "
             "questions as genuinely open rather than implying a hidden "
-            "conspiracy or a definitive secret answer."
+            "conspiracy or a definitive secret answer, delivered like a "
+            "true-crime YouTuber pulling you deeper into the case in real "
+            "time, never a hushed, slow burn."
         ),
         "opening_hook": (
             "Open with the central unanswered question or the strangest known "
@@ -180,9 +213,11 @@ PROFILE_PROMPTS = {
     },
     Tone.motivational: {
         "style": (
-            "Personal development documentary. Ground abstract advice in "
+            "Personal development YouTube video. Ground abstract advice in "
             "concrete stories, research, or step-by-step practices rather "
-            "than generic platitudes."
+            "than generic platitudes, delivered like a motivational YouTuber "
+            "firing off advice you can act on right now, never a slow, "
+            "measured pep talk."
         ),
         "opening_hook": (
             "Open with a relatable struggle or a specific, surprising "
@@ -197,9 +232,11 @@ PROFILE_PROMPTS = {
     },
     Tone.savory: {
         "style": (
-            "Food and culinary documentary. Ground the narration in sensory, "
+            "Food and culinary YouTube video. Ground the narration in sensory, "
             "appetizing detail (taste, aroma, texture) and the cultural "
-            "stories behind a dish or cuisine."
+            "stories behind a dish or cuisine, delivered like a food YouTuber "
+            "devouring the moment on camera, never a slow, lingering food-doc "
+            "narration."
         ),
         "opening_hook": (
             "Open with a vivid sensory moment -- a specific smell, taste, or "
@@ -215,9 +252,10 @@ PROFILE_PROMPTS = {
     },
     Tone.majestic: {
         "style": (
-            "Nature documentary. Favor sweeping, majestic imagery and a "
+            "Nature YouTube video. Favor sweeping, majestic imagery and a "
             "sense of scale in describing landscapes, wildlife, and natural "
-            "phenomena."
+            "phenomena, delivered like a landscape YouTuber reacting live to "
+            "something vast, never a slow, reverent pan."
         ),
         "opening_hook": (
             "Open with a striking natural image or moment, not a generic "
@@ -232,10 +270,12 @@ PROFILE_PROMPTS = {
     },
     Tone.gripping: {
         "style": (
-            "Premium, high-production-value documentary style. Favor a "
+            "Premium, high-production-value YouTube video style. Favor a "
             "suspenseful, cliffhanger-driven structure with escalating "
             "stakes, regardless of subject matter -- never fabricate claims "
-            "about real people or events to heighten drama."
+            "about real people or events to heighten drama. Delivered like a "
+            "thriller YouTuber racing toward the big reveal, never a slow, "
+            "withholding prestige-doc pace."
         ),
         "opening_hook": (
             "Open with a striking, specific unanswered question or moment "

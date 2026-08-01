@@ -39,8 +39,9 @@ def build_research_prompt(
 ) -> str:
     style = get_template(tone)["style"] if tone else ""
     prompt = (
-        "You are a documentary research assistant. For the topic below, produce "
-        "a research brief that a scriptwriter can use to plan a short documentary."
+        "You are a YouTube video research assistant. For the topic below, produce "
+        "a research brief that a scriptwriter can use to plan a fast-paced, "
+        "high-retention YouTube video."
         f'\n\nTopic: "{topic}"'
     )
     if style:

@@ -4013,3 +4013,81 @@ tam istenen 16:9. Bu, downstream pipeline'ın (video_renderer/
 timeline_builder/asset_downloader) `video_aspect="16:9"` parametresini
 hâlâ doğru onurlandırdığını -- son gece değişikliklerinden (Veo, 3-sayfa
 restructuring) hiç etkilenmediğini -- kanıtlıyor.
+
+## Gece oturumu -- GÖREV 2: Anlatım tarzı hâlâ "belgesel" hissi veriyordu
+
+**Teşhis:** Kullanıcının şüphelendiği `_story_craft_instructions()`
+(Hook/Retention/Callback) incelendi -- metni zaten stil-nötr (yapısal
+talimatlar, "belgesel" hissi veren kelime/kalıp yok). Asıl kök neden
+FARKLI, daha derin bir katmandaydı: `app/config/templates/__init__.py`
+(`PROFILE_PROMPTS`, 14 ton) her tonun `"style"` alanında KELİMESİ KELİMESİNE
+"X documentary." diye başlıyordu (ör. "Travel documentary.", "History
+documentary.") -- bu metin `outline_generator`/`research_planner`'a
+gidiyor, yani HOOK/CLOSING/SECTION içeriğini (script_generator'ın
+"YouTube-dinamik" ses talimatıyla anlatmak zorunda olduğu HAM İÇERİK)
+üretiyor. `script_generator.py`'nin kendi ses/sistem promptu önceki
+oturumda (3bc21c2) YouTube-dinamiğe çevrilmişti (hâlâ öyle, bu gece
+doğrulandı) -- ama bu SADECE SON TESLİMAT KATMANIYDI. Outline/research
+aşaması, anlatılacak İÇERİĞİN KENDİSİNİ hâlâ açıkça "belgesel" çerçevesi
+altında üretiyordu -- `outline_generator.py`'nin ("You are a documentary
+outline writer.", "Produce a documentary outline...") ve
+`research_planner.py`'nin ("You are a documentary research assistant...
+plan a short documentary.") kendi sistem promptları da aynı şekilde.
+
+**Kapsam dışı bırakılan, düşünülüp elenen iki nokta:**
+`intent_analyzer.py`'nin kategori sınıflandırıcı promptu ("documentary
+video topic") -- SADECE bir JSON kategori etiketi üretiyor, hiç anlatım
+içeriği yazmıyor, narrasyon TONUNA sıfır etkisi var; dokunulmadı.
+`storyboard_generator.py`'nin "You are a documentary storyboard artist..."
+promptu -- GÖRSEL çekim/stok-footage seçimini şekillendiriyor, SÖZLÜ
+anlatımı değil (kullanıcının şikayeti özellikle "konuşma ve anlatım"
+hakkındaydı); bu gece kapsam dışı bırakıldı, ayrı bir görev olarak
+değerlendirilebilir.
+
+**Düzeltme:**
+- `app/config/templates/__init__.py`: 14 tonun `"style"` alanı da
+  "X documentary." yerine "X YouTube video. ... delivered like a [aynı
+  script_generator.TONE_VOICE_GUIDANCE'taki persona]..." diyecek şekilde
+  yeniden yazıldı (ör. cinematic: "delivered like a top travel YouTuber
+  narrating quick cuts back-to-back, never lingering on one shot").
+  Diğer alanlar (opening_hook/section_guidance/closing) zaten stil-nötrdü,
+  değiştirilmedi.
+- `app/departments/research/outline_generator.py`: "You are a documentary
+  outline writer" -> "You are a YouTube video outline writer"; "Produce a
+  documentary outline..." -> "Produce a video outline...".
+- `app/departments/research/research_planner.py`: "You are a documentary
+  research assistant... plan a short documentary." -> "You are a YouTube
+  video research assistant... plan a fast-paced, high-retention YouTube
+  video." (script_generator.DEFAULT_SCRIPT_SYSTEM_PROMPT ile aynı dil).
+
+**Test:** `test_outline_generator.py`/`test_research_planner.py`'nin
+byte-for-byte regresyon testleri yeni metne güncellendi (bu testler zaten
+"önceki bir refactor'ün metni değiştirmediğini" kilitlemek içindi --
+şimdi KASITLI bir içerik değişikliğini kilitliyorlar). Tam suite:
+**886 passed, 11 skipped** (aynı sayı -- yeni test eklenmedi, mevcut 2
+regresyon testi güncellendi). `ruff` temiz.
+
+**Gerçek API ile önce/sonra karşılaştırması (`git stash` ile ESKİ kod
+üzerinden gerçek bir "before" üretimi, sonra `stash pop` ile YENİ kod
+üzerinden AYNI konuyla "after" -- "The Great Fire of London", credibility
+tonu, gerçek research+outline+script LLM çağrıları):**
+
+*Önce (kapanış):* "...great urban disasters are rarely caused by fire
+alone—they are shaped by the choices made before and during the crisis."
+-- klasik, düşünceli/"reflective" belgesel anlatıcısı kapanışı.
+
+*Sonra (kapanış):* "In four days, medieval London was erased — and the
+modern city began rising from its ashes." -- daha somut, daha az
+"ahlak dersi veren belgesel sesi".
+
+**Dürüst değerlendirme:** İki örnek de zaten oldukça enerjik/kısa cümleli
+(script_generator'ın ses katmanı ÖNCEKİ oturumda zaten düzeltilmişti, bu
+yüzden SON TESLİMAT iki örnekte de benzer) -- fark dramatik değil, ama
+GERÇEK ve YAPISAL: "sonra" örneği bir doğrudan-izleyici sorusu ekledi
+("how many poor Londoners were never counted?"), kapanışı daha az
+moralize edici/"reflective". Asıl güçlü argüman örnek çıktıdan çok
+YAPISAL: LLM'e giden 16 farklı prompt'tan (14 PROFILE_PROMPTS style +
+2 sistem promptu) kelimesi kelimesine "documentary" ifadesi tamamen
+kaldırıldı -- kullanıcının "hâlâ belgesel hissi veriyor" şikayetinin
+gerçek, ölçülebilir kaynağıydı bu, tek bir örnek çıktıdaki öznel fark
+değil.

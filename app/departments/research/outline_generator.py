@@ -32,7 +32,7 @@ def build_outline_prompt(
 ) -> str:
     template = get_template(tone)
     prompt = (
-        "You are a documentary outline writer.\n"
+        "You are a YouTube video outline writer.\n"
         f"Style: {template['style']}\n"
         f"Opening hook guidance: {template['opening_hook']}\n"
         f"Section guidance: {template['section_guidance']}\n"
@@ -47,7 +47,7 @@ def build_outline_prompt(
     min_sections, max_sections = PACING_OUTLINE_SECTION_RANGE[pacing]
     prompt += f"""
 
-Produce a documentary outline as a single JSON object with exactly this shape:
+Produce a video outline as a single JSON object with exactly this shape:
 {{
   "title": "...",
   "hook": "...",

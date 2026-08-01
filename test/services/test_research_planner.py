@@ -52,11 +52,14 @@ class TestBuildResearchPromptToneRegression(unittest.TestCase):
     """
 
     _EXPECTED_TRAVEL = (
-        'You are a documentary research assistant. For the topic below, produce '
-        'a research brief that a scriptwriter can use to plan a short documentary.\n\n'
+        'You are a YouTube video research assistant. For the topic below, produce '
+        'a research brief that a scriptwriter can use to plan a fast-paced, '
+        'high-retention YouTube video.\n\n'
         'Topic: "SAMPLE TOPIC"\n'
-        'Style guidance: Travel documentary. Ground the narration in concrete sensory '
-        'detail (sights, sounds, food, local life) and a strong sense of place.\n\n'
+        'Style guidance: Travel YouTube video. Ground the narration in concrete sensory '
+        'detail (sights, sounds, food, local life) and a strong sense of place, delivered '
+        'like a top travel YouTuber narrating quick cuts back-to-back, never lingering '
+        'on one shot.\n\n'
         'Respond with a single JSON object with exactly this shape:\n'
         '{\n'
         '  "key_questions": [{"question": "...", "rationale": "..."}],\n'
@@ -68,6 +71,8 @@ class TestBuildResearchPromptToneRegression(unittest.TestCase):
     )
 
     def test_default_tone_prompt_matches_pre_refactor_byte_for_byte(self):
+        # GÖREV 2 (gece oturumu) sonrası güncellendi -- bkz. yukarıdaki
+        # test_outline_generator.py notu, aynı gerekçe.
         tone = resolve_tone(TopicCategory.travel, None)
         prompt = research_planner.build_research_prompt("SAMPLE TOPIC", tone)
         self.assertEqual(prompt, self._EXPECTED_TRAVEL)
