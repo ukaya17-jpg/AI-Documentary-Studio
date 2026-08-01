@@ -505,6 +505,27 @@
     "Documentary Publish Kids Review Warning": "This is kids' content -- before publishing, watch the full video yourself and confirm it is appropriate for young children.",
     "Documentary Publish Kids Review Confirm": "I watched the entire video and confirm it is appropriate for children.",
     "Documentary Thumbnail Variant C": "Thumbnail (Option C -- Climax)",
-    "Documentary Thumbnail Variant D": "Thumbnail (Option D -- Opening)"
+    "Documentary Thumbnail Variant D": "Thumbnail (Option D -- Opening)",
+    "Character: none": "No Character",
+    "Character: bao": "Bao",
+    "Character: luna": "Luna",
+    "Character: riko": "Riko",
+    "Character: finn": "Finn",
+    "Character: wise_owl": "Wise Owl",
+    "Character: little_blue_bird": "Little Blue Bird",
+    "Character: mother_bird": "Mother Bird",
+    "Character: mother_and_baby": "Mother Bird & Baby",
+    "Character Preview: bao": "A gentle panda who teaches kindness, sharing, and courage.",
+    "Character Preview: luna": "A soft, gentle little bunny who loves flowers and friendship.",
+    "Character Preview: riko": "An adventurous little raccoon, always ready to explore.",
+    "Character Preview: finn": "A curious little fox with a knack for finding the way.",
+    "Character Preview: wise_owl": "A calm, wise owl who helps young friends solve problems.",
+    "Character Preview: little_blue_bird": "A tiny, fluffy blue chick taking its first steps into the world.",
+    "Character Preview: mother_bird": "A caring mother bird looking after her little one.",
+    "Character Preview: mother_and_baby": "Mother Bird and her chick, together in the same gentle scene.",
+    "Character None Description": "Generate without a recurring character.",
+    "Documentary Character Select": "Character",
+    "Documentary Character Help": "Pick a recurring character for this episode (optional). Choosing one locks Format to Kids and always applies the mandatory child-safety guidance.",
+    "Documentary Format Character Locked Help": "Locked to Kids because a character is selected -- child-safety guidance always applies when a character is used."
   }
 }

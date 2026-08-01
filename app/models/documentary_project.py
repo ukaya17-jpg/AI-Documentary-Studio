@@ -29,11 +29,17 @@ class DocumentaryProject(BaseModel):
     pacing: Pacing = Pacing.short
     # "Bao" planı (kullanıcı onaylı): topic_category/tone/format ile AYNI
     # yerde, AYNI desende -- stage 1'de bir kez çözülüp asset_generator ve
-    # ai_video_generator'a parametre olarak geçiyor. character_reference ve
+    # ai_video_generator'a parametre olarak geçiyor. character_references ve
     # format == Format.kids BİLİNÇLİ OLARAK BİRBİRİNDEN BAĞIMSIZ (Tone/Format
     # gibi ortogonal iki boyut) -- karakter tutarlılığı, kids-güvenliği
     # olmadan da (veya tam tersi) teorik olarak kullanılabilir.
-    character_reference: CharacterReference | None = None
+    #
+    # "Çoklu Karakter Sistemi" planı (kullanıcı onaylı): tekil
+    # character_reference'tan LİSTEYE genelleştirildi -- birden fazla
+    # karakter aynı sahnede (ör. "Anne Kuş & Yavrusu") görünebilsin diye.
+    # Boş liste = "karaktersiz" (custom_tags ile aynı idiyom), tek karakter
+    # = eski davranışın birebir aynısı (1 elemanlı liste).
+    character_references: list[CharacterReference] = Field(default_factory=list)
 
     voice_name: str = ""
     voice_rate: float = 1.0

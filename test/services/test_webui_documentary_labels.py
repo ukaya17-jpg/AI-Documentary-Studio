@@ -6,6 +6,7 @@ from streamlit.testing.v1 import AppTest
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+from app.config import characters
 from app.config.profile_dimensions import Format, Pacing, Tone, TopicCategory
 
 ROOT_DIR = Path(__file__).parent.parent.parent
@@ -83,6 +84,33 @@ def test_tone_preview_keys_present_and_non_empty_in_every_locale():
 
 def test_category_preview_keys_present_and_non_empty_in_every_locale():
     _assert_labels_present("Category Preview", [c.value for c in TopicCategory])
+
+
+# "Çoklu Karakter Sistemi" planı (kullanıcı onaylı): Character kart grid'i
+# de Category/Tone ile AYNI dinamik-key deseni (tr(f"Character: {value}")) --
+# aynı gerekçeyle (AST taraması f-string'leri yakalamıyor) ayrı doğrulanıyor.
+_ALL_CHARACTER_VALUES = (
+    [characters.NO_CHARACTER] + list(characters._CHARACTER_SLUGS) + list(characters.CHARACTER_PAIRS)
+)
+
+
+def test_character_labels_present_and_non_empty_in_every_locale():
+    _assert_labels_present("Character", _ALL_CHARACTER_VALUES)
+
+
+def test_character_preview_keys_present_and_non_empty_in_every_locale():
+    # "none" kasıtlı olarak dışarıda: kendi "Character None Description"
+    # key'i var (Tone.neutral/Category "auto" ile aynı desen).
+    _assert_labels_present(
+        "Character Preview", [v for v in _ALL_CHARACTER_VALUES if v != characters.NO_CHARACTER]
+    )
+
+
+def test_character_none_description_present_in_every_locale():
+    for locale in ALL_LOCALES:
+        translation = _translation(locale)
+        assert "Character None Description" in translation
+        assert translation["Character None Description"].strip()
 
 
 def test_turkish_card_previews_are_not_leaked_english_llm_prompt_text():
@@ -202,3 +230,66 @@ def test_neutral_tone_preview_uses_fallback_description_not_misattributed_text()
     expected = _translation("en")["Tone Neutral Fallback Description"]
     captions = [c.value for c in app.caption]
     assert any(expected in cap for cap in captions)
+
+
+# -----------------------------------------------------------------------------
+# "Çoklu Karakter Sistemi" planı (kullanıcı onaylı): Character kart grid'i +
+# Format'ın karakter seçiliyken "kids"a kilitlenmesi.
+# -----------------------------------------------------------------------------
+
+
+def test_character_cards_show_translated_labels_and_previews():
+    app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+    app.session_state["ui_language"] = "tr"
+    app.run()
+
+    bao_button = _button_by_key(app, "character_btn_bao")
+    assert bao_button.label == "🐼  Bao"
+
+    mother_and_baby_button = _button_by_key(app, "character_btn_mother_and_baby")
+    assert mother_and_baby_button.label == "🐦🐤  Anne Kuş & Yavrusu"
+
+
+def test_default_character_selection_is_none_and_rendered_as_primary():
+    # Regresyon garantisi: Kategori/Ton'un "auto" varsayılanıyla AYNI
+    # desen, ama Character'ın varsayılanı "none" (bkz.
+    # _render_selection_card'ın default_value parametresi).
+    app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+    app.session_state["ui_language"] = "en"
+    app.run()
+
+    assert _button_by_key(app, "character_btn_none").proto.type == "primary"
+    assert _button_by_key(app, "character_btn_bao").proto.type == "secondary"
+
+
+def test_selecting_a_character_locks_format_to_kids_and_disables_selectbox():
+    app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+    app.session_state["ui_language"] = "en"
+    app.session_state["documentary_character_selection"] = "bao"
+    app.run()
+
+    format_select = _selectbox_by_key(app, "documentary_format")
+    assert format_select.value == "kids"
+    assert format_select.disabled is True
+
+
+def test_mother_and_baby_pair_also_locks_format_to_kids():
+    app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+    app.session_state["ui_language"] = "en"
+    app.session_state["documentary_character_selection"] = "mother_and_baby"
+    app.run()
+
+    format_select = _selectbox_by_key(app, "documentary_format")
+    assert format_select.value == "kids"
+    assert format_select.disabled is True
+
+
+def test_no_character_selected_leaves_format_free_and_enabled():
+    app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+    app.session_state["ui_language"] = "en"
+    app.session_state["documentary_character_selection"] = "none"
+    app.run()
+
+    format_select = _selectbox_by_key(app, "documentary_format")
+    assert format_select.value == "standard"
+    assert format_select.disabled is False

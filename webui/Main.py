@@ -24,7 +24,7 @@ root_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 if root_dir not in sys.path:
     sys.path.append(root_dir)
 
-from app.config import config
+from app.config import characters, config
 from app.config.profile_dimensions import PACING_SCENE_SPEC, Format, Pacing, Tone, TopicCategory
 from app.departments.creative import script_generator
 from app.departments.growth import publisher
@@ -4307,6 +4307,10 @@ def _documentary_format_label(value):
     return tr(f"Format: {value}")
 
 
+def _documentary_character_label(value):
+    return tr(f"Character: {value}")
+
+
 def _documentary_pacing_label(value):
     return tr(f"Pacing: {value}")
 
@@ -4354,6 +4358,26 @@ _TONE_ICONS = {
 
 _CATEGORY_CARDS_PER_ROW = 4
 _TONE_CARDS_PER_ROW = 4
+
+# "Çoklu Karakter Sistemi" planı (kullanıcı onaylı): 7 tekil karakter +
+# 1 bileşik çift ("Anne Kuş & Yavrusu", aynı sahnede birlikte) +
+# "Karaktersiz" -- Kategori/Ton kart grid'iyle AYNI görsel dil, AYNI
+# bileşenler (_render_selection_card/_render_category_tone_grid) yeniden
+# kullanılıyor. Genel bir "N karakter seç" multi-select KURULMADI (YAGNI --
+# bugün tek somut ihtiyaç bu ikili) -- bunun yerine ikisini BİRLİKTE seçen
+# TEK bir kart var, grid hâlâ single-select.
+_CHARACTER_ICONS = {
+    characters.NO_CHARACTER: "🚫",
+    "bao": "🐼",
+    "luna": "🐰",
+    "riko": "🦝",
+    "finn": "🦊",
+    "wise_owl": "🦉",
+    "little_blue_bird": "🐤",
+    "mother_bird": "🐦",
+    "mother_and_baby": "🐦🐤",
+}
+_CHARACTER_CARDS_PER_ROW = 4
 
 # Modernizasyon B -- canlı ilerleme göstergesi (kullanıcı talebiyle). Key'ler
 # default_pipeline.run_pipeline()'ın stage()'e verdiği ham isimlerle (ör.
@@ -4469,18 +4493,37 @@ def _category_style_preview(category_value: str) -> str:
     return tr(f"Category Preview: {category_value}")
 
 
-def _render_selection_card(*, kind: str, value: str, icon: str, label: str, preview: str, session_key: str):
-    """Kategori/Ton kart grid'inin tek bir kartı.
-
-    `session_key`'i (documentary_topic_category/documentary_tone) doğrudan
-    kendisi okuyup yazıyor -- eski selectbox'ların kullandığı AYNI
-    session_state anahtarı, böylece run_pipeline()'a giden değer hiç
-    değişmiyor, sadece giriş widget'ı değişiyor. Seçili kart farklı bir
-    container key'i alıyor (`{kind}_card_selected_{value}` vs
-    `{kind}_card_{value}`) -- styles.css'teki nav aktif-sayfa ile aynı
-    wildcard-key deseni bu farkı CSS'te vurguluyor.
+def _character_preview(character_value: str) -> str:
+    """Bkz. _tone_style_preview/_category_style_preview -- aynı desen,
+    karakterler için ayrı bir "Character Preview: {value}" key'i.
     """
-    is_selected = st.session_state.get(session_key, "auto") == value
+    if character_value == characters.NO_CHARACTER:
+        return tr("Character None Description")
+    return tr(f"Character Preview: {character_value}")
+
+
+def _render_selection_card(
+    *, kind: str, value: str, icon: str, label: str, preview: str, session_key: str, default_value: str = "auto"
+):
+    """Kategori/Ton/Karakter kart grid'inin tek bir kartı.
+
+    `session_key`'i (documentary_topic_category/documentary_tone/
+    documentary_character_selection) doğrudan kendisi okuyup yazıyor --
+    eski selectbox'ların kullandığı AYNI session_state anahtarı, böylece
+    run_pipeline()'a giden değer hiç değişmiyor, sadece giriş widget'ı
+    değişiyor. Seçili kart farklı bir container key'i alıyor
+    (`{kind}_card_selected_{value}` vs `{kind}_card_{value}`) --
+    styles.css'teki nav aktif-sayfa ile aynı wildcard-key deseni bu farkı
+    CSS'te vurguluyor.
+
+    `default_value`: session_key hiç ayarlanmamışsa hangi değerin "seçili"
+    (primary buton) sayılacağı -- Kategori/Ton için "auto" (ZATEN
+    kurulu davranış, değişmedi). "Çoklu Karakter Sistemi" planı
+    (kullanıcı onaylı): Karakter grid'i "auto" değil "none" varsayılıyor
+    -- karakter seçimi AI'ın otomatik karar verdiği bir şey değil, ya
+    açıkça seçilir ya da hiç kullanılmaz.
+    """
+    is_selected = st.session_state.get(session_key, default_value) == value
     container_key = f"{kind}_card_{'selected_' if is_selected else ''}{value}"
     with st.container(key=container_key, border=True):
         if st.button(
@@ -4494,7 +4537,7 @@ def _render_selection_card(*, kind: str, value: str, icon: str, label: str, prev
         st.caption(preview)
 
 
-def _render_category_tone_grid(*, kind: str, values: list[str], icons: dict, labels_fn, previews_fn, session_key: str, cards_per_row: int):
+def _render_category_tone_grid(*, kind: str, values: list[str], icons: dict, labels_fn, previews_fn, session_key: str, cards_per_row: int, default_value: str = "auto"):
     # Dış container'a sabit bir key veriliyor ki styles.css orta genişlikte
     # (main_settings_grid'in 2x2 düzenine düştüğü aynı ara nokta) kart
     # sayısını satır başına düşürebilsin -- st.columns(N) Python tarafında
@@ -4514,6 +4557,7 @@ def _render_category_tone_grid(*, kind: str, values: list[str], icons: dict, lab
                         label=labels_fn(value),
                         preview=previews_fn(value),
                         session_key=session_key,
+                        default_value=default_value,
                     )
 
 
@@ -5112,6 +5156,25 @@ def _render_shared_documentary_form(video_source_fixed: str) -> None:
         st.session_state["documentary_video_aspect"] = VideoAspect.landscape.value
     st.session_state["documentary_pacing_last_seen"] = pacing
 
+    # "Çoklu Karakter Sistemi" planı (kullanıcı onaylı, GÜVENLİK): bir
+    # karakter (tekil ya da "Anne Kuş & Yavrusu" çifti) seçiliyken Format
+    # HER ZAMAN "kids"a kilitleniyor, kullanıcı değiştiremiyor --
+    # _child_safe_guidance_instructions (script_generator.py) SADECE
+    # format == Format.kids olduğunda devreye giriyor, karakterden
+    # tamamen bağımsız (bkz. plan madde 4) -- bu kilit olmadan biri
+    # yanlışlıkla Format.kids OLMADAN bir karakter seçip güvenlik
+    # katmanını atlayabilirdi. Karakter seçimi grid'i aşağıda (Ton'un
+    # hemen ardından) render ediliyor ama session_state zaten BURADA
+    # okunabiliyor -- Streamlit'in "bir sonraki script çalışmasında state
+    # hazır olur" modeliyle tutarlı (bkz. GÖREV 1'in previous_pacing
+    # deseni, hemen yukarıda).
+    character_selection = st.session_state.get(
+        "documentary_character_selection", characters.NO_CHARACTER
+    )
+    character_locks_format = character_selection != characters.NO_CHARACTER
+    if character_locks_format:
+        st.session_state["documentary_format"] = Format.kids.value
+
     with col3:
         format_options = ["standard"] + [f.value for f in Format]
         format_choice = st.selectbox(
@@ -5119,8 +5182,13 @@ def _render_shared_documentary_form(video_source_fixed: str) -> None:
             options=format_options,
             index=0,
             key="documentary_format",
-            help=tr("Documentary Format Help"),
+            help=(
+                tr("Documentary Format Character Locked Help")
+                if character_locks_format
+                else tr("Documentary Format Help")
+            ),
             format_func=_documentary_format_label,
+            disabled=character_locks_format,
         )
     with col4:
         # GÖREV 2 (TAM OTONOMİ): Documentary Studio'da run_pipeline() zaten
@@ -5183,6 +5251,36 @@ def _render_shared_documentary_form(video_source_fixed: str) -> None:
             cards_per_row=_TONE_CARDS_PER_ROW,
         )
     tone = st.session_state.get("documentary_tone", "auto")
+
+    # "Çoklu Karakter Sistemi" planı (kullanıcı onaylı): Kategori/Ton ile
+    # AYNI kart-grid deseni -- 7 tekil karakter + "Anne Kuş & Yavrusu"
+    # (ikisi BİRLİKTE, tek bir kart) + "Karaktersiz". Varsayılan "auto"
+    # DEĞİL "none" (bkz. _render_selection_card'ın default_value notu).
+    current_character = st.session_state.get(
+        "documentary_character_selection", characters.NO_CHARACTER
+    )
+    with st.expander(
+        f"{tr('Documentary Character Select')}: "
+        f"{_documentary_character_label(current_character)}",
+        expanded=False,
+    ):
+        st.caption(tr("Documentary Character Help"))
+        _render_category_tone_grid(
+            kind="character",
+            values=[characters.NO_CHARACTER]
+            + list(characters._CHARACTER_SLUGS)
+            + list(characters.CHARACTER_PAIRS),
+            icons=_CHARACTER_ICONS,
+            labels_fn=_documentary_character_label,
+            previews_fn=_character_preview,
+            session_key="documentary_character_selection",
+            cards_per_row=_CHARACTER_CARDS_PER_ROW,
+            default_value=characters.NO_CHARACTER,
+        )
+    character_selection = st.session_state.get(
+        "documentary_character_selection", characters.NO_CHARACTER
+    )
+    character_references = characters.resolve_character_selection(character_selection)
 
     (
         voice_name,
@@ -5353,6 +5451,7 @@ def _render_shared_documentary_form(video_source_fixed: str) -> None:
                     video_music_prompt=video_music_prompt,
                     custom_system_prompt=custom_system_prompt,
                     custom_requirements=custom_requirements,
+                    character_references=character_references,
                     on_stage_change=_update_documentary_stage_status,
                     on_substage_progress=_update_documentary_ai_video_progress,
                 )

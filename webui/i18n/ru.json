@@ -478,6 +478,27 @@
     "Documentary Publish Kids Review Warning": "Это детский контент -- перед публикацией посмотрите видео полностью и убедитесь, что оно подходит для маленьких детей.",
     "Documentary Publish Kids Review Confirm": "Я посмотрел(а) видео полностью и подтверждаю, что оно подходит для детей.",
     "Documentary Thumbnail Variant C": "Миниатюра (вариант C -- кульминация)",
-    "Documentary Thumbnail Variant D": "Миниатюра (вариант D -- открытие)"
+    "Documentary Thumbnail Variant D": "Миниатюра (вариант D -- открытие)",
+    "Character: none": "Без персонажа",
+    "Character: bao": "Bao",
+    "Character: luna": "Luna",
+    "Character: riko": "Riko",
+    "Character: finn": "Finn",
+    "Character: wise_owl": "Мудрая сова",
+    "Character: little_blue_bird": "Маленькая синяя птичка",
+    "Character: mother_bird": "Птица-мать",
+    "Character: mother_and_baby": "Птица-мать и птенец",
+    "Character Preview: bao": "Добрая панда, которая учит доброте, щедрости и смелости.",
+    "Character Preview: luna": "Мягкий, нежный крольчонок, который любит цветы и дружбу.",
+    "Character Preview: riko": "Любопытный енот-путешественник, всегда готовый исследовать мир.",
+    "Character Preview: finn": "Любознательный лисёнок, который отлично находит дорогу.",
+    "Character Preview: wise_owl": "Спокойная, мудрая сова, помогающая юным друзьям решать проблемы.",
+    "Character Preview: little_blue_bird": "Крошечный пушистый синий птенец, делающий первые шаги в мир.",
+    "Character Preview: mother_bird": "Заботливая птица-мать, присматривающая за своим малышом.",
+    "Character Preview: mother_and_baby": "Птица-мать и её птенец вместе в одной тёплой сцене.",
+    "Character None Description": "Создать без повторяющегося персонажа.",
+    "Documentary Character Select": "Персонаж",
+    "Documentary Character Help": "Выберите повторяющегося персонажа для этого эпизода (необязательно). Выбор персонажа блокирует формат на «Детский» и всегда применяет обязательные правила безопасности для детей.",
+    "Documentary Format Character Locked Help": "Заблокировано на «Детский», так как выбран персонаж -- при использовании персонажа правила безопасности для детей применяются всегда."
   }
 }

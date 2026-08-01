@@ -81,7 +81,7 @@ def run_pipeline(
     video_music_prompt: str = "",
     custom_system_prompt: str = "",
     custom_requirements: str = "",
-    character_reference: CharacterReference | None = None,
+    character_references: list[CharacterReference] | None = None,
     on_stage_change: Callable[[int, str], None] | None = None,
     on_substage_progress: Callable[[int, int], None] | None = None,
 ) -> DocumentaryProject:
@@ -102,12 +102,17 @@ def run_pipeline(
     called) for every stock video_source, exactly like on_stage_change,
     `None` changes nothing.
 
-    `character_reference`, if given, is threaded straight into stage 7
-    (asset_generator.build_asset_plan, for the "@Element1" prompt prefix)
-    and stage 8 (ai_video_generator.generate_ai_clips, for the actual
-    Kling O1 API call) -- see docs/character-consistency-research.md. It is
-    orthogonal to `format`/`Format.kids`: a character-consistent project is
-    not required to also be kids-safe, and vice versa (same relationship as
+    `character_references`, if given, is threaded straight into stage 7
+    (asset_generator.build_asset_plan, for the "@Element1, @Element2, ..."
+    prompt prefix) and stage 8 (ai_video_generator.generate_ai_clips, for
+    the actual Kling O1 API call) -- see
+    docs/character-consistency-research.md. More than one entry means
+    multiple characters appear together in the SAME generated clips (e.g.
+    a mother+baby scene) -- Kling O1's own `elements[]` schema supports
+    this natively (its own official example uses two elements addressed
+    as @Element1/@Element2 in one prompt). It is orthogonal to
+    `format`/`Format.kids`: a character-consistent project is not
+    required to also be kids-safe, and vice versa (same relationship as
     `tone`/`format`).
     """
     resolved_pacing = resolve_pacing(pacing)
@@ -130,7 +135,7 @@ def run_pipeline(
         video_music_prompt=video_music_prompt,
         custom_system_prompt=custom_system_prompt,
         custom_requirements=custom_requirements,
-        character_reference=character_reference,
+        character_references=character_references or [],
     )
 
     def stage(n: int, name: str):
@@ -205,7 +210,7 @@ def run_pipeline(
             provider=video_source,
             topic_category=project.topic_category,
             script=project.script,
-            character_reference=character_reference,
+            character_references=character_references,
         )
         utils.save_project_snapshot(project)
 
@@ -217,7 +222,7 @@ def run_pipeline(
                 project.asset_plan,
                 task_id=project.project_id,
                 aspect_ratio=video_aspect,
-                character_reference=character_reference,
+                character_references=character_references,
                 on_substage_progress=on_substage_progress,
             )
         else:

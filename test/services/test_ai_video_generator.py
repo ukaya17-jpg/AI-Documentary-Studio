@@ -198,10 +198,11 @@ class TestGenerateAiClips(unittest.TestCase):
 
     @patch("app.departments.production.ai_video_generator.time.sleep")
     @patch("app.departments.production.ai_video_generator.fal_video_service")
-    def test_character_reference_is_passed_as_character_elements(self, mock_service, mock_sleep):
-        """"Bao" planı: character_reference verildiğinde her submit_video_job
-        çağrısı, model_dump()'ı character_elements listesi içinde alır --
-        Kling O1'in elements[] şeması (bkz. docs/character-consistency-research.md).
+    def test_character_references_is_passed_as_character_elements(self, mock_service, mock_sleep):
+        """"Bao" planı: character_references verildiğinde her submit_video_job
+        çağrısı, her karakterin model_dump()'ını character_elements listesi
+        içinde alır -- Kling O1'in elements[] şeması (bkz.
+        docs/character-consistency-research.md).
         """
         from app.models.character import CharacterReference
 
@@ -222,7 +223,7 @@ class TestGenerateAiClips(unittest.TestCase):
         mock_service.download_video.return_value = True
 
         ai_video_generator.generate_ai_clips(
-            plan, self.task_id, character_reference=character_reference
+            plan, self.task_id, character_references=[character_reference]
         )
 
         mock_service.submit_video_job.assert_any_call(
@@ -230,6 +231,40 @@ class TestGenerateAiClips(unittest.TestCase):
             duration="5",
             aspect_ratio="9:16",
             character_elements=[character_reference.model_dump()],
+        )
+
+    @patch("app.departments.production.ai_video_generator.time.sleep")
+    @patch("app.departments.production.ai_video_generator.fal_video_service")
+    def test_two_character_references_produce_a_two_element_list(self, mock_service, mock_sleep):
+        # "Çoklu Karakter Sistemi" planı (kullanıcı onaylı): anne+yavru gibi
+        # bir çift -- character_elements'in her iki karakteri de, @ElementN
+        # sırasıyla, taşıması gerekiyor.
+        from app.models.character import CharacterReference
+
+        plan = _plan({0: "mother bird feeding little blue bird"})
+        mother = CharacterReference(name="Mother Bird", frontal_image_url="data:image/jpeg;base64,m")
+        baby = CharacterReference(name="Little Blue Bird", frontal_image_url="data:image/jpeg;base64,b")
+        mock_service.submit_video_job.return_value = {
+            "success": True,
+            "request_id": "req-0",
+            "app_id": "fal-ai/kling-video",
+        }
+        mock_service.poll_job_status.return_value = {"success": True, "status": "COMPLETED"}
+        mock_service.get_job_result.return_value = {
+            "success": True,
+            "video_url": "https://v2.fal.media/clip.mp4",
+        }
+        mock_service.download_video.return_value = True
+
+        ai_video_generator.generate_ai_clips(
+            plan, self.task_id, character_references=[mother, baby]
+        )
+
+        mock_service.submit_video_job.assert_any_call(
+            "mother bird feeding little blue bird",
+            duration="5",
+            aspect_ratio="9:16",
+            character_elements=[mother.model_dump(), baby.model_dump()],
         )
 
     @patch("app.departments.production.ai_video_generator.time.sleep")

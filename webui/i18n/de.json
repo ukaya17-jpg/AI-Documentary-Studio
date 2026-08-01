@@ -478,6 +478,27 @@
     "Documentary Publish Kids Review Warning": "Dies ist Kinderinhalt -- sehen Sie sich vor der Veröffentlichung das gesamte Video an und bestätigen Sie, dass es für kleine Kinder geeignet ist.",
     "Documentary Publish Kids Review Confirm": "Ich habe das gesamte Video angesehen und bestätige, dass es für Kinder geeignet ist.",
     "Documentary Thumbnail Variant C": "Vorschaubild (Option C -- Höhepunkt)",
-    "Documentary Thumbnail Variant D": "Vorschaubild (Option D -- Eröffnung)"
+    "Documentary Thumbnail Variant D": "Vorschaubild (Option D -- Eröffnung)",
+    "Character: none": "Kein Charakter",
+    "Character: bao": "Bao",
+    "Character: luna": "Luna",
+    "Character: riko": "Riko",
+    "Character: finn": "Finn",
+    "Character: wise_owl": "Weise Eule",
+    "Character: little_blue_bird": "Kleiner Blauer Vogel",
+    "Character: mother_bird": "Vogelmutter",
+    "Character: mother_and_baby": "Vogelmutter & Küken",
+    "Character Preview: bao": "Ein sanfter Panda, der Freundlichkeit, Teilen und Mut lehrt.",
+    "Character Preview: luna": "Ein sanftes kleines Kaninchen, das Blumen und Freundschaft liebt.",
+    "Character Preview: riko": "Ein abenteuerlustiger kleiner Waschbär, immer bereit zu entdecken.",
+    "Character Preview: finn": "Ein neugieriger kleiner Fuchs mit einem Gespür für den richtigen Weg.",
+    "Character Preview: wise_owl": "Eine ruhige, weise Eule, die jungen Freunden hilft, Probleme zu lösen.",
+    "Character Preview: little_blue_bird": "Ein winziges, flauschiges blaues Küken, das seine ersten Schritte in die Welt macht.",
+    "Character Preview: mother_bird": "Eine fürsorgliche Vogelmutter, die auf ihr Kleines aufpasst.",
+    "Character Preview: mother_and_baby": "Vogelmutter und ihr Küken, gemeinsam in derselben sanften Szene.",
+    "Character None Description": "Ohne wiederkehrenden Charakter erstellen.",
+    "Documentary Character Select": "Charakter",
+    "Documentary Character Help": "Wählen Sie einen wiederkehrenden Charakter für diese Folge (optional). Die Auswahl sperrt das Format auf \"Kinder\" und wendet immer die verpflichtenden Kindersicherheitsrichtlinien an.",
+    "Documentary Format Character Locked Help": "Auf \"Kinder\" gesperrt, da ein Charakter ausgewählt ist -- die Kindersicherheitsrichtlinien gelten immer, wenn ein Charakter verwendet wird."
   }
 }

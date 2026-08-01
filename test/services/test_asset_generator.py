@@ -179,15 +179,20 @@ class TestBuildAssetPlan(unittest.TestCase):
 
 
 class TestCharacterReferencePrefix(unittest.TestCase):
-    """"Bao" planı (kullanıcı onaylı): character_reference verildiğinde her
+    """"Bao" planı (kullanıcı onaylı): character_references verildiğinde her
     AI-video prompt'una "@Element1" öneki eklenmeli -- Kling O1'in
     elements[] listesini bu şekilde referans göstermesi ZORUNLU, aksi halde
     görmezden gelinir (bkz. docs/character-consistency-research.md).
+
+    "Çoklu Karakter Sistemi" planı (kullanıcı onaylı): parametre tekil
+    character_reference'tan listeye (character_references) genelleşti --
+    tek karakterli testler burada BİLEREK 1 elemanlı liste kullanıyor, tam
+    olarak eski davranışı (byte-identical prompt) kilitlemek için.
     """
 
-    def _character(self) -> CharacterReference:
+    def _character(self, name: str = "Bao") -> CharacterReference:
         return CharacterReference(
-            name="Bao",
+            name=name,
             frontal_image_url="data:image/jpeg;base64,front",
             reference_image_urls=["data:image/jpeg;base64,threeq"],
         )
@@ -201,7 +206,7 @@ class TestCharacterReferencePrefix(unittest.TestCase):
             ]
         )
         plan = asset_generator.build_asset_plan(
-            storyboard, provider="ai_generated", character_reference=self._character()
+            storyboard, provider="ai_generated", character_references=[self._character()]
         )
 
         self.assertEqual(
@@ -209,7 +214,7 @@ class TestCharacterReferencePrefix(unittest.TestCase):
             "Take @Element1 as Bao. wide: walking through a bamboo forest",
         )
 
-    def test_no_prefix_when_character_reference_omitted(self):
+    def test_no_prefix_when_character_references_omitted(self):
         storyboard = Storyboard(
             shots=[StoryboardShot(scene_index=0, description="a lone ruin")]
         )
@@ -217,14 +222,24 @@ class TestCharacterReferencePrefix(unittest.TestCase):
 
         self.assertNotIn("@Element1", plan.candidates[0].prompt)
 
-    def test_no_prefix_for_stock_provider_even_with_character_reference(self):
+    def test_no_prefix_when_character_references_is_empty_list(self):
+        storyboard = Storyboard(
+            shots=[StoryboardShot(scene_index=0, description="a lone ruin")]
+        )
+        plan = asset_generator.build_asset_plan(
+            storyboard, provider="ai_generated", character_references=[]
+        )
+
+        self.assertNotIn("@Element1", plan.candidates[0].prompt)
+
+    def test_no_prefix_for_stock_provider_even_with_character_references(self):
         # Karakter referansı sadece AI-video prompt'una anlamlı -- stok
         # search_term'e sızmamalı.
         storyboard = Storyboard(
             shots=[StoryboardShot(scene_index=0, description="ruins", search_terms=["ancient ruins"])]
         )
         plan = asset_generator.build_asset_plan(
-            storyboard, provider="pexels", character_reference=self._character()
+            storyboard, provider="pexels", character_references=[self._character()]
         )
 
         self.assertEqual(plan.candidates[0].search_term, "ancient ruins")
@@ -237,11 +252,39 @@ class TestCharacterReferencePrefix(unittest.TestCase):
             storyboard,
             provider="ai_generated",
             topic_category=TopicCategory.film_highlights,
-            character_reference=self._character(),
+            character_references=[self._character()],
         )
 
         self.assertIn("@Element1 as Bao", plan.candidates[0].prompt)
         self.assertIn("Avoid recreating the likeness", plan.candidates[0].prompt)
+
+    def test_two_characters_are_addressed_as_element1_and_element2(self):
+        # "Çoklu Karakter Sistemi" planı: anne+yavru gibi aynı sahnede
+        # birden fazla karakter -- fal.ai'nin kendi resmi elements[]
+        # örneğiyle aynı desen ("@Element1... @Element2...").
+        storyboard = Storyboard(
+            shots=[
+                StoryboardShot(
+                    scene_index=0,
+                    description="feeding her chick a worm",
+                    shot_type="close-up",
+                )
+            ]
+        )
+        plan = asset_generator.build_asset_plan(
+            storyboard,
+            provider="ai_generated",
+            character_references=[
+                self._character("Mother Bird"),
+                self._character("Little Blue Bird"),
+            ],
+        )
+
+        self.assertEqual(
+            plan.candidates[0].prompt,
+            "Take @Element1 as Mother Bird, @Element2 as Little Blue Bird. "
+            "close-up: feeding her chick a worm",
+        )
 
 
 class TestKlingDurationForWordCount(unittest.TestCase):

@@ -4224,3 +4224,85 @@ kalma), 4 dar sütunda görsel/caption üst üste binmesine yol açıyordu --
 AppTest -- 4 varyant render, kısmi varyant [C eksik] atlama, tek-varyant
 eski davranış regresyon testi). Tam suite: **916 passed, 11 skipped**
 (907'den +9, sıfır regresyon). `ruff` temiz.
+
+## Çoklu Karakter Sistemi -- Bao'dan 7 karaktere + anne+yavru çifti (kullanıcı onaylı, önce plan)
+
+Kullanıcı `resource/characters/` altına 6 yeni karakter ekledi (Luna,
+Riko, Finn, Wise Owl, Little Blue Bird, Mother Bird) -- Bao'nun (tek
+karakter) ötesine geçip 7 karakterlik bir sisteme genellemek istedi.
+Kritik teknik soru: Little Blue Bird (yavru) ve Mother Bird (anne) AYNI
+sahnede birlikte görünecek -- bu, Kling O1'in `elements[]` şemasının
+BİRDEN FAZLA karakteri tek klipte destekleyip desteklemediğini gerektirir.
+Kod yazmadan önce sadece plan istendi, plan onaylandıktan sonra kodlandı.
+
+**Teknik doğrulama (kodlamadan önce, ücretsiz):** fal.ai'nin canlı
+OpenAPI şeması tekrar çekildi -- `elements` alanının KENDİ resmi örneği
+(panda+koala) tam olarak "2 farklı karakter, @Element1/@Element2 ile ayrı
+ayrı adreslenmiş, tek klipte" senaryosunu gösteriyor. Kullanıcı, bu
+dokümantasyon kanıtının yeterli olduğuna karar verdi -- ücretli test
+kodlama SONRASINA ertelendi.
+
+**Teknik entegrasyon (additive DEĞİL, bilinçli bir imza değişikliği --
+webui'de gerçek bir çağıran hiç olmadığı için risk düşük):**
+- `CharacterReference.character_reference` (tekil) -> `character_references`
+  (liste) -- `DocumentaryProject`, `run_pipeline()`, `asset_generator.
+  build_asset_plan()`, `ai_video_generator.generate_ai_clips()` -- hepsi
+  genelleşti. `fal_video.py`'ye HİÇ dokunulmadı (zaten `list[dict]`
+  alıyordu -- Bao'da baştan doğru tasarlanmış).
+- `asset_generator.py`'nin `@Element1` öneki genelleşti:
+  `", ".join(f"@Element{i+1} as {ref.name}" ...)` -- tek karakterle
+  eskisiyle byte-identical, 2 karakterle fal.ai'nin kendi örnek desenini
+  üretiyor ("Take @Element1 as X, @Element2 as Y. ...").
+- `app/config/characters.py` (yeni): 7 karakterin registry'si (slug ->
+  isim + `resource/characters/<slug>/{front,three_quarter,back}.jpg`),
+  `get_character_reference()` (dosyaları okuyup gerçek base64 data URI'ye
+  çeviriyor, LAZY -- sadece seçilen karakter için), `CHARACTER_PAIRS =
+  {"mother_and_baby": ["mother_bird", "little_blue_bird"]}`,
+  `resolve_character_selection()`.
+- Diğer 6 karakterin front/three_quarter/back.jpg'leri Bao'nun kendi
+  kırpma yöntemiyle (PIL, ücretsiz/yerel) üretildi.
+
+**Webui (ilk kez -- daha önce `character_reference` için HİÇ webui
+arayüzü yoktu, sadece pipeline parametresiydi):** Kategori/Ton'un kart
+grid deseni (`_render_category_tone_grid`/`_render_selection_card`)
+BİREBİR yeniden kullanıldı -- 9 kart (7 tekil + "Anne Kuş & Yavrusu"
+bileşik çifti + "Karaktersiz"). Genel bir multi-select KURULMADI (YAGNI)
+-- ikili, tek bir bileşik kart olarak modellendi. `_render_selection_card`'a
+`default_value` parametresi eklendi (Kategori/Ton "auto" varsayılıyor,
+Karakter "none" -- davranış Kategori/Ton için değişmedi).
+
+**Güvenlik:** Bir karakter (tekil ya da çift) seçiliyken Format
+OTOMATİK "kids"a kilitleniyor ve selectbox disabled oluyor --
+`_child_safe_guidance_instructions` SADECE `Format.kids`'e bakıyor,
+karakterden bağımsız olduğu için (script_generator.py, önceki "Bao"
+turunda kodlandı) bu kilit olmadan biri karakter seçip güvenlik
+katmanını atlayabilirdi.
+
+**Doğrulama:**
+- Mock tabanlı testler: `test_characters.py` (yeni, 11 test), `test_
+  asset_generator.py`/`test_ai_video_generator.py` (liste API'sine
+  güncellendi + 2-karakter testleri), `test_webui_documentary_labels.py`
+  (9 dilde Character/Character Preview key kapsamı + kart grid/Format-
+  kilit AppTest'leri). Tam suite: **938 passed, 11 skipped** (916'dan
+  +22, sıfır regresyon). `ruff` temiz.
+- **Gerçek, ücretli 2-karakter testi ($0.56, kullanıcı onayıyla):**
+  gerçek `asset_generator`/`ai_video_generator` zinciri üzerinden,
+  gerçek prompt ("Take @Element1 as Mother Bird, @Element2 as Little
+  Blue Bird...") ile gerçek bir 720x1280/5s klip üretildi. **Görsel
+  sonuç kesin:** Anne Kuş ve Yavrusu aynı sahnede birbirinden net
+  şekilde ayırt edilebilir kaldı (ikisinin de kendi referans
+  görsellerindeki ayırt edici özellikleri -- Anne'nin göz işaretleri,
+  Yavru'nun tüy dokusu/turuncu gaga-ayakları -- korundu), "besleme"
+  etkileşimi promptla birebir eşleşti -- fal.ai'nin çoklu-element
+  desteği gerçekten çalışıyor, sadece dokümantasyon iddiası değil.
+- Gerçek tarayıcı doğrulaması (Playwright/headless Chromium, ayrı
+  geçici port, production'a dokunulmadan): 9 kart doğru Türkçe
+  çevirilerle render edildi, "Anne Kuş & Yavrusu" seçildiğinde
+  Format'ın "Çocuklar"a kilitlenip disabled olduğu gerçek ekran
+  görüntüsüyle doğrulandı.
+
+**Bu turda kapsam dışı bırakılan noktalar:** Karakter başına ayrı
+içerik takvimi YAML'ları istenmedi/yapılmadı. "Anne Kuş & Yavrusu"
+dışında gelecekte başka çiftler/gruplar istenirse bugünkü "tek bileşik
+kart" çözümü ölçeklenmez -- gerçek bir multi-select mekanizması o zaman
+gerekir (YAGNI, şimdi kurulmadı).

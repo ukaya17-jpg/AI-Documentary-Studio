@@ -505,6 +505,27 @@
     "Documentary Publish Kids Review Warning": "这是儿童内容——发布前请完整观看整个视频，并确认内容适合幼儿观看。",
     "Documentary Publish Kids Review Confirm": "我已完整观看整个视频，确认其内容适合儿童。",
     "Documentary Thumbnail Variant C": "缩略图（选项 C -- 高潮）",
-    "Documentary Thumbnail Variant D": "缩略图（选项 D -- 开场）"
+    "Documentary Thumbnail Variant D": "缩略图（选项 D -- 开场）",
+    "Character: none": "无角色",
+    "Character: bao": "Bao",
+    "Character: luna": "Luna",
+    "Character: riko": "Riko",
+    "Character: finn": "Finn",
+    "Character: wise_owl": "智慧猫头鹰",
+    "Character: little_blue_bird": "小蓝鸟",
+    "Character: mother_bird": "鸟妈妈",
+    "Character: mother_and_baby": "鸟妈妈与雏鸟",
+    "Character Preview: bao": "一只温柔的熊猫，教会善良、分享与勇气。",
+    "Character Preview: luna": "一只温柔的小兔子，喜欢花朵与友谊。",
+    "Character Preview: riko": "一只爱冒险的小浣熊，随时准备探索。",
+    "Character Preview: finn": "一只好奇的小狐狸，擅长寻找方向。",
+    "Character Preview: wise_owl": "一只沉稳智慧的猫头鹰，帮助小伙伴们解决问题。",
+    "Character Preview: little_blue_bird": "一只毛茸茸的蓝色小雏鸟，迈出探索世界的第一步。",
+    "Character Preview: mother_bird": "一只悉心照料雏鸟的鸟妈妈。",
+    "Character Preview: mother_and_baby": "鸟妈妈与雏鸟，共同出现在同一个温馨场景中。",
+    "Character None Description": "不使用固定角色进行生成。",
+    "Documentary Character Select": "角色",
+    "Documentary Character Help": "为本集选择一个固定角色（可选）。选择角色后，格式将锁定为「儿童」，并始终应用强制性的儿童安全准则。",
+    "Documentary Format Character Locked Help": "已锁定为「儿童」，因为已选择角色——使用角色时始终应用儿童安全准则。"
   }
 }

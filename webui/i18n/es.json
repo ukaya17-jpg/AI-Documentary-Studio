@@ -478,6 +478,27 @@
     "Documentary Publish Kids Review Warning": "Este es contenido infantil -- antes de publicar, mira el video completo y confirma que es apropiado para niños pequeños.",
     "Documentary Publish Kids Review Confirm": "Vi el video completo y confirmo que es apropiado para niños.",
     "Documentary Thumbnail Variant C": "Miniatura (Opción C -- Clímax)",
-    "Documentary Thumbnail Variant D": "Miniatura (Opción D -- Apertura)"
+    "Documentary Thumbnail Variant D": "Miniatura (Opción D -- Apertura)",
+    "Character: none": "Sin Personaje",
+    "Character: bao": "Bao",
+    "Character: luna": "Luna",
+    "Character: riko": "Riko",
+    "Character: finn": "Finn",
+    "Character: wise_owl": "Búho Sabio",
+    "Character: little_blue_bird": "Pajarito Azul",
+    "Character: mother_bird": "Pájaro Madre",
+    "Character: mother_and_baby": "Pájaro Madre y su Cría",
+    "Character Preview: bao": "Un panda gentil que enseña bondad, generosidad y valentía.",
+    "Character Preview: luna": "Un conejito suave y tierno que ama las flores y la amistad.",
+    "Character Preview: riko": "Un mapache aventurero, siempre listo para explorar.",
+    "Character Preview: finn": "Un zorrito curioso con talento para encontrar el camino.",
+    "Character Preview: wise_owl": "Un búho tranquilo y sabio que ayuda a sus jóvenes amigos a resolver problemas.",
+    "Character Preview: little_blue_bird": "Un pajarito azul, pequeño y esponjoso, dando sus primeros pasos en el mundo.",
+    "Character Preview: mother_bird": "Una madre pájaro cariñosa que cuida a su pequeño.",
+    "Character Preview: mother_and_baby": "Pájaro Madre y su cría, juntos en la misma escena tierna.",
+    "Character None Description": "Generar sin un personaje recurrente.",
+    "Documentary Character Select": "Personaje",
+    "Documentary Character Help": "Elige un personaje recurrente para este episodio (opcional). Elegir uno bloquea el Formato en Infantil y aplica siempre la guía obligatoria de seguridad infantil.",
+    "Documentary Format Character Locked Help": "Bloqueado en Infantil porque hay un personaje seleccionado -- la guía de seguridad infantil siempre se aplica cuando se usa un personaje."
   }
 }

@@ -478,6 +478,27 @@
     "Documentary Publish Kids Review Warning": "Este é um conteúdo infantil -- antes de publicar, assista ao vídeo completo e confirme que é apropriado para crianças pequenas.",
     "Documentary Publish Kids Review Confirm": "Assisti ao vídeo inteiro e confirmo que é apropriado para crianças.",
     "Documentary Thumbnail Variant C": "Miniatura (Opção C -- Clímax)",
-    "Documentary Thumbnail Variant D": "Miniatura (Opção D -- Abertura)"
+    "Documentary Thumbnail Variant D": "Miniatura (Opção D -- Abertura)",
+    "Character: none": "Sem Personagem",
+    "Character: bao": "Bao",
+    "Character: luna": "Luna",
+    "Character: riko": "Riko",
+    "Character: finn": "Finn",
+    "Character: wise_owl": "Coruja Sábia",
+    "Character: little_blue_bird": "Passarinho Azul",
+    "Character: mother_bird": "Pássaro Mãe",
+    "Character: mother_and_baby": "Pássaro Mãe e Filhote",
+    "Character Preview: bao": "Um panda gentil que ensina bondade, generosidade e coragem.",
+    "Character Preview: luna": "Uma coelhinha meiga que ama flores e amizade.",
+    "Character Preview: riko": "Um guaxinim aventureiro, sempre pronto para explorar.",
+    "Character Preview: finn": "Uma raposinha curiosa com talento para encontrar o caminho.",
+    "Character Preview: wise_owl": "Uma coruja calma e sábia que ajuda os amigos mais jovens a resolver problemas.",
+    "Character Preview: little_blue_bird": "Um passarinho azul pequeno e fofinho, dando os primeiros passos no mundo.",
+    "Character Preview: mother_bird": "Um pássaro mãe carinhoso cuidando do seu filhote.",
+    "Character Preview: mother_and_baby": "Pássaro Mãe e seu filhote, juntos na mesma cena gentil.",
+    "Character None Description": "Gerar sem um personagem recorrente.",
+    "Documentary Character Select": "Personagem",
+    "Documentary Character Help": "Escolha um personagem recorrente para este episódio (opcional). Escolher um trava o Formato em Infantil e aplica sempre a orientação obrigatória de segurança infantil.",
+    "Documentary Format Character Locked Help": "Travado em Infantil porque um personagem está selecionado -- a orientação de segurança infantil sempre se aplica quando um personagem é usado."
   }
 }

@@ -68,7 +68,7 @@ def generate_ai_clips(
     asset_plan: AssetPlan,
     task_id: str,
     aspect_ratio: str = "9:16",
-    character_reference: CharacterReference | None = None,
+    character_references: list[CharacterReference] | None = None,
     on_substage_progress: Callable[[int, int], None] | None = None,
 ) -> AssetPlan:
     """Generate one AI video clip per asset_plan candidate via fal.ai/Kling.
@@ -80,10 +80,12 @@ def generate_ai_clips(
     seconds get billed for "10"; scenes that fit in "5" stay at "5" (see
     asset_generator._kling_duration_for_word_count for the cost rationale).
 
-    `character_reference`, if given, is passed to every submit_video_job()
-    call as `character_elements` -- see docs/character-consistency-research.md
-    and fal_video.submit_video_job's docstring for why this always routes to
-    Kling O1 regardless of the globally configured AI video provider.
+    `character_references`, if given, is passed to every submit_video_job()
+    call as `character_elements` (one dict per character, in @ElementN
+    order) -- see docs/character-consistency-research.md and fal_video.
+    submit_video_job's docstring for why this always routes to Kling O1
+    regardless of the globally configured AI video provider. More than one
+    entry means multiple characters appear together in the same clips.
 
     Submits every candidate's job up front, then polls all still-pending
     jobs together each iteration until each one completes, fails, or the
@@ -109,7 +111,9 @@ def generate_ai_clips(
 
     total = len(candidates)
     task_directory = utils.task_dir(task_id)
-    character_elements = [character_reference.model_dump()] if character_reference else None
+    character_elements = (
+        [ref.model_dump() for ref in character_references] if character_references else None
+    )
 
     # app_id is carried alongside request_id (not re-derived from the live
     # provider config at poll time) so a character job stays correctly
