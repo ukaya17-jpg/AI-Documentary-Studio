@@ -4306,3 +4306,72 @@ içerik takvimi YAML'ları istenmedi/yapılmadı. "Anne Kuş & Yavrusu"
 dışında gelecekte başka çiftler/gruplar istenirse bugünkü "tek bileşik
 kart" çözümü ölçeklenmez -- gerçek bir multi-select mekanizması o zaman
 gerekir (YAGNI, şimdi kurulmadı).
+
+## Karakter Başına Sabit Ses -- Seçenek A (kullanıcı onaylı, önce plan+büyüklük tahmini)
+
+Kullanıcı 7 çocuk karakterinin (Bao, Luna, Riko, Finn, Wise Owl, Little
+Blue Bird, Mother Bird) her birinin kendi sabit TTS sesine sahip olmasını
+istedi. Kod yazmadan önce SADECE araştırma+plan istendi -- mevcut
+mimarinin script'i TEK bir anlatıcı blob'u (`Script.full_text`) olarak
+üretip TEK bir TTS çağrısıyla okuduğu (konuşmacı/diyalog kavramı SIFIR)
+doğrulandı, iki seçenek sunuldu: (A) tek-karakterli üretimlerde anlatım o
+karakterin sesiyle okunsun (küçük, script şeması değişmez, hâlâ tek TTS
+çağrısı) vs (B) gerçek konuşmacı-etiketli diyalog (büyük, ayrı bir
+planlama turu gerektirir -- script şeması + audio_renderer'ın N-çağrılı
+ses-birleştirme+altyazı-offset mimarisiyle tam yeniden yazımı). Kullanıcı
+Seçenek A'yı onayladı, Seçenek B (çoklu-karakter sahnelerin ses ataması,
+ör. Anne+Yavru) bilinçli olarak kapsam dışı bırakıldı.
+
+**Ses ataması:** Azure değil, production'ın GERÇEK varsayılan sağlayıcısı
+ElevenLabs'ın (`model_id: eleven_multilingual_v2`, Türkçe dahil çok
+dilli) gerçek, favorilenmiş hesap kataloğu (`voice.get_elevenlabs_voices()`,
+36 ses) incelendi -- uydurma voice_id kullanılmadı. Her karaktere
+kişiliğine göre bilinçli, birbirinden farklı bir ses atandı:
+
+| Karakter | ElevenLabs sesi (etiket) |
+|---|---|
+| Bao | Burak Kal -- Rich, Reassuring and Warm |
+| Luna | Nisa -- Encouraging, Friendly and Soft |
+| Riko | Tomris -- Live, Energetic and Friendly |
+| Finn | Callum -- Husky Trickster |
+| Wise Owl | Bill -- Wise, Mature, Balanced |
+| Little Blue Bird | Jessica -- Playful, Bright, Warm |
+| Mother Bird | Sarah -- Mature, Reassuring, Confident |
+
+**Teknik entegrasyon (küçük, additive):**
+- `app/config/characters.py`: `_CHARACTER_SLUGS`'ın değerleri
+  (isim, klasör) ikilisinden (isim, klasör, voice_name) üçlüsüne genişledi
+  -- `get_character_voice_name(slug)` ve `get_voice_name_for_character_
+  reference(ref)` (isimle ters-arama) eklendi. `CharacterReference`
+  modeline BİLEREK dokunulmadı -- o model fal.ai'ye `model_dump()` ile
+  DOĞRUDAN gönderiliyor, `voice_name` eklemek fal.ai'nin şemasına
+  beklenmeyen bir alan sızdırırdı.
+- `audio_renderer.py`: yeni `_resolve_narration_voice(voice_name,
+  character_references)` -- SADECE tam olarak TEK karakter seçiliyken
+  genel `voice_name`'i o karakterin sesine çeviriyor; karaktersiz ya da
+  çoklu-karakter (2+) durumunda davranış HİÇ değişmiyor (regresyon
+  garantisi). `render_audio_plan()`'a yeni, opsiyonel `character_references`
+  parametresi eklendi.
+- `default_pipeline.py`'nin 2 çağrı noktası (`run_pipeline`,
+  `regenerate_from_edited_script`): `character_references` audio
+  aşamasına da (asset/ai_video'nun yanına) geçiriliyor -- script
+  düzenlenip ses yeniden üretildiğinde bile karakter sesi korunuyor.
+
+**Doğrulama:**
+- Mock testler: `test_audio_renderer.py` (`_resolve_narration_voice`'un
+  karaktersiz/tek-karakter/çoklu-karakter/bilinmeyen-karakter dallarının
+  hepsi), `test_characters.py` (7 sesin gerçek `elevenlabs:` formatında ve
+  birbirinden farklı olduğu), `test_default_pipeline.py` (character_
+  references'ın audio aşamasına doğru iletildiği, script düzenlemede
+  korunduğu). Tam suite: **953 passed, 11 skipped** (938'den +15, sıfır
+  regresyon). `ruff` temiz.
+- **Gerçek, ucuz TTS testi (tam otonomiyle, ElevenLabs'a 2 gerçek çağrı,
+  toplam birkaç saniyelik metin):** Bao ve Little Blue Bird için gerçek
+  `audio_renderer.render_narration()` çağrıldı -- gerçek, FARKLI voice_id'ler
+  kullanıldığı (`stvBE08BCYHZ97rCIwoZ` vs `cgSgspJ2msm6clMCkdW9`) API
+  loglarından doğrulandı, iki GERÇEK, birbirinden farklı ses dosyası
+  üretildi (farklı MD5, farklı boyut/süre) -- kanıt olarak
+  `bao_voice_sample.mp3`/`little_blue_bird_voice_sample.mp3` kullanıcıya
+  sunuldu (dinleyip kendisi doğrulayabilsin diye -- ses içeriğini
+  işitsel olarak doğrulamak bu oturumun kendi yeteneği dışında, sadece
+  mekanik kanıt -- farklı voice_id/farklı dosya -- sunulabilir).

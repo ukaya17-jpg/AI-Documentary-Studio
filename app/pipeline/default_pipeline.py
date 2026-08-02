@@ -253,6 +253,7 @@ def run_pipeline(
             voice_rate=voice_rate,
             voice_volume=voice_volume,
             bgm_file=bgm_file,
+            character_references=character_references,
         )
         utils.save_project_snapshot(project)
 
@@ -413,6 +414,7 @@ def regenerate_from_edited_script(
         voice_rate=project.voice_rate,
         voice_volume=project.voice_volume,
         bgm_file=existing_bgm_file,
+        character_references=project.character_references,
     )
     utils.save_project_snapshot(project)
 

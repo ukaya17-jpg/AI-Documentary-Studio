@@ -63,6 +63,41 @@ class TestResolveCharacterSelection(unittest.TestCase):
             self.assertEqual(len(refs), 1)
 
 
+class TestCharacterVoiceName(unittest.TestCase):
+    """"Karakter Sesi" planı (kullanıcı onaylı, Seçenek A): her karakterin
+    sabit, gerçek ElevenLabs voice_id'sine (production'ın gerçek hesap
+    kataloğundan, uydurma değil) sahip olması + 7 karakterin 7'sinin de
+    birbirinden FARKLI bir sesi olması.
+    """
+
+    def test_all_seven_characters_have_a_real_elevenlabs_voice_name(self):
+        for slug in characters._CHARACTER_SLUGS:
+            voice_name = characters.get_character_voice_name(slug)
+            self.assertTrue(voice_name.startswith("elevenlabs:"), f"{slug}: {voice_name!r}")
+            # format: elevenlabs:<voice_id>:<display name>
+            self.assertEqual(len(voice_name.split(":")), 3, f"{slug}: {voice_name!r}")
+
+    def test_all_seven_voice_names_are_pairwise_distinct(self):
+        voice_names = [characters.get_character_voice_name(slug) for slug in characters._CHARACTER_SLUGS]
+        self.assertEqual(len(voice_names), len(set(voice_names)))
+
+    def test_unknown_slug_raises(self):
+        with self.assertRaises(KeyError):
+            characters.get_character_voice_name("nonexistent")
+
+    def test_get_voice_name_for_character_reference_matches_registry(self):
+        for slug in characters._CHARACTER_SLUGS:
+            ref = characters.get_character_reference(slug)
+            expected = characters.get_character_voice_name(slug)
+            self.assertEqual(characters.get_voice_name_for_character_reference(ref), expected)
+
+    def test_get_voice_name_for_unregistered_character_reference_returns_empty_string(self):
+        from app.models.character import CharacterReference
+
+        unknown = CharacterReference(name="Nobody", frontal_image_url="data:image/jpeg;base64,x")
+        self.assertEqual(characters.get_voice_name_for_character_reference(unknown), "")
+
+
 class TestCharacterPairsReferenceValidSlugs(unittest.TestCase):
     def test_every_pair_member_is_a_registered_character(self):
         for pair_key, slugs in characters.CHARACTER_PAIRS.items():

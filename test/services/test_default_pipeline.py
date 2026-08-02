@@ -357,6 +357,29 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         self.assertIs(thumb_d_args[1], self.seo)
         self.assertEqual(thumb_d_args[2], "proj-1")
 
+    def test_character_references_reach_audio_asset_and_ai_video_stages(self):
+        # "Karakter Sesi" planı (kullanıcı onaylı, Seçenek A): character_
+        # references, asset/ai_video aşamalarının yanına, audio (TTS)
+        # aşamasına da AYNEN geçirilmeli -- audio_renderer'ın kendisi tek-
+        # karakter/çoklu-karakter ayrımını içeride çözüyor (bkz.
+        # test_audio_renderer.py), burada sadece doğru şekilde İLETİLDİĞİ
+        # doğrulanıyor.
+        from app.models.character import CharacterReference
+
+        bao = CharacterReference(name="Bao", frontal_image_url="data:image/jpeg;base64,x")
+
+        default_pipeline.run_pipeline(
+            project_id="proj-1",
+            topic="The Fall of Rome",
+            language="auto",
+            pacing=Pacing.short,
+            voice_name="en-US-JennyNeural",
+            character_references=[bao],
+        )
+
+        _args, audio_kwargs = self.started["audio"].call_args
+        self.assertEqual(audio_kwargs["character_references"], [bao])
+
     def test_ai_generated_video_source_calls_ai_video_generator_not_asset_downloader(self):
         # Opt-in AI-generated video clips (fal.ai/Kling) branch at stage 8:
         # asset_downloader (the free/instant stock path) must not run at
@@ -819,6 +842,20 @@ class TestRegenerateFromEditedScript(unittest.TestCase):
 
         _, audio_kwargs = self.started["audio"].call_args
         self.assertEqual(audio_kwargs["bgm_file"], "/tmp/bgm.mp3")
+
+    def test_preserves_original_character_references_across_the_new_audio_plan(self):
+        # "Karakter Sesi" planı (kullanıcı onaylı): script düzenlendiğinde
+        # ses YENİDEN üretiliyor -- karakter sesi de sessizce genel sese
+        # DÜŞMEMELİ, orijinal projenin character_references'ı korunmalı.
+        from app.models.character import CharacterReference
+
+        bao = CharacterReference(name="Bao", frontal_image_url="data:image/jpeg;base64,x")
+        self.project.character_references = [bao]
+
+        default_pipeline.regenerate_from_edited_script(self.project, self.edited_script)
+
+        _, audio_kwargs = self.started["audio"].call_args
+        self.assertEqual(audio_kwargs["character_references"], [bao])
 
     def test_reuses_original_bgm_type_and_volume_for_video_params(self):
         default_pipeline.regenerate_from_edited_script(self.project, self.edited_script)
