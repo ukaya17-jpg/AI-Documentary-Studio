@@ -159,7 +159,12 @@ def test_format_and_pacing_selectboxes_still_show_translated_labels():
 
     pacing_select = _selectbox_by_key(app, "documentary_pacing")
     assert pacing_select.value == "short"
-    assert "Kısa" in pacing_select.options
+    # "Pacing İsim Netleştirmesi" (kullanıcı onaylı): eski "Kısa"/"Uzun"
+    # etiketleri ikisinin de aslında kısa (35sn/56sn) olduğunu, gerçek uzun
+    # videonun "extended" olduğunu gizliyordu -- artık süre bilgisi
+    # etikette (raw enum değeri "short" hâlâ değişmedi, sadece görünen
+    # metin).
+    assert "Hızlı Shorts (35sn)" in pacing_select.options
     assert "long" not in pacing_select.options
 
 
