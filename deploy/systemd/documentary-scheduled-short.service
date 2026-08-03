@@ -1,0 +1,12 @@
+[Unit]
+Description=AI Documentary Studio -- scheduled SHORT video generation (production only, publishing NOT included)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/MoneyPrinterTurbo/AI-Documentary-Studio
+Environment=PYTHONPATH=/root/MoneyPrinterTurbo/AI-Documentary-Studio
+ExecStart=/root/MoneyPrinterTurbo/AI-Documentary-Studio/.venv/bin/python /root/MoneyPrinterTurbo/AI-Documentary-Studio/scripts/scheduled_generate.py --kind short
+StandardOutput=journal
+StandardError=journal

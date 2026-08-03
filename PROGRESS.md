@@ -4375,3 +4375,92 @@ kişiliğine göre bilinçli, birbirinden farklı bir ses atandı:
   sunuldu (dinleyip kendisi doğrulayabilsin diye -- ses içeriğini
   işitsel olarak doğrulamak bu oturumun kendi yeteneği dışında, sadece
   mekanik kanıt -- farklı voice_id/farklı dosya -- sunulabilir).
+
+## Haftalık İçerik Takvimine Göre Otomatik ÜRETİM (Yayınlama HARİÇ) -- TAMAMLANDI
+
+Kullanıcının "Zihin & Davranış" niş kanalı için haftalık takvim: Pazartesi
+1 uzun video (extended, 10dk), Salı/Perşembe/Cuma/Pazar 4 short video
+(35sn) -- haftada 5 üretim, TAMAMEN otomatik ama **yayınlama kesinlikle
+dahil değil**. Önce sadece plan istendi (`/root/.claude/plans/nifty-
+cooking-barto.md`), onay sonrası uygulandı.
+
+**Mekanizma:** systemd `.timer` + `Type=oneshot` `.service` çifti
+(APScheduler/cron değil -- gerekçe: bu sunucunun zaten kanıtlanmış kendi
+deseni, ayrı uzun-süreli bir süreç bekçilemek gerekmiyor).
+`documentary-scheduled-long.timer` (Pazartesi 09:00 UTC) ve `-short.timer`
+(Sal/Per/Cum/Paz 09:00 UTC), her ikisi `Persistent=true`. Gerçekten
+`/etc/systemd/system/`'e kuruldu, `systemctl list-timers` ile doğrulandı,
+production `ai-documentary-studio-webui.service` boyunca `active`+sağlıklı
+kaldı.
+
+**Takvim:** `resource/content_calendar/zihin_davranis_calendar.yaml` --
+`bao_content_calendar.yaml`'ın aksine bu dosya `scripts/
+scheduled_generate.py` tarafından GERÇEKTEN okunup yazılıyor. Her
+çalıştırma ilgili listede (`long_form`/`shorts`) ilk `status: planned`
+girdiyi işler, başarı sonrası `generated`'a çevirip dosyayı geri yazar;
+hata/kesinti durumunda dosya DOKUNULMADAN bırakılır (bir sonraki
+zamanlanmış çalıştırma aynı konuyu tekrar dener). Henüz gerçek konu
+başlıkları girilmediği için şu an `placeholder` sentinel'iyle işaretli
+örnek girdiler var (script SADECE `planned` işler, `placeholder`'ı atlar
+-- kullanıcı `PLACEHOLDER` metnini gerçek başlıkla değiştirip durumu
+`planned` yapınca devreye girer).
+
+**Kritik güvenlik sınırı (kod seviyesinde garanti, sadece dikkate güvenmek
+değil):** `grep -rln "from app.departments.growth import publisher" app/
+webui/` tek sonucu `webui/Main.py` -- `scripts/scheduled_generate.py`
+`app.pipeline.default_pipeline.run_pipeline`'dan başka hiçbir şey import
+etmiyor, `publisher.py`'yi Python süreç belleğine hiç YÜKLEMİYOR bile.
+Savunma derinliği: dosyanın en altında `assert "app.departments.growth.
+publisher" not in sys.modules`. Bu, **AST tabanlı** bir testle
+(`test_scheduled_generate_safety.py`) kilitleniyor -- naif alt-dize
+taraması denendi ve script'in kendi "publisher import ETMİYORUM" açıklayan
+docstring/assert-mesajı yüzünden YANLIŞ POZİTİF verdiği görüldü, AST tabanlı
+import-analizine geçilerek düzeltildi (ayrıca bu süreçte `ast.ImportFrom`
+işleyicisinde gerçek bir bug -- `from X import Y`'nin sadece `X`'i
+yakalayıp `Y`'yi kaçırması -- bulunup düzeltildi).
+**Kanıt, testin gerçekten çalıştığı:** gerçek script'in sabote edilmiş
+kopyaları (statik `publisher` import, dinamik `importlib.import_module`
+ile `publisher` import, `upload_post` import, `FORCED_VIDEO_SOURCE`'u
+`"ai_generated"`'a çevirme) hepsi testte YAKALANDI; temiz bir kopya
+hiçbir şey bulmadı (aşırı-hassas değil). 10/10 test yeşil
+(`TestScheduledGenerateNeverImportsPublisher` + `TestForbiddenImportDetectorReallyWorks`).
+
+**Maliyet kontrolü:** `FORCED_VIDEO_SOURCE = "pexels"` Python sabiti --
+takvim YAML şemasında `video_source` alanı HİÇ yok, bilerek (bir testte
+YAML'a bilerek `video_source: ai_generated` enjekte edilip `run()`'ın
+bunu asla okumadığı doğrulandı). Hata yönetimi: tekrar deneme YOK, log +
+takvim durumu değişmeden bırakılır, bir sonraki zamanlanmış çalıştırma
+aynı konuyu dener.
+
+**Doğrulama:**
+- Mock testler: `test_scheduled_generate.py` (10 test -- ilk `planned`
+  bulma, boş liste skip, short/long pacing+aspect+format doğru, başarı
+  `generated`'a çeviriyor, hata durumunda dosya değişmiyor).
+- Tam suite + ruff temiz.
+- **Gerçek, tam uçtan-uca üretim (manuel tetikleme, systemd'den bağımsız,
+  gerçek OpenAI+ElevenLabs+Pexels):** `scripts/scheduled_generate.py
+  --kind short`, konu "Beynimiz Neden Kötü Haberlere Daha Çok Odaklanır?"
+  (ilk deneme arka planda kesintiye uğradı -- görev ortamı sonlandırdı,
+  script'in "hata/kesintide dosya değişmez" tasarımı bunu doğru şekilde
+  idare etti, takvim `planned` kaldı; ikinci deneme baştan sona
+  tamamlandı). Sonuç: `storage/tasks/sched-short-221c8a3b-.../final.mp4`,
+  77.57sn, `video_source: pexels` (zorlanan sabit gerçekten tutuyor),
+  `publish_result: None` (güvenlik sınırı gerçek bir çalıştırmada da
+  tutuyor), `quality_verdict.passed: True` (4.67/5). Takvimin `shorts[0]`
+  girdisi doğru şekilde `status: generated`'a çevrildi -- bu artık
+  takvimin doğru, gerçek geçmişi, placeholder'a GERİ DÖNDÜRÜLMEDİ.
+  Pipeline 6 gerçek LLM çağrısı (research/outline/script/storyboard/seo/
+  quality_critic, model: `gpt-5.5`) + 1 gerçek TTS çağrısı (ElevenLabs,
+  1006 karakter Türkçe anlatım) yaptı; video Pexels'ten (ücretsiz),
+  thumbnail'lar yerel ffmpeg'ten (API maliyeti yok). **Dürüst not:** bu
+  kod tabanında LLM/TTS için dahili $ maliyet takibi yok, `gpt-5.5`'in
+  güncel fiyatlandırmasını da elimde doğrulanmış veri olarak
+  bulunmuyor -- uydurma bir rakam vermek yerine gerçek OpenAI/ElevenLabs
+  fatura panelinizden bakmanız önerilir (yukarıdaki karakter/çağrı
+  sayıları o hesaplama için doğrudan girdi).
+
+**Kullanıcının haftalık yapması gereken:** her üretim sonrası (haftada 5
+kez) Geçmiş Üretimler'e girip izlemek, beğenirse elle Publish'e basmak
+(hiçbir şey otomatik yayınlanmaz), beğenmezse hiçbir şey yapmaya gerek
+yok. `resource/content_calendar/README.md`'de tam akış + manuel tetikleme
+komutları belgelendi.

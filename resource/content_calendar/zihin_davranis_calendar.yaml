@@ -1,0 +1,30 @@
+niche: Zihin & Davranış
+language: tr
+long_form:
+- week: 1
+  topic: PLACEHOLDER -- gerçek başlıkla değiştirilecek
+  topic_category: personal_development
+  tone: motivational
+  status: placeholder
+- week: 2
+  topic: PLACEHOLDER -- gerçek başlıkla değiştirilecek
+  topic_category: psychology
+  tone: scientific
+  status: placeholder
+shorts:
+- index: 1
+  topic: Beynimiz Neden Kötü Haberlere Daha Çok Odaklanır?
+  topic_category: psychology
+  status: generated
+- index: 2
+  topic: PLACEHOLDER -- gerçek başlıkla değiştirilecek
+  topic_category: mysterious_discoveries
+  status: placeholder
+- index: 3
+  topic: PLACEHOLDER -- gerçek başlıkla değiştirilecek
+  topic_category: personal_development
+  status: placeholder
+- index: 4
+  topic: PLACEHOLDER -- gerçek başlıkla değiştirilecek
+  topic_category: psychology
+  status: placeholder
