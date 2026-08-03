@@ -16,8 +16,14 @@ SHOT_GUIDANCE = {
         "telescopes, and night-sky timelapses."
     ),
     TopicCategory.psychology: (
-        "Favor human-centered footage: close-ups of faces and expressions, "
-        "everyday life scenarios, and abstract/conceptual visuals."
+        "Favor human-centered footage: close-ups of faces and expressions "
+        "showing real emotional reactions, people making real decisions in "
+        "everyday settings (shopping, working, weighing a choice), and "
+        "research-adjacent imagery (note-taking, charts, lab or study "
+        "settings). Avoid mystical, spiritual, or new-age imagery (candles, "
+        "crystals, zodiac charts, incense) and vague decorative objects -- "
+        "every shot should read as a real, filmable psychological or "
+        "behavioral moment, not a mood-board metaphor."
     ),
     TopicCategory.marine: (
         "Favor underwater cinematography: coral reefs, marine animals (fish, "
@@ -51,8 +57,12 @@ SHOT_GUIDANCE = {
     ),
     TopicCategory.personal_development: (
         "Favor human-centered, aspirational footage: people working, "
-        "studying, or practicing a skill, journaling or planning, quiet "
-        "focused moments, and everyday environments (home, office, gym)."
+        "studying, or practicing a skill, journaling or planning, and "
+        "everyday environments (home, office, gym). Keep 'quiet focused "
+        "moments' concrete and secular -- a person writing at a desk, "
+        "reviewing notes, or pausing mid-task -- not meditation, yoga, or "
+        "spiritual/mystical decor (candles, crystals, zen ornaments), which "
+        "belong to the spiritual category, not this one."
     ),
     TopicCategory.food_culture: (
         "Favor close-up culinary footage: food preparation, cooking "

@@ -75,6 +75,43 @@ class TestBuildStoryboardPrompt(unittest.TestCase):
         self.assertIn("archival, cinematic, documentary", prompt_flat)
         self.assertIn("do not stack more than one such modifier", prompt_flat)
 
+    def test_psychology_guidance_avoids_mystical_imagery(self):
+        # Regression for a real production ("Beynin Karar Alma Mekanizması")
+        # where the old "abstract/conceptual visuals" wording led the model
+        # to pick candle/crystal/zodiac stock footage for a neuroscience
+        # topic. The guidance must now explicitly steer away from that.
+        prompt = storyboard_generator.build_storyboard_prompt(_scene_plan(), _script(), TopicCategory.psychology)
+        prompt_lower = prompt.lower()
+        self.assertIn("avoid mystical, spiritual, or new-age imagery", prompt_lower)
+        self.assertIn("candles", prompt_lower)
+        self.assertIn("crystals", prompt_lower)
+        self.assertNotIn("abstract/conceptual visuals", prompt_lower)
+
+    def test_personal_development_guidance_avoids_meditation_and_spiritual_decor(self):
+        # Same real-production regression: personal_development's old
+        # "quiet focused moments" wording, with no concrete anchor, also
+        # resolved to yoga-studio/spiritual-decor stock footage.
+        prompt = storyboard_generator.build_storyboard_prompt(
+            _scene_plan(), _script(), TopicCategory.personal_development
+        )
+        prompt_lower = prompt.lower()
+        self.assertIn("human-centered, aspirational footage", prompt_lower)
+        self.assertIn("not meditation, yoga, or", prompt_lower)
+        self.assertIn("candles, crystals", prompt_lower)
+
+    def test_unrelated_category_guidance_is_unaffected(self):
+        # The fix must be scoped to psychology/personal_development only --
+        # spiritual explicitly WANTS candlelight footage, so a global
+        # anti-candle rule would have been the wrong fix.
+        history_prompt = storyboard_generator.build_storyboard_prompt(_scene_plan(), _script(), TopicCategory.history)
+        self.assertIn("archival", history_prompt.lower())
+        self.assertNotIn("mystical", history_prompt.lower())
+
+        spiritual_prompt = storyboard_generator.build_storyboard_prompt(
+            _scene_plan(), _script(), TopicCategory.spiritual
+        )
+        self.assertIn("candlelight", spiritual_prompt.lower())
+
     def test_omits_context_block_when_topic_and_facts_are_empty(self):
         prompt = storyboard_generator.build_storyboard_prompt(_scene_plan(), _script(), TopicCategory.history)
         self.assertNotIn("Documentary topic:", prompt)

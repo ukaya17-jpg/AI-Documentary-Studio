@@ -4464,3 +4464,75 @@ kez) Geçmiş Üretimler'e girip izlemek, beğenirse elle Publish'e basmak
 (hiçbir şey otomatik yayınlanmaz), beğenmezse hiçbir şey yapmaya gerek
 yok. `resource/content_calendar/README.md`'de tam akış + manuel tetikleme
 komutları belgelendi.
+## Storyboard Görsel Uyuşmazlığı Düzeltmesi -- gerçek prodüksiyon şikayeti (TAMAMLANDI)
+
+Gerçek bir prodüksiyon ("Beynin Karar Alma Mekanizması: Yanlış Seçimlerin
+Bilimsel Anatomisi", `storage/tasks/943ba4e0-.../`, `topic_category:
+personal_development`, `tone: scientific`) için görsellerin konuyla
+alakasız olduğu bildirildi (yoga, mistik masa süsü/mum/kristal/burç
+çarkı sahneleri nörobilim/karar-verme anlatımıyla eşleşmiyor).
+
+**Kök neden, gerçek verilerle doğrulandı:** `storage/tasks/943ba4e0-.../
+project.json`'daki gerçek storyboard'ın 14. sahnesi (anlatım: "Duyguları
+kararın düşmanı gibi görmek kolay, ama eksik...") için gerçek
+`search_terms`: `["mindful breathing desk", "close-up hand on chest",
+"documentary therapy journaling", "yoga studio reflection"]` -- bu,
+`app/prompts/storyboard/__init__.py`'deki eski `SHOT_GUIDANCE`
+metinlerinin DOĞRUDAN sonucu: `personal_development` için "quiet focused
+moments" ifadesi somut bir çapa vermeden bırakılmıştı, `psychology` için
+ise rehber metninde bizzat **"abstract/conceptual visuals"** ifadesi
+vardı -- yani model'e soyut/metaforik görsel üretmesi açıkça telkin
+ediliyordu. Gerçek, zaten render edilmiş `final.mp4`'ten `ffmpeg` ile
+(API maliyeti sıfır) 620sn'de çıkarılan kare, iddiayı görsel olarak
+doğruladı: mum, kristal, burç çarkı, kurutulmuş çiçekler.
+
+**Düzeltme (düşük riskli, sadece veri -- `build_storyboard_prompt`'un
+kod mantığına hiç dokunulmadı):** `app/prompts/storyboard/__init__.py`'de
+SADECE `SHOT_GUIDANCE[TopicCategory.psychology]` ve
+`SHOT_GUIDANCE[TopicCategory.personal_development]` metinleri
+güncellendi -- "abstract/conceptual visuals" kaldırıldı, somut/gerçek
+araştırma-bağlamlı alternatiflerle (yüz ifadeleri, gerçek karar anları,
+not alma/grafik/laboratuvar görüntüleri) değiştirildi; `personal_
+development`'a "meditasyon/yoga/mistik dekor DEĞİL, bunlar spiritual
+kategorisine ait" açık uyarısı eklendi. **Bilinçli olarak** global bir
+"mum/kristal yasak" kuralı EKLENMEDİ -- `TopicCategory.spiritual`
+kendi rehberinde bilerek "candlelight" istiyor, kategori-agnostik bir
+kural onu da bozardı.
+
+**Doğrulama:**
+- Yeni regresyon testleri (`test_storyboard_generator.py`, +3 test):
+  psychology/personal_development rehberinin artık mistik imgeden
+  kaçındığını, travel/history/**spiritual**'ın (candlelight hâlâ
+  istiyor) ETKİLENMEDİĞİNİ kilitliyor. 13/13 yeşil.
+- Tam suite: **976 passed, 11 skipped** (953'ten +23, sıfır regresyon).
+  `ruff` temiz.
+- **Gerçek API before/after karşılaştırması (2 gerçek LLM çağrısı,
+  gerçek 943ba4e0 prodüksiyonunun GERÇEK 14. sahne anlatımıyla):** eski
+  rehber metniyle üretilen shot açıklaması "...one hand on their chest..."
+  diyerek gerçek prodüksiyondaki "close-up hand on chest" hatasını
+  neredeyse birebir tekrarladı (`search_terms`: "documentary mindful
+  decision making" gibi). Yeni rehberle ise açıklama "...pauses mid-task,
+  then writes in a notebook beside a laptop..." oldu, `search_terms`:
+  `["documentary person journaling at desk", "backlit office worker
+  writing notes", ...]` -- mindful/chest/yoga izi tamamen kayboldu.
+- **Gerçek Pexels kareleri (LLM bütçesine dahil değil, ücretsiz stok
+  API'si):** eski terim "yoga studio reflection"in gerçek ilk Pexels
+  sonucu indirilip kare çıkarıldı -- yalınayak, kimonolu bir kadının
+  saksı bitkileriyle dolu bir aerial-yoga stüdyosunda yürüdüğü bir sahne
+  (kullanıcının şikayetiyle birebir örtüşüyor). Yeni terim "documentary
+  person journaling at desk"in gerçek ilk sonucu: bir elin defterine not
+  aldığı somut, konuyla uyumlu bir kapanış planı. Dört kare proje köküne
+  kopyalandı: `storyboard_fix_before_real_video_620s.jpg` (gerçek
+  şikayetli video), `storyboard_fix_before_real_video_300s.jpg`,
+  `storyboard_fix_before_pexels_yoga_studio_reflection.jpg`,
+  `storyboard_fix_after_pexels_journaling_at_desk.jpg`.
+
+**Bu turda çözülmeyen nokta:** 620sn'deki tam kareyi üreten spesifik
+klip/arama-terimi eşleşmesi kesin olarak izlenemedi (20 sahnenin hiçbiri
+literal "candle"/"astrology" içermiyor -- muhtemelen "yoga studio
+reflection" gibi bir terimin Pexels'teki geniş "wellness" sonuç
+havuzundan gelen bir klip ya da 667.8sn'lik gerçek anlatımın 20x~30sn'lik
+hedefi aşması nedeniyle klip tekrarı/uzaması) -- ama kök neden (rehber
+metnindeki soyut/mistik telkin) hem gerçek storyboard verisiyle hem de
+gerçek API before/after testiyle doğrudan doğrulandı, spesifik klibin
+izini sürmek düzeltmenin doğruluğu için gerekli değildi.
