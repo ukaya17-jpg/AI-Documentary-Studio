@@ -61,6 +61,44 @@ _ASSET_DOWNLOAD_DURATION_SAFETY_MULTIPLIER = 2.0
 # full architectural rationale from planning.
 AI_GENERATED_VIDEO_SOURCE = "ai_generated"
 
+# Otomatik müzik stili atama: kullanıcı bgm_type="elevenlabs" seçip
+# video_music_prompt'u boş bıraktığında, ElevenLabs Music API'ye gidecek
+# prompt'u tonun duygusal profiline göre kendiliğinden üretir. Deterministik
+# (LLM çağrısı YOK, ekstra ücret yok) -- script_generator.TONE_VOICE_GUIDANCE
+# ile aynı 16 Tone değerini, anlatım tarzıyla tutarlı bir enstrümantal müzik
+# tarifine çevirir. Kullanıcı bir prompt girdiyse bu asla ezilmez.
+TONE_MUSIC_STYLE = {
+    Tone.cinematic: "sweeping cinematic orchestral, driving strings and percussion that build with quick cuts",
+    Tone.credibility: "tense, minimal investigative underscore, steady rhythmic pulse, subtle percussion",
+    Tone.epic: "epic trailer-style orchestral hybrid, big brass swells and rising drums building to a payoff",
+    Tone.scientific: "modern electronic-orchestral hybrid, curious and precise, light plucked synths and subtle pulse",
+    Tone.neutral: "clean modern corporate-documentary underscore, light percussion, unobtrusive but energetic",
+    Tone.wondrous: "airy, awe-filled orchestral with shimmering textures and gentle rising swells",
+    Tone.reflective: "warm, intimate piano-led underscore with soft strings, understated but present",
+    Tone.cinephile: "stylish, jazzy cinematic underscore, subtle groove, sophisticated and quick-witted",
+    Tone.dynamic: "high-energy hybrid trap-orchestral, punchy percussion, relentless forward momentum",
+    Tone.encouraging: "upbeat, warm pop-instrumental, bright acoustic and light percussion, motivating energy",
+    Tone.mysterious: "dark, suspenseful ambient underscore, low drones and sparse percussion, building tension",
+    Tone.motivational: "anthemic, uplifting hybrid orchestral, building drums and soaring melody",
+    Tone.savory: "playful, warm acoustic-pop underscore, light percussion, appetizing and upbeat",
+    Tone.majestic: "grand, majestic orchestral with full brass and choir-like swells, regal and powerful",
+    Tone.gripping: "pulse-pounding tense hybrid underscore, driving percussion, thriller-style momentum",
+    Tone.nurturing: "gentle, warm lullaby-style instrumental, soft strings or music box, slow and calming",
+}
+
+
+def _auto_music_prompt(tone: Tone, topic: str) -> str:
+    """Boş bırakılan video_music_prompt için tona uygun bir ElevenLabs Music
+    prompt'u üretir -- instrumental, vocal-free, kısa ve net (Music API
+    prompt kısıtlarına uygun)."""
+    style = TONE_MUSIC_STYLE.get(tone, TONE_MUSIC_STYLE[Tone.neutral])
+    topic_clean = (topic or "").strip()
+    subject = f" for a fast-paced YouTube video about {topic_clean}" if topic_clean else " for a fast-paced YouTube video"
+    return (
+        f"{style}, fully instrumental background music{subject}, no vocals, "
+        "no lyrics, mixed to sit under narration and support quick cuts"
+    )
+
 
 def run_pipeline(
     project_id: str,
@@ -156,6 +194,17 @@ def run_pipeline(
         # hard-locked tone exactly (see resolve_tone/DEFAULT_TONE_BY_CATEGORY).
         resolved_tone = resolve_tone(project.topic_category, tone)
         project.tone = resolved_tone
+        # Otomatik müzik stili atama (bkz. TONE_MUSIC_STYLE): kullanıcı
+        # ElevenLabs BGM seçip prompt'u boş bıraktıysa, tona göre kendiliğinden
+        # bir müzik tarifi üretiliyor -- aksi halde generate_bgm_from_prompt()
+        # boş prompt'ta hata verip pipeline'ı narrasyon-only'ye düşürüyordu.
+        if bgm_type == "elevenlabs" and not video_music_prompt.strip():
+            video_music_prompt = _auto_music_prompt(resolved_tone, topic)
+            logger.info(
+                "documentary pipeline: auto-generated ElevenLabs music prompt "
+                f"for tone={resolved_tone.value}"
+            )
+            project.video_music_prompt = video_music_prompt
         utils.save_project_snapshot(project)
 
         stage(2, "research")

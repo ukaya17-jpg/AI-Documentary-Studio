@@ -496,7 +496,7 @@
     "Documentary AI Video Provider: veo": "Veo",
     "Documentary ElevenLabs Background Music": "ElevenLabs Background Music (AI-Generated)",
     "Documentary ElevenLabs Music Prompt": "Music Style (required)",
-    "Documentary ElevenLabs Music Prompt Help": "Describe the mood/style of background music you want (required), up to 1000 characters -- e.g. \"warm, cinematic, slow-building orchestral\".",
+    "Documentary ElevenLabs Music Prompt Help": "Describe the mood/style of background music you want (optional), up to 1000 characters -- e.g. \"warm, cinematic, slow-building orchestral\". If left blank, a matching music style is auto-assigned based on the selected tone.",
     "Category: values_education": "Kids' Values",
     "Category Preview: values_education": "Gentle everyday stories that teach kindness, friendship, and courage to young children.",
     "Tone: nurturing": "Nurturing",
