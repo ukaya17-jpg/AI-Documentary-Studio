@@ -244,15 +244,16 @@ def test_neutral_tone_preview_uses_fallback_description_not_misattributed_text()
 
 
 def test_character_cards_show_translated_labels_and_previews():
+    # Registry temizliği (kullanıcı onaylı): önceki 7 karakter kaldırıldı
+    # (bkz. app/config/characters.py) -- grid şu an sadece "Karaktersiz"
+    # gösteriyor. Yeni bir karakter eklendiğinde bu testin karakter-özel
+    # bir örneğe göre genişletilmesi gerekir.
     app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
     app.session_state["ui_language"] = "tr"
     app.run()
 
-    bao_button = _button_by_key(app, "character_btn_bao")
-    assert bao_button.label == "🐼  Bao"
-
-    mother_and_baby_button = _button_by_key(app, "character_btn_mother_and_baby")
-    assert mother_and_baby_button.label == "🐦🐤  Anne Kuş & Yavrusu"
+    none_button = _button_by_key(app, "character_btn_none")
+    assert none_button.label
 
 
 def test_default_character_selection_is_none_and_rendered_as_primary():
@@ -264,7 +265,6 @@ def test_default_character_selection_is_none_and_rendered_as_primary():
     app.run()
 
     assert _button_by_key(app, "character_btn_none").proto.type == "primary"
-    assert _button_by_key(app, "character_btn_bao").proto.type == "secondary"
 
 
 def test_selecting_a_character_locks_format_to_kids_and_disables_selectbox():

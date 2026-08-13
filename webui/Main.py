@@ -4359,23 +4359,19 @@ _TONE_ICONS = {
 _CATEGORY_CARDS_PER_ROW = 4
 _TONE_CARDS_PER_ROW = 4
 
-# "Çoklu Karakter Sistemi" planı (kullanıcı onaylı): 7 tekil karakter +
-# 1 bileşik çift ("Anne Kuş & Yavrusu", aynı sahnede birlikte) +
-# "Karaktersiz" -- Kategori/Ton kart grid'iyle AYNI görsel dil, AYNI
-# bileşenler (_render_selection_card/_render_category_tone_grid) yeniden
-# kullanılıyor. Genel bir "N karakter seç" multi-select KURULMADI (YAGNI --
-# bugün tek somut ihtiyaç bu ikili) -- bunun yerine ikisini BİRLİKTE seçen
-# TEK bir kart var, grid hâlâ single-select.
+# "Çoklu Karakter Sistemi" planı (kullanıcı onaylı): Kategori/Ton kart
+# grid'iyle AYNI görsel dil, AYNI bileşenler
+# (_render_selection_card/_render_category_tone_grid) yeniden kullanılıyor.
+# Genel bir "N karakter seç" multi-select KURULMADI (YAGNI) -- ikisini
+# BİRLİKTE seçen bir çift gerekirse CHARACTER_PAIRS'e eklenir, grid hâlâ
+# single-select.
+#
+# Registry temizliği (kullanıcı onaylı): önceki 7 karakter + "Anne Kuş &
+# Yavrusu" ikilisi kaldırıldı (bkz. app/config/characters.py) -- grid şu an
+# sadece "Karaktersiz" gösteriyor. Yeni bir karakter _CHARACTER_SLUGS'a
+# eklendiğinde buraya da aynı slug için bir emoji eklenmeli.
 _CHARACTER_ICONS = {
     characters.NO_CHARACTER: "🚫",
-    "bao": "🐼",
-    "luna": "🐰",
-    "riko": "🦝",
-    "finn": "🦊",
-    "wise_owl": "🦉",
-    "little_blue_bird": "🐤",
-    "mother_bird": "🐦",
-    "mother_and_baby": "🐦🐤",
 }
 _CHARACTER_CARDS_PER_ROW = 4
 
