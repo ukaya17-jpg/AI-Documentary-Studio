@@ -2856,8 +2856,19 @@ def _render_elevenlabs_api_key_input(label_key):
             if str(cache_key).startswith("elevenlabs_voices_"):
                 del st.session_state[cache_key]
 
-    # 环境变量仅用于当前进程，不在用户未修改时自动复制到 config.toml。
-    # 已有配置或用户主动修改输入时才更新本机配置，与 Sonilo 行为保持一致。
+    # Environment variables are process-local; do not copy them to config.toml
+    # unless the user explicitly changes the input. Guard against accidentally
+    # saving an ElevenLabs API key ID (a bare 64-char hex string, shown next
+    # to the real secret key in ElevenLabs' dashboard) over the real secret
+    # key -- narrowly matched to that shape, not "anything without sk_", so
+    # older-style or otherwise-formatted real keys still save.
+    if entered_key and re.fullmatch(r"[0-9a-f]{64}", entered_key):
+        st.warning(
+            "ElevenLabs API Key gerçek secret key olmalı, API key ID değil. "
+            "Bu değer kaydedilmedi."
+        )
+        entered_key = effective_key if not re.fullmatch(r"[0-9a-f]{64}", effective_key) else ""
+
     if configured_key or entered_key != effective_key:
         config.elevenlabs["api_key"] = entered_key
     return entered_key
