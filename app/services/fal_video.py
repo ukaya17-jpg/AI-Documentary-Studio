@@ -299,6 +299,17 @@ class FalVideoService:
             if not status:
                 return {"success": False, "error": "fal.ai status response missing status"}
             return {"success": True, "status": status}
+        except requests.HTTPError as e:
+            body = ""
+            if e.response is not None:
+                try:
+                    body = e.response.text[:2000]
+                except Exception:
+                    pass
+            logger.warning(
+                f"fal_video: poll_job_status failed for {request_id}: {e} -- response body: {body}"
+            )
+            return {"success": False, "error": str(e)}
         except Exception as e:
             logger.warning(f"fal_video: poll_job_status failed for {request_id}: {e}")
             return {"success": False, "error": str(e)}
@@ -320,6 +331,17 @@ class FalVideoService:
             if not video_url:
                 return {"success": False, "error": "fal.ai result missing video url"}
             return {"success": True, "video_url": video_url}
+        except requests.HTTPError as e:
+            body = ""
+            if e.response is not None:
+                try:
+                    body = e.response.text[:2000]
+                except Exception:
+                    pass
+            logger.warning(
+                f"fal_video: get_job_result failed for {request_id}: {e} -- response body: {body}"
+            )
+            return {"success": False, "error": str(e)}
         except Exception as e:
             logger.warning(f"fal_video: get_job_result failed for {request_id}: {e}")
             return {"success": False, "error": str(e)}

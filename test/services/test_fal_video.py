@@ -451,6 +451,42 @@ class TestPollJobStatus(unittest.TestCase):
         self.assertFalse(result["success"])
         self.assertIn("timeout", result["error"])
 
+    @patch("app.services.fal_video.logger")
+    @patch("app.services.fal_video.config.app", _CONFIGURED)
+    @patch("app.services.fal_video.requests.get")
+    def test_http_error_logs_the_response_body_for_diagnostics(self, mock_get, mock_logger):
+        error_response = MagicMock()
+        error_response.text = '{"detail": "some real fal.ai reason"}'
+        http_error = requests.HTTPError("422 Client Error: Unprocessable Entity for url: ...")
+        http_error.response = error_response
+        response = MagicMock()
+        response.raise_for_status.side_effect = http_error
+
+        mock_get.return_value = response
+
+        result = FalVideoService().poll_job_status("req-123")
+
+        self.assertFalse(result["success"])
+        self.assertEqual(result["error"], str(http_error))
+        logged_message = mock_logger.warning.call_args.args[0]
+        self.assertIn("some real fal.ai reason", logged_message)
+
+    @patch("app.services.fal_video.logger")
+    @patch("app.services.fal_video.config.app", _CONFIGURED)
+    @patch("app.services.fal_video.requests.get")
+    def test_http_error_without_response_body_does_not_crash(self, mock_get, mock_logger):
+        http_error = requests.HTTPError("boom")
+        http_error.response = None
+        response = MagicMock()
+        response.raise_for_status.side_effect = http_error
+
+        mock_get.return_value = response
+
+        result = FalVideoService().poll_job_status("req-123")
+
+        self.assertFalse(result["success"])
+        self.assertEqual(result["error"], "boom")
+
 
 class TestGetJobResult(unittest.TestCase):
     @patch("app.services.fal_video.config.app", _CONFIGURED)
@@ -486,6 +522,46 @@ class TestGetJobResult(unittest.TestCase):
         result = FalVideoService().get_job_result("req-123")
 
         self.assertFalse(result["success"])
+
+    @patch("app.services.fal_video.logger")
+    @patch("app.services.fal_video.config.app", _CONFIGURED)
+    @patch("app.services.fal_video.requests.get")
+    def test_http_error_logs_the_response_body_for_diagnostics(self, mock_get, mock_logger):
+        # get_job_result is the ACTUAL site where the real 422 wave hit (see
+        # journalctl -- submission and polling both succeeded, only the
+        # final result fetch 422'd) -- str(HTTPError) alone never carries
+        # fal.ai's real rejection reason, only "422 Client Error: ...".
+        error_response = MagicMock()
+        error_response.text = '{"detail": "some real fal.ai reason"}'
+        http_error = requests.HTTPError("422 Client Error: Unprocessable Entity for url: ...")
+        http_error.response = error_response
+        response = MagicMock()
+        response.raise_for_status.side_effect = http_error
+
+        mock_get.return_value = response
+
+        result = FalVideoService().get_job_result("req-123")
+
+        self.assertFalse(result["success"])
+        self.assertEqual(result["error"], str(http_error))
+        logged_message = mock_logger.warning.call_args.args[0]
+        self.assertIn("some real fal.ai reason", logged_message)
+
+    @patch("app.services.fal_video.logger")
+    @patch("app.services.fal_video.config.app", _CONFIGURED)
+    @patch("app.services.fal_video.requests.get")
+    def test_http_error_without_response_body_does_not_crash(self, mock_get, mock_logger):
+        http_error = requests.HTTPError("boom")
+        http_error.response = None
+        response = MagicMock()
+        response.raise_for_status.side_effect = http_error
+
+        mock_get.return_value = response
+
+        result = FalVideoService().get_job_result("req-123")
+
+        self.assertFalse(result["success"])
+        self.assertEqual(result["error"], "boom")
 
 
 class TestDownloadVideo(unittest.TestCase):
