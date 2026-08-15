@@ -364,7 +364,7 @@
     "Format: educational": "Образовательный",
     "Format: corporate": "Корпоративный",
     "Pacing: short": "Быстрые Shorts (35 сек)",
-    "Pacing: long": "Длинные Shorts (56 сек)",
+    "Pacing: long": "Среднее видео (5 мин)",
     "Category Auto Description": "Пусть ИИ определит подходящую категорию по теме.",
     "Tone Auto Description": "Использовать тон по умолчанию для выбранной категории.",
     "Tone Neutral Fallback Description": "Пока нет отдельного стиля -- сейчас используется тон «Достоверный».",

@@ -128,6 +128,11 @@ class Language(str, Enum):
 
 
 # Scene count / per-scene duration budget used by ScenePlanner, keyed by pacing.
+# short: 7 scenes x 5s = 35s (a "Shorts"-length clip).
+# long: 10 scenes x 30s = 300s (5 minutes) -- kullanıcı onaylı (2026-08-15):
+# önceden 7x8s=56s idi ("uzun Shorts"), şimdi gerçek bir orta-uzunluk video
+# (5dk). extended'in AYNI 30s/sahne yoğunluğunu kullanıyor (sadece yarısı
+# kadar sahne) -- iki tier arasında tutarlı bir anlatım temposu.
 # extended: 20 scenes x 30s = 600s (10 minutes) exactly.
 #
 # short.scene_count was 4 until a real production bug was diagnosed
@@ -135,24 +140,24 @@ class Language(str, Enum):
 # of them lost 33-43% of their outline sections to scene_planner's
 # importance-based trimming, since outline_generator routinely produces
 # 6-7 sections for "short" but only 4 scenes were ever kept). Raised to 7
-# to match short's OWN outline ceiling (PACING_OUTLINE_SECTION_RANGE below),
-# the exact same pattern long already had (its scene_count=7 already equals
-# its own outline ceiling) -- this is why long never showed the bug.
+# to match short's OWN outline ceiling (PACING_OUTLINE_SECTION_RANGE below).
 PACING_SCENE_SPEC = {
     Pacing.short: {"scene_count": 7, "scene_duration": 5.0},
-    Pacing.long: {"scene_count": 7, "scene_duration": 8.0},
+    Pacing.long: {"scene_count": 10, "scene_duration": 30.0},
     Pacing.extended: {"scene_count": 20, "scene_duration": 30.0},
 }
 
 # outline_generator asks the LLM for a range of sections, not an exact count,
 # so scene_planner's importance-based trimming has real material to work
-# with. short/long values are the EXACT hardcoded range outline_generator
-# used before this became pacing-aware -- byte-identical behavior, zero
-# regression. extended needs a much wider range since its scene_count (20)
-# is far beyond what a single "4-7" outline could ever supply.
+# with. short's value is the EXACT hardcoded range outline_generator used
+# before this became pacing-aware -- byte-identical behavior, zero
+# regression. long/extended need wider ranges since their scene_count (10/20)
+# is far beyond what a single "4-7" outline could ever supply -- long's
+# range is extended's (18-24 for 20 scenes) scaled down to its own 10-scene
+# budget (same ~0.9x/1.2x ratio).
 PACING_OUTLINE_SECTION_RANGE = {
     Pacing.short: (4, 7),
-    Pacing.long: (4, 7),
+    Pacing.long: (9, 12),
     Pacing.extended: (18, 24),
 }
 

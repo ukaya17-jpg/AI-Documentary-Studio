@@ -90,9 +90,11 @@ def test_long_pacing_rounds_billed_duration_up_to_ten_seconds(_mock_configured):
     app.run()
 
     assert not app.exception
-    # long pacing: 7 scenes x 10s billed (8s scene rounds UP to Kling's "10"
-    # tier, not "5") x $0.045/s = $3.15
-    assert any("3.15" in w.value for w in app.info)
+    # long pacing (kullanıcı onaylı, 2026-08-15: artık 10 sahne x 30s'lik
+    # 5dk'lık bütçe): 10 scenes x 10s billed (Kling'in tek desteklediği iki
+    # tier'i -- "5" ya da "10" -- 30s scene_duration her zaman "10"a
+    # yuvarlanır, extended'in zaten yaptığı gibi) x $0.045/s = $4.50
+    assert any("4.50" in w.value for w in app.info)
 
 
 @patch("webui.Main.fal_video_service.is_configured", return_value=True)
