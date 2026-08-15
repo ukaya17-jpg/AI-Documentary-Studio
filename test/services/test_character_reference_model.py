@@ -1,10 +1,22 @@
+import base64
+import io
 import sys
 import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+from PIL import Image
+from pydantic import ValidationError
+
 from app.models.character import CharacterReference
+
+
+def _data_uri(width: int, height: int) -> str:
+    im = Image.new("RGB", (width, height), (128, 128, 128))
+    buf = io.BytesIO()
+    im.save(buf, "JPEG")
+    return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
 
 
 class TestCharacterReferenceAlwaysHasAtLeastOneReferenceImage(unittest.TestCase):
@@ -52,6 +64,36 @@ class TestCharacterReferenceAlwaysHasAtLeastOneReferenceImage(unittest.TestCase)
         ref = CharacterReference(name="X", frontal_image_url="data:image/jpeg;base64,front")
         dumped = ref.model_dump()
         self.assertTrue(len(dumped["reference_image_urls"]) >= 1)
+
+
+class TestCharacterReferenceRejectsImagesFalAiWouldReject(unittest.TestCase):
+    """İKİNCİ PRODÜKSİYON HATASI (kullanıcı bildirdi, 2026-08-15): ilk 422
+    dalgasını (yukarıdaki sınıf) düzelttikten SONRA bile, Luna/Professor
+    Nova'nın 275x768 -> 320x894 büyütülmüş (aynı oranı koruyan) görselleri
+    fal.ai'nin AYRI bir kuralını ("aspect ratio between 0.4 and 2.5")
+    ihlal etmeye devam etti -- boyut yeterliydi ama oran değildi. Bu
+    testler, CharacterReference'ın artık HER İKİ kuralı da inşa anında
+    (fal.ai'ye pahalı bir istek göndermeden ÖNCE) kilitlediğini doğrular.
+    """
+
+    def test_image_smaller_than_300x300_is_rejected(self):
+        with self.assertRaises(ValidationError):
+            CharacterReference(name="X", frontal_image_url=_data_uri(275, 768))
+
+    def test_image_with_aspect_ratio_outside_0_4_to_2_5_is_rejected(self):
+        # 320x894 -- yeterince büyük (>=300x300) ama oranı (0.358) çok dar.
+        with self.assertRaises(ValidationError):
+            CharacterReference(name="X", frontal_image_url=_data_uri(320, 894))
+
+    def test_valid_dimensions_and_aspect_ratio_are_accepted(self):
+        ref = CharacterReference(name="X", frontal_image_url=_data_uri(344, 768))
+        self.assertEqual(ref.reference_image_urls, [ref.frontal_image_url])
+
+    def test_non_data_uri_urls_are_not_inspected(self):
+        # Uzak bir http(s) URL -- ağ çağrısı yapmadan boyut ölçülemez,
+        # bu yüzden kontrol sessizce atlanmalı (reddetmemeli).
+        ref = CharacterReference(name="X", frontal_image_url="https://example.com/x.jpg")
+        self.assertEqual(ref.frontal_image_url, "https://example.com/x.jpg")
 
 
 if __name__ == "__main__":
