@@ -117,7 +117,7 @@ def _resolve_references_by_scene(
     location_references: list[CharacterReference] | None,
     character_selection: str | None,
     location_selection: str | None,
-) -> dict[int, list[CharacterReference]]:
+) -> tuple[dict[int, list[CharacterReference]], dict[int, dict]]:
     """"Sahne Bazlı Otomatik Kadrolama" planı (kullanıcı onaylı): stage 6
     (storyboard) bittikten hemen sonra çağrılır -- casting_generator'ın
     gerçek sahne anlatımlarına ihtiyacı olduğu için daha erken çağrılamaz.
@@ -127,6 +127,13 @@ def _resolve_references_by_scene(
     (eskiden run_pipeline'ın en başında hesaplanan `combined_references`
     ile BİREBİR aynı sonuç, sadece artık her scene_index için ayrı bir giriş
     olarak).
+
+    "Sahne Bazlı Gerçek Ses Değişimi" planı (kullanıcı onaylı): artık ham
+    `casting_by_scene` sözlüğünü de (references_by_scene'in yanında, ikinci
+    döndürülen değer olarak) döndürüyor -- audio_renderer.render_audio_plan()
+    hangi sahnenin hangi karakterin sesini kullanacağına karar verebilsin
+    diye. Auto DEĞİLSE (casting_generator hiç çağrılmadıysa) bu hep `{}`
+    kalır -- audio tarafında hiçbir davranış değişikliği tetiklemez.
     """
     character_auto = character_selection == characters.AUTO_CHARACTER
     location_auto = location_selection == locations.AUTO_LOCATION
@@ -169,7 +176,7 @@ def _resolve_references_by_scene(
         else:
             refs.extend(location_references or [])
         result[idx] = refs
-    return result
+    return result, casting_by_scene
 
 
 def run_pipeline(
@@ -368,7 +375,7 @@ def run_pipeline(
         # hesaplanan `combined_references`'ın her sahneye aynen
         # kopyalanmasıyla BİREBİR aynı sonucu üretir (bkz.
         # _resolve_references_by_scene'in docstring'i).
-        references_by_scene = _resolve_references_by_scene(
+        references_by_scene, casting_by_scene = _resolve_references_by_scene(
             project.storyboard,
             project.script,
             character_references,
@@ -427,16 +434,32 @@ def run_pipeline(
             voice_volume=voice_volume,
             bgm_file=bgm_file,
             character_references=character_references,
+            casting_by_scene=casting_by_scene,
         )
         utils.save_project_snapshot(project)
 
         stage(10, "timeline")
+        # AI-üretilen video: her klip ZATEN o TEK sahne için üretildi
+        # (asset_plan.candidates sırasıyla) -- random modda karıştırmak hem
+        # her zaman anlamsızdı (sahne N'in klibi sahne M'in anlatımı
+        # altında çalabilirdi) hem de "Sahne Bazlı Gerçek Ses Değişimi"
+        # (yukarıdaki stage 9) özelliğini kırardı: bir karakterin sesi,
+        # ekranda BAŞKA bir karakterin göründüğü anda duyulabilirdi. Stok
+        # görüntü (pexels/pixabay/vb.) için random modun asıl amacı --
+        # aynı arama teriminden gelen birden fazla klip arasında çeşitlilik
+        # -- hâlâ geçerli, o yüzden SADECE AI-üretilen kaynak için
+        # sequential'a geçiliyor.
+        timeline_concat_mode = (
+            VideoConcatMode.sequential
+            if video_source == AI_GENERATED_VIDEO_SOURCE
+            else VideoConcatMode.random
+        )
         project.timeline = timeline_builder.build_timeline(
             project.asset_plan,
             project.audio_plan.narration,
             task_id=project.project_id,
             video_aspect=aspect_enum,
-            video_concat_mode=VideoConcatMode.random,
+            video_concat_mode=timeline_concat_mode,
             max_clip_duration=max_clip_duration,
         )
         utils.save_project_snapshot(project)
@@ -573,6 +596,19 @@ def regenerate_from_edited_script(
 
     Mutates and returns `project` (same object); the caller persists it
     (see app.utils.utils.save_project_snapshot) exactly like run_pipeline().
+
+    KNOWN GAP ("Sahne Bazlı Gerçek Ses Değişimi", kullanıcı onaylı):
+    Auto kadrolamanın ham per-scene kararı (`casting_by_scene`) sadece
+    run_pipeline() içinde geçici olarak hesaplanıyor, DocumentaryProject'e
+    hiç kaydedilmiyor -- bu yüzden burada mevcut değil ve
+    render_audio_plan()'a geçirilemiyor. Sonuç: Auto modda sahne-bazlı
+    farklı karakter sesleriyle üretilmiş bir proje, script düzenlenip
+    burada yeniden render edildiğinde sahne-bazlı sesleri KAYBEDER, tek
+    genel `voice_name`'e düşer (görsel taraf -- project.asset_plan --
+    değişmediği için hâlâ doğru karakterleri gösterir, sadece ses artık
+    hepsi için aynı). Bilinen bir sınırlama, sessiz bir regresyon değil --
+    düzeltmek `casting_by_scene`'i DocumentaryProject'in kalıcı bir alanı
+    yapmayı gerektirir.
     """
     existing_bgm_file = project.audio_plan.bgm_file if project.audio_plan else ""
     project.script = edited_script
@@ -591,12 +627,20 @@ def regenerate_from_edited_script(
     )
     utils.save_project_snapshot(project)
 
+    # Bkz. run_pipeline'daki aynı seçimin yorumu -- AI-üretilen video
+    # kaynağında her klip zaten TEK bir sahne için üretildi, random modda
+    # karıştırmak sahne<->anlatım eşleşmesini bozar.
+    timeline_concat_mode = (
+        VideoConcatMode.sequential
+        if project.video_source == AI_GENERATED_VIDEO_SOURCE
+        else VideoConcatMode.random
+    )
     project.timeline = timeline_builder.build_timeline(
         project.asset_plan,
         project.audio_plan.narration,
         task_id=project.project_id,
         video_aspect=aspect_enum,
-        video_concat_mode=VideoConcatMode.random,
+        video_concat_mode=timeline_concat_mode,
         max_clip_duration=max_clip_duration,
     )
     utils.save_project_snapshot(project)

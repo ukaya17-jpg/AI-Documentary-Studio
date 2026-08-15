@@ -999,6 +999,88 @@ class TestVoiceService(unittest.TestCase):
         self.assertEqual(vs.convert_rate_to_percent(""), "+0%")
 
 
+class TestMergeSceneSubtitles(unittest.TestCase):
+    """"Sahne Bazlı Gerçek Ses Değişimi" planı (kullanıcı onaylı):
+    audio_renderer.render_narration_by_scene() her sahneyi AYRI bir TTS
+    çağrısıyla üretiyor -- bu fonksiyon, o ayrı ayrı üretilen SRT
+    dosyalarını, her birinin kümülatif başlangıç ofsetine göre kaydırıp
+    TEK bir sürekli altyazı dosyasında birleştiriyor.
+    """
+
+    def _write_scene_subtitle(self, tmp_dir, filename, cues):
+        sub_maker = SimpleNamespace(
+            cues=[
+                SimpleNamespace(content=text, start=timedelta(seconds=start), end=timedelta(seconds=end))
+                for text, start, end in cues
+            ]
+        )
+        subtitle_file = str(Path(tmp_dir) / filename)
+        vs.create_subtitle(sub_maker=sub_maker, text="".join(c[0] for c in cues), subtitle_file=subtitle_file)
+        return subtitle_file
+
+    def test_offsets_each_scenes_cues_by_its_cumulative_start_time(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            scene0 = self._write_scene_subtitle(tmp_dir, "s0.srt", [("Merhaba", 0.0, 1.0)])
+            scene1 = self._write_scene_subtitle(tmp_dir, "s1.srt", [("Dünya", 0.0, 1.0)])
+            output = str(Path(tmp_dir) / "merged.srt")
+
+            result = vs.merge_scene_subtitles(
+                [(scene0, 0.0), (scene1, 3.5)], output
+            )
+
+            content = Path(output).read_text(encoding="utf-8")
+
+        self.assertTrue(result)
+        self.assertIn("00:00:00,000 --> 00:00:01,000", content)
+        self.assertIn("Merhaba", content)
+        # Second scene's cue must be shifted by its 3.5s offset, not start at 0 again.
+        self.assertIn("00:00:03,500 --> 00:00:04,500", content)
+        self.assertIn("Dünya", content)
+
+    def test_renumbers_cues_sequentially_across_scenes(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            # Punctuation between cues matters: create_subtitle() splits the
+            # scene's own text into sentences by punctuation, so unpunctuated
+            # cues would collapse into one merged line instead of two.
+            scene0 = self._write_scene_subtitle(
+                tmp_dir, "s0.srt", [("Bir.", 0.0, 1.0), ("İki.", 1.0, 2.0)]
+            )
+            scene1 = self._write_scene_subtitle(tmp_dir, "s1.srt", [("Üç.", 0.0, 1.0)])
+            output = str(Path(tmp_dir) / "merged.srt")
+
+            vs.merge_scene_subtitles([(scene0, 0.0), (scene1, 2.0)], output)
+
+            content = Path(output).read_text(encoding="utf-8")
+
+        self.assertIn("1\n", content)
+        self.assertIn("2\n", content)
+        self.assertIn("3\n", content)
+
+    def test_skips_a_missing_or_empty_scene_subtitle_without_failing(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            scene0 = self._write_scene_subtitle(tmp_dir, "s0.srt", [("Merhaba", 0.0, 1.0)])
+            output = str(Path(tmp_dir) / "merged.srt")
+
+            result = vs.merge_scene_subtitles(
+                [(scene0, 0.0), ("/nonexistent/missing.srt", 5.0)], output
+            )
+
+            content = Path(output).read_text(encoding="utf-8")
+
+        self.assertTrue(result)
+        self.assertIn("Merhaba", content)
+
+    def test_returns_false_and_writes_nothing_when_all_scenes_are_empty(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            output = str(Path(tmp_dir) / "merged.srt")
+            result = vs.merge_scene_subtitles(
+                [("/nonexistent/a.srt", 0.0), ("", 1.0)], output
+            )
+
+        self.assertFalse(result)
+        self.assertFalse(os.path.exists(output))
+
+
 class TestElevenLabsVoice(unittest.TestCase):
 
     def test_is_elevenlabs_voice_true(self):

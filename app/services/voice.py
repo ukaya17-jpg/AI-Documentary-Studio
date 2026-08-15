@@ -1848,6 +1848,45 @@ def create_subtitle(sub_maker: SubMaker, text: str, subtitle_file: str):
         logger.error(f"failed, error: {str(e)}")
 
 
+def merge_scene_subtitles(
+    scene_subtitle_files: list[tuple[str, float]], subtitle_file: str
+) -> bool:
+    """Concatenates N per-scene SRT files (each already produced by a
+    separate create_subtitle() call, see audio_renderer.render_narration_
+    by_scene()) into one continuous subtitle track: every scene's cues are
+    shifted by that scene's cumulative start offset in the merged narration
+    audio, then renumbered sequentially. A scene with no subtitle file
+    (empty narration, or that scene's TTS produced no cues) is skipped, not
+    treated as an error -- a small gap in the subtitle track is far less
+    harmful than losing the whole file over one scene.
+
+    Returns False (writes nothing) if no scene contributed any cue at all.
+    """
+    formatter = _build_subtitle_formatter()
+    sub_items = []
+    for scene_subtitle_file, offset_seconds in scene_subtitle_files:
+        if not scene_subtitle_file or not os.path.exists(scene_subtitle_file):
+            continue
+        try:
+            cues = subtitles.file_to_subtitles(scene_subtitle_file, encoding="utf-8")
+        except Exception as e:
+            logger.warning(f"failed to read scene subtitle file {scene_subtitle_file}: {e}")
+            continue
+        for (start_seconds, end_seconds), text in cues:
+            sub_items.append(
+                formatter(
+                    idx=len(sub_items) + 1,
+                    start_time=(start_seconds + offset_seconds) * 10000000,
+                    end_time=(end_seconds + offset_seconds) * 10000000,
+                    sub_text=text,
+                )
+            )
+
+    if not sub_items:
+        return False
+    return _write_subtitle_items(sub_items, subtitle_file)
+
+
 def _get_audio_duration_from_submaker(sub_maker: SubMaker):
     """
     获取音频时长

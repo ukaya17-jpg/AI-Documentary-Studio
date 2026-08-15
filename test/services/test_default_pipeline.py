@@ -16,6 +16,7 @@ from app.models.documentary_project import DocumentaryProject
 from app.models.outline import Outline, OutlineSection
 from app.models.quality import QualityVerdict
 from app.models.research_plan import ResearchPlan
+from app.models.schema import VideoConcatMode
 from app.models.scene import Scene, ScenePlan
 from app.models.script import Script, ScriptLine
 from app.models.seo import SeoMetadata
@@ -561,6 +562,58 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         _, audio_kwargs = self.started["audio"].call_args
         self.assertFalse(audio_kwargs["character_references"])
 
+    def test_casting_by_scene_reaches_audio_stage(self):
+        # "Sahne Bazlı Gerçek Ses Değişimi" planı (kullanıcı onaylı):
+        # casting_generator'ın ham per-scene kararı (casting_by_scene),
+        # references_by_scene'in yanında audio_renderer.render_audio_plan()'a
+        # da ulaşmalı -- render_audio_plan kendi içinde hangi sahnenin
+        # hangi karakterin sesini kullanacağına karar veriyor (bkz.
+        # test_audio_renderer.py'nin TestRenderNarrationByScene'i).
+        from app.models.character import CharacterReference
+
+        nova_ref = CharacterReference(
+            name="Professor Nova", frontal_image_url="data:image/jpeg;base64,nova"
+        )
+        raw_casting = {
+            0: {"character": "professor_nova", "location": None},
+            1: {"character": None, "location": None},
+        }
+
+        with patch(
+            "app.pipeline.default_pipeline.casting_generator.generate_casting_plan",
+            return_value=raw_casting,
+        ), patch(
+            "app.pipeline.default_pipeline.characters.get_character_reference",
+            return_value=nova_ref,
+        ):
+            default_pipeline.run_pipeline(
+                project_id="proj-1",
+                topic="The Fall of Rome",
+                language="auto",
+                pacing=Pacing.short,
+                voice_name="en-US-JennyNeural",
+                character_selection=characters.AUTO_CHARACTER,
+            )
+
+        _, audio_kwargs = self.started["audio"].call_args
+        self.assertEqual(audio_kwargs["casting_by_scene"], raw_casting)
+
+    def test_non_auto_selection_passes_empty_casting_by_scene_to_audio(self):
+        # Regresyon garantisi: Auto DEĞİLSE casting_by_scene audio'ya {}
+        # (falsy) gitmeli -- render_audio_plan'ın bunu görünce eski
+        # tek-çağrılı yolu (render_narration) kullanmaya devam etmesi
+        # gerekir (bkz. test_audio_renderer.py'nin dispatch testleri).
+        default_pipeline.run_pipeline(
+            project_id="proj-1",
+            topic="The Fall of Rome",
+            language="auto",
+            pacing=Pacing.short,
+            voice_name="en-US-JennyNeural",
+        )
+
+        _, audio_kwargs = self.started["audio"].call_args
+        self.assertFalse(audio_kwargs["casting_by_scene"])
+
     def test_non_auto_character_selection_never_calls_casting_generator(self):
         # Regresyon garantisi: character_selection None/"none"/gerçek bir
         # slug iken casting_generator'a HİÇ dokunulmamalı -- LLM çağrısı
@@ -626,6 +679,44 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         # target -- the root cause of the "repeated frame" bug this fixes.
         _, asset_gen_kwargs = self.started["asset_gen"].call_args
         self.assertIs(asset_gen_kwargs["script"], self.script)
+
+    def test_ai_generated_video_uses_sequential_concat_mode(self):
+        # "Sahne Bazlı Gerçek Ses Değişimi" ön koşulu (kullanıcı onaylı):
+        # AI-üretilen video, her sahne için ayrı ayrı (asset_plan.candidates
+        # sırasıyla) üretilmiş TEK bir klip -- random modda karıştırmak
+        # sahne<->anlatım (ve artık sahne<->karakter sesi) eşleşmesini
+        # bozar. SADECE bu kaynak için sequential'a geçiliyor -- stok
+        # görüntünün kendi çeşitlilik amacı (aşağıdaki test) etkilenmiyor.
+        with patch(
+            "app.pipeline.default_pipeline.ai_video_generator.generate_ai_clips",
+            return_value=self.downloaded_asset_plan,
+        ):
+            default_pipeline.run_pipeline(
+                project_id="proj-1",
+                topic="The Fall of Rome",
+                language="auto",
+                pacing=Pacing.short,
+                voice_name="en-US-JennyNeural",
+                video_source="ai_generated",
+            )
+
+        _, timeline_kwargs = self.started["timeline"].call_args
+        self.assertEqual(timeline_kwargs["video_concat_mode"], VideoConcatMode.sequential)
+
+    def test_stock_video_source_keeps_random_concat_mode(self):
+        # Regresyon garantisi: varsayılan (pexels/vb.) kaynak hiç
+        # değişmemeli -- random mod, aynı arama teriminden gelen birden
+        # fazla klip arasında çeşitlilik için hâlâ doğru davranış.
+        default_pipeline.run_pipeline(
+            project_id="proj-1",
+            topic="The Fall of Rome",
+            language="auto",
+            pacing=Pacing.short,
+            voice_name="en-US-JennyNeural",
+        )
+
+        _, timeline_kwargs = self.started["timeline"].call_args
+        self.assertEqual(timeline_kwargs["video_concat_mode"], VideoConcatMode.random)
 
     def test_on_stage_change_called_for_all_12_stages_in_order(self):
         # Modernizasyon B: on_stage_change purely additive, must not change
