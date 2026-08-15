@@ -4377,12 +4377,17 @@ _TONE_CARDS_PER_ROW = 4
 # BİRLİKTE seçen bir çift gerekirse CHARACTER_PAIRS'e eklenir, grid hâlâ
 # single-select.
 #
-# Registry temizliği (kullanıcı onaylı): önceki 7 karakter + "Anne Kuş &
-# Yavrusu" ikilisi kaldırıldı (bkz. app/config/characters.py) -- grid şu an
-# sadece "Karaktersiz" gösteriyor. Yeni bir karakter _CHARACTER_SLUGS'a
-# eklendiğinde buraya da aynı slug için bir emoji eklenmeli.
+# "Yeni 5 Karakter" seti (kullanıcı onaylı, Google Flow'da tasarlandı):
+# Professor Nova, Robo, Luna, Atom, Dino. Yeni bir karakter
+# _CHARACTER_SLUGS'a eklendiğinde buraya da aynı slug için bir emoji
+# eklenmeli.
 _CHARACTER_ICONS = {
     characters.NO_CHARACTER: "🚫",
+    "professor_nova": "🧑‍🔬",
+    "robo": "🤖",
+    "luna": "👩‍🚀",
+    "atom": "🧊",
+    "dino": "🦖",
 }
 _CHARACTER_CARDS_PER_ROW = 4
 
