@@ -3,6 +3,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
 
+import requests
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from app.services.fal_video import FalVideoService
@@ -277,6 +279,50 @@ class TestSubmitVideoJob(unittest.TestCase):
         result = FalVideoService().submit_video_job("a wide shot of ancient ruins")
 
         self.assertEqual(result["app_id"], "fal-ai/kling-video")
+
+    @patch("app.services.fal_video.logger")
+    @patch("app.services.fal_video.config.app", _CONFIGURED)
+    @patch("app.services.fal_video.requests.post")
+    def test_http_error_logs_the_response_body_for_diagnostics(self, mock_post, mock_logger):
+        # str(HTTPError) alone (e.g. "422 Client Error: ...") never contains
+        # fal.ai's actual response body -- the JSON naming which field was
+        # rejected and why. This is the exact diagnostic gap that made a
+        # prior 422 wave hard to root-cause; the fix must surface the body
+        # in the log without changing the returned error shape.
+        error_response = MagicMock()
+        error_response.text = '{"detail": [{"loc": ["body", "elements"], "msg": "field required"}]}'
+        http_error = requests.HTTPError("422 Client Error: Unprocessable Entity for url: ...")
+        http_error.response = error_response
+        response = MagicMock()
+        response.raise_for_status.side_effect = http_error
+
+        mock_post.return_value = response
+
+        result = FalVideoService().submit_video_job("a wide shot of ancient ruins")
+
+        self.assertFalse(result["success"])
+        self.assertEqual(result["error"], str(http_error))
+        logged_message = mock_logger.warning.call_args.args[0]
+        self.assertIn("field required", logged_message)
+
+    @patch("app.services.fal_video.logger")
+    @patch("app.services.fal_video.config.app", _CONFIGURED)
+    @patch("app.services.fal_video.requests.post")
+    def test_http_error_without_response_body_does_not_crash(self, mock_post, mock_logger):
+        # Regression guard: e.response can legitimately be None (e.g. a
+        # connection-level failure raised as HTTPError by a mock/proxy) --
+        # must not raise while trying to read the body.
+        http_error = requests.HTTPError("boom")
+        http_error.response = None
+        response = MagicMock()
+        response.raise_for_status.side_effect = http_error
+
+        mock_post.return_value = response
+
+        result = FalVideoService().submit_video_job("a wide shot of ancient ruins")
+
+        self.assertFalse(result["success"])
+        self.assertEqual(result["error"], "boom")
 
 
 _CHARACTER_ELEMENTS = [

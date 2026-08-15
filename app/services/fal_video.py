@@ -255,6 +255,23 @@ class FalVideoService:
                 "request_id": request_id,
                 "app_id": self._app_id_for(model),
             }
+        except requests.HTTPError as e:
+            # str(e) alone (e.g. "422 Client Error: Unprocessable Entity for
+            # url: ...") never includes fal.ai's actual response body -- the
+            # JSON that names which field was rejected and why. Logging the
+            # body here is a pure diagnostics improvement: it does not change
+            # the returned {"success": False, "error": ...} shape, so no
+            # caller behavior changes.
+            body = ""
+            if e.response is not None:
+                try:
+                    body = e.response.text[:2000]
+                except Exception:
+                    pass
+            logger.warning(
+                f"fal_video: submit_video_job failed: {e} -- response body: {body}"
+            )
+            return {"success": False, "error": str(e)}
         except Exception as e:
             logger.warning(f"fal_video: submit_video_job failed: {e}")
             return {"success": False, "error": str(e)}
