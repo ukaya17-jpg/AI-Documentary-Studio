@@ -186,6 +186,7 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
             voice_name="en-US-JennyNeural",
             custom_system_prompt="Write like a noir detective.",
             custom_requirements="Always mention exact dates.",
+            stock_keyword_hint="Ottoman archives",
         )
 
         self.assertEqual(project.language, "en")
@@ -267,6 +268,12 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
                 "The empire split into east and west in 395 CE.",
             ],
         )
+        # "Stok Arama Kelimesi İpucu" (kullanıcı onaylı): brand-new parameter,
+        # must reach storyboard_generator and also be recorded on the project
+        # for transparency (same pattern as custom_system_prompt/custom_requirements
+        # above).
+        self.assertEqual(storyboard_kwargs["stock_keyword_hint"], "Ottoman archives")
+        self.assertEqual(project.stock_keyword_hint, "Ottoman archives")
 
         # asset_generator receives the storyboard, the resolved topic
         # category (needed for the film_highlights AI-video likeness guard --
@@ -662,6 +669,22 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
             voice_name="en-US-JennyNeural",
         )
         self.assertEqual(project.final_video_path, "/tmp/tasks/proj-1/final.mp4")
+
+    def test_omitting_stock_keyword_hint_behaves_identically(self):
+        # Regression: every pre-existing caller never passed stock_keyword_hint
+        # -- it must default to "" and reach storyboard_generator as "", the
+        # exact same value it always received before this parameter existed.
+        project = default_pipeline.run_pipeline(
+            project_id="proj-1",
+            topic="The Fall of Rome",
+            language="auto",
+            pacing=Pacing.short,
+            voice_name="en-US-JennyNeural",
+        )
+        self.assertEqual(project.final_video_path, "/tmp/tasks/proj-1/final.mp4")
+        self.assertEqual(project.stock_keyword_hint, "")
+        _, storyboard_kwargs = self.started["storyboard"].call_args
+        self.assertEqual(storyboard_kwargs["stock_keyword_hint"], "")
 
     def test_tone_override_wins_over_category_default(self):
         # Category resolves to history -> credibility by default (see

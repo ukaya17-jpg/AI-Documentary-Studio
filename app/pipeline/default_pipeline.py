@@ -191,6 +191,7 @@ def run_pipeline(
     video_music_prompt: str = "",
     custom_system_prompt: str = "",
     custom_requirements: str = "",
+    stock_keyword_hint: str = "",
     character_references: list[CharacterReference] | None = None,
     location_references: list[CharacterReference] | None = None,
     character_selection: str | None = None,
@@ -278,6 +279,7 @@ def run_pipeline(
         video_music_prompt=video_music_prompt,
         custom_system_prompt=custom_system_prompt,
         custom_requirements=custom_requirements,
+        stock_keyword_hint=stock_keyword_hint,
         character_references=character_references or [],
         location_references=location_references or [],
     )
@@ -356,6 +358,7 @@ def run_pipeline(
             topic_category=project.topic_category,
             topic=project.topic,
             key_facts=project.research_plan.key_facts[:3],
+            stock_keyword_hint=stock_keyword_hint,
         )
         utils.save_project_snapshot(project)
 

@@ -460,6 +460,8 @@
     "Documentary System Prompt Help": "Panduan gaya/persona tambahan, ditambahkan berdampingan dengan instruksi dasar penulis narasi (ditampilkan sebagai placeholder di bawah) -- instruksi dasar selalu tetap berlaku dan tidak dapat dihapus.",
     "Documentary Custom Requirements": "Persyaratan Skenario Kustom",
     "Documentary Custom Requirements Help": "Instruksi tambahan untuk narasi ini, ditambahkan di atas persyaratan pertumbuhan/kualitas otomatis (tidak menggantikannya).",
+    "Documentary Stock Keyword Hint": "Petunjuk Kata Kunci Stok (Opsional)",
+    "Documentary Stock Keyword Hint Help": "Kata kunci atau frasa tambahan untuk membantu menemukan rekaman stok yang sesuai (mis. nama, era, atau tempat tertentu) -- AI akan menyisipkannya ke istilah pencarian hanya pada adegan yang benar-benar cocok, bukan di setiap adegan. Hanya digunakan saat sumber Rekaman Stok dipilih.",
     "Documentary Stock Provider": "Penyedia Stok",
     "Documentary Stock Provider: pexels": "Pexels",
     "Documentary Stock Provider: pixabay": "Pixabay",

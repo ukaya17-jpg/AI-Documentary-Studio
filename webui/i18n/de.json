@@ -460,6 +460,8 @@
     "Documentary System Prompt Help": "Zusätzliche Stil-/Persona-Anweisungen, die neben den Basisanweisungen des Erzähltext-Autors (unten als Platzhalter gezeigt) hinzugefügt werden -- die Basisanweisungen bleiben immer in Kraft und können nicht entfernt werden.",
     "Documentary Custom Requirements": "Individuelle Szenario-Anforderungen",
     "Documentary Custom Requirements Help": "Zusätzliche Anweisungen für diese Erzählung, ergänzend zu den automatischen Wachstums-/Qualitätsanforderungen (diese werden nicht ersetzt).",
+    "Documentary Stock Keyword Hint": "Stock-Suchbegriff-Hinweis (optional)",
+    "Documentary Stock Keyword Hint Help": "Ein zusätzliches Suchwort oder eine Phrase, die hilft, passendes Stockmaterial zu finden (z. B. ein bestimmter Name, eine Epoche oder ein Ort) -- die KI baut es nur in die Suchbegriffe der Szenen ein, in die es wirklich passt, nicht in jede Szene. Wird nur verwendet, wenn eine Stock-Videoquelle ausgewählt ist.",
     "Documentary Stock Provider": "Stock-Anbieter",
     "Documentary Stock Provider: pexels": "Pexels",
     "Documentary Stock Provider: pixabay": "Pixabay",

@@ -78,6 +78,12 @@ class DocumentaryProject(BaseModel):
     # projede saklanıyor, run_pipeline() zaten bunları doğrudan alıyor.
     custom_system_prompt: str = ""
     custom_requirements: str = ""
+    # "Stok Arama Kelimesi İpucu" (kullanıcı onaylı): custom_requirements ile
+    # AYNI desen -- boş string "ipucu yok" anlamına gelir, sadece kayıt/
+    # şeffaflık için burada saklanır (run_pipeline() zaten bunu doğrudan
+    # storyboard_generator'a geçiriyor). Sadece stok video kaynaklarında
+    # (pexels/pixabay/coverr) anlamlı -- ai_generated modunda no-op.
+    stock_keyword_hint: str = ""
 
     research_plan: ResearchPlan | None = None
     outline: Outline | None = None

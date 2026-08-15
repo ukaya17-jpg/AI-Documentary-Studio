@@ -14,6 +14,7 @@ def build_storyboard_prompt(
     topic_category: TopicCategory | None = None,
     topic: str = "",
     key_facts: list[str] | None = None,
+    stock_keyword_hint: str = "",
 ) -> str:
     guidance = get_shot_guidance(topic_category)
     lines_by_scene = {line.scene_index: line.text for line in script.lines}
@@ -33,6 +34,18 @@ def build_storyboard_prompt(
     if facts:
         facts_block = "\n".join(f"- {fact}" for fact in facts)
         context_block += f"Context facts:\n{facts_block}\n"
+    # "Stok Arama Kelimesi İpucu" (kullanıcı onaylı): kullanıcının verdiği
+    # tek bir serbest-metin ipucu -- topic/key_facts gibi context_block'a
+    # eklenir ama BİLİNÇLİ OLARAK bir kullanım talimatıyla birlikte, çünkü
+    # topic/key_facts'ten farklı olarak bu HER sahneye kör kör eklenmemeli
+    # (ör. "1969 Ay İnişi" ipucu, bir gökyüzü/doğa sahnesine anlamsızca
+    # eklenmemeli) -- LLM ilgili sahnelerde akıllıca kullanmalı.
+    if stock_keyword_hint and stock_keyword_hint.strip():
+        context_block += (
+            f"User-provided search hint: {stock_keyword_hint.strip()} -- consider "
+            "weaving this into the search terms for scenes where it actually fits, "
+            "not indiscriminately on every scene.\n"
+        )
     if context_block:
         context_block += "\n"
 
@@ -99,9 +112,12 @@ def generate_storyboard(
     topic_category: TopicCategory | None = None,
     topic: str = "",
     key_facts: list[str] | None = None,
+    stock_keyword_hint: str = "",
 ) -> Storyboard:
     if not scene_plan.scenes:
         return Storyboard(shots=[])
-    prompt = build_storyboard_prompt(scene_plan, script, topic_category, topic, key_facts)
+    prompt = build_storyboard_prompt(
+        scene_plan, script, topic_category, topic, key_facts, stock_keyword_hint
+    )
     data = generate_json(prompt)
     return Storyboard(shots=_parse_shots(data.get("shots", []), scene_plan))

@@ -487,6 +487,8 @@
     "Documentary System Prompt Help": "Additional style/persona guidance, added alongside the narration writer's base instructions (shown as a placeholder below) -- the base instructions always stay in effect and cannot be removed.",
     "Documentary Custom Requirements": "Custom Scenario Requirements",
     "Documentary Custom Requirements Help": "Extra instructions for this narration, added on top of the automatic growth/quality requirements (they are not replaced).",
+    "Documentary Stock Keyword Hint": "Stock Search Keyword Hint (Optional)",
+    "Documentary Stock Keyword Hint Help": "An extra search keyword or phrase to help find matching stock footage (e.g. a specific name, era, or place) -- the AI weaves it into the search terms only for scenes where it actually fits, not on every scene. Used only when a Stock Footage source is selected.",
     "Documentary Stock Provider": "Stock Provider",
     "Documentary Stock Provider: pexels": "Pexels",
     "Documentary Stock Provider: pixabay": "Pixabay",

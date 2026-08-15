@@ -460,6 +460,8 @@
     "Documentary System Prompt Help": "Orientação adicional de estilo/persona, adicionada ao lado das instruções base do redator da narração (mostradas como espaço reservado abaixo) -- as instruções base permanecem sempre em vigor e não podem ser removidas.",
     "Documentary Custom Requirements": "Requisitos de Cenário Personalizados",
     "Documentary Custom Requirements Help": "Instruções extras para esta narração, adicionadas além dos requisitos automáticos de crescimento/qualidade (eles não são substituídos).",
+    "Documentary Stock Keyword Hint": "Dica de Palavra-chave de Stock (opcional)",
+    "Documentary Stock Keyword Hint Help": "Uma palavra-chave ou frase extra para ajudar a encontrar imagens de stock adequadas (por ex., um nome, época ou lugar específico) -- a IA a incorpora aos termos de busca apenas nas cenas em que realmente se encaixa, não em todas. Usada apenas quando uma fonte de Imagens de Stock é selecionada.",
     "Documentary Stock Provider": "Provedor de Stock",
     "Documentary Stock Provider: pexels": "Pexels",
     "Documentary Stock Provider: pixabay": "Pixabay",

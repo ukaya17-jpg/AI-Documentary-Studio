@@ -5009,16 +5009,26 @@ _DOCUMENTARY_DEFAULT_CUSTOM_REQUIREMENTS = (
 # Kullanıcı sadece bu üçünü istedi (aile/boyut/renk) -- stroke/pozisyon/
 # arkaplan Klasik Mod'da var ama burada bilinçli olarak kapsam dışı.
 def _render_documentary_advanced_settings(video_source_fixed: str):
-    """Sistem promptu + özel senaryo gereksinimleri + altyazı görünümü.
+    """Sistem promptu + özel senaryo gereksinimleri + stok arama ipucu +
+    altyazı görünümü.
 
-    Döner: (custom_system_prompt, custom_requirements) -- ikisi de
-    run_pipeline()'a doğrudan geçiriliyor. Font ayarları ayrıca dönmüyor,
-    çünkü config.ui[...]'a yazılıyor ve build_video_params() bunu render
-    anında zaten okuyor (proje-özel bir parametre değil, global ayar).
+    Döner: (custom_system_prompt, custom_requirements, stock_keyword_hint) --
+    üçü de run_pipeline()'a doğrudan geçiriliyor. Font ayarları ayrıca
+    dönmüyor, çünkü config.ui[...]'a yazılıyor ve build_video_params() bunu
+    render anında zaten okuyor (proje-özel bir parametre değil, global
+    ayar).
 
     `video_source_fixed`: GÖREV 5 -- hangi sayfadan çağrıldığını bilmesi
     gerekiyor, çünkü Sistem Promptu varsayılanı sayfaya göre değişiyor
-    (AI-video görsel tarifi vs. stok-görsel-uyumlu tarif).
+    (AI-video görsel tarifi vs. stok-görsel-uyumlu tarif). "Stok Arama
+    Kelimesi İpucu" planı (kullanıcı onaylı) da AYNI parametreyi kullanıyor:
+    stok görsel arama sadece stok kaynaklarında (pexels/pixabay/coverr)
+    çalıştığı için, alan SADECE video_source_fixed stok olduğunda render
+    edilir -- bu sayfadaki stock_provider/ai_video_provider seçicilerinin
+    (bkz. _render_shared_documentary_form) zaten kullandığı "video kaynağına
+    göre koşullu render" desenini takip eder; her zaman gösterip yardım
+    metnine not düşmek yerine, kullanıcının ilgisiz bir sayfada anlamsız bir
+    alanla karşılaşmasını tamamen önler.
     """
     default_system_prompt = (
         _DOCUMENTARY_DEFAULT_SYSTEM_PROMPT_STOCK
@@ -5039,6 +5049,15 @@ def _render_documentary_advanced_settings(video_source_fixed: str):
             key="documentary_custom_requirements",
             help=tr("Documentary Custom Requirements Help"),
         ).strip()
+
+        stock_keyword_hint = ""
+        if video_source_fixed == _DOCUMENTARY_STOCK_VIDEO_SOURCE:
+            stock_keyword_hint = st.text_area(
+                tr("Documentary Stock Keyword Hint"),
+                value="",
+                key="documentary_stock_keyword_hint",
+                help=tr("Documentary Stock Keyword Hint Help"),
+            ).strip()
 
         st.divider()
         font_names = get_all_fonts()
@@ -5089,7 +5108,7 @@ def _render_documentary_advanced_settings(video_source_fixed: str):
         # (bkz. app.config.config), bu yüzden her rerun'da çağırmak güvenli.
         config.save_config()
 
-    return custom_system_prompt, custom_requirements
+    return custom_system_prompt, custom_requirements, stock_keyword_hint
 
 
 def _render_shared_documentary_form(video_source_fixed: str) -> None:
@@ -5384,7 +5403,7 @@ def _render_shared_documentary_form(video_source_fixed: str) -> None:
         bgm_volume,
         video_music_prompt,
     ) = _render_documentary_audio_settings()
-    custom_system_prompt, custom_requirements = (
+    custom_system_prompt, custom_requirements, stock_keyword_hint = (
         _render_documentary_advanced_settings(video_source_fixed)
     )
 
@@ -5544,6 +5563,7 @@ def _render_shared_documentary_form(video_source_fixed: str) -> None:
                     video_music_prompt=video_music_prompt,
                     custom_system_prompt=custom_system_prompt,
                     custom_requirements=custom_requirements,
+                    stock_keyword_hint=stock_keyword_hint,
                     character_references=character_references,
                     location_references=location_references,
                     character_selection=character_selection,

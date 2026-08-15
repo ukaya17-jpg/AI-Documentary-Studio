@@ -487,6 +487,8 @@
     "Documentary System Prompt Help": "附加的风格/人设指引，添加在旁白撰写者的基础指令（下方以占位符显示）旁边——基础指令始终有效，无法被移除。",
     "Documentary Custom Requirements": "自定义脚本要求",
     "Documentary Custom Requirements Help": "此旁白的附加说明，附加在自动增长/质量要求之上（不会替换它们）。",
+    "Documentary Stock Keyword Hint": "素材搜索关键词提示（可选）",
+    "Documentary Stock Keyword Hint Help": "一个额外的搜索关键词或短语，帮助找到匹配的素材画面（例如特定的名称、年代或地点）——AI 只会在真正合适的场景中把它融入搜索词，而不是在每个场景中都加入。仅在选择素材视频来源时使用。",
     "Documentary Stock Provider": "素材来源",
     "Documentary Stock Provider: pexels": "Pexels",
     "Documentary Stock Provider: pixabay": "Pixabay",

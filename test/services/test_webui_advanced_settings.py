@@ -33,6 +33,14 @@ NEW_KEYS = (
     "Documentary Custom Requirements Help",
 )
 
+# "Stok Arama Kelimesi İpucu" planı (kullanıcı onaylı): AYNI expander,
+# SADECE Stok Üretimler sayfasında (varsayılan sayfa, page hash yok) görünür
+# -- bkz. test_webui_stock_provider.py'nin AYNI "quality" page hash deseni.
+STOCK_KEYWORD_HINT_KEYS = (
+    "Documentary Stock Keyword Hint",
+    "Documentary Stock Keyword Hint Help",
+)
+
 
 def _translation(locale):
     data = json.loads((I18N_DIR / f"{locale}.json").read_text(encoding="utf-8"))
@@ -49,6 +57,40 @@ def test_advanced_settings_keys_present_and_non_empty_in_every_locale():
         for key in NEW_KEYS:
             assert key in translation, f"{key!r} missing from {locale}.json"
             assert translation[key].strip(), f"{key!r} is empty in {locale}.json"
+
+
+def test_stock_keyword_hint_keys_present_and_non_empty_in_every_locale():
+    for locale in ALL_LOCALES:
+        translation = _translation(locale)
+        for key in STOCK_KEYWORD_HINT_KEYS:
+            assert key in translation, f"{key!r} missing from {locale}.json"
+            assert translation[key].strip(), f"{key!r} is empty in {locale}.json"
+
+
+def test_stock_keyword_hint_field_shown_on_stock_productions_page():
+    # Default page (no page hash override) is "Stok Üretimler" (stock).
+    app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+    app.session_state["ui_language"] = "en"
+    app.run()
+
+    assert not app.exception
+    hint = _widget_by_key(app.text_area, "documentary_stock_keyword_hint")
+    assert hint.value == ""
+
+
+def test_stock_keyword_hint_field_hidden_on_documentary_quality_page():
+    # AI-generated video page: a stock-footage search hint is meaningless
+    # there, so the field must not render at all.
+    app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+    app.session_state["ui_language"] = "en"
+    app._page_hash = _QUALITY_PAGE_HASH
+    app.run()
+
+    assert not app.exception
+    assert not any(
+        str(getattr(w, "key", "")) == "documentary_stock_keyword_hint"
+        for w in app.text_area
+    )
 
 
 def test_system_prompt_and_custom_requirements_default_to_stock_variant_on_stock_page():
@@ -181,6 +223,40 @@ def test_generate_passes_system_prompt_and_custom_requirements_to_run_pipeline()
     kwargs = run_mock.call_args.kwargs
     assert kwargs["custom_system_prompt"] == "Write like a noir detective."
     assert kwargs["custom_requirements"] == "Always mention exact dates."
+
+
+def test_generate_passes_stock_keyword_hint_to_run_pipeline_on_stock_page():
+    with patch.object(
+        default_pipeline, "run_pipeline", return_value=_fake_project()
+    ) as run_mock:
+        app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+        app.session_state["ui_language"] = "en"
+        app.session_state["documentary_topic"] = "Test Topic"
+        app.session_state["documentary_stock_keyword_hint"] = "Ottoman archives"
+        app.session_state["documentary_generate_button"] = True
+        app.run()
+
+    assert not app.exception
+    run_mock.assert_called_once()
+    assert run_mock.call_args.kwargs["stock_keyword_hint"] == "Ottoman archives"
+
+
+def test_generate_with_untouched_stock_keyword_hint_passes_empty_string():
+    # Regression guard: unlike custom_system_prompt/custom_requirements (which
+    # pre-fill with a default), the hint field has no default text -- leaving
+    # it untouched must reach run_pipeline() as "", not some placeholder.
+    with patch.object(
+        default_pipeline, "run_pipeline", return_value=_fake_project()
+    ) as run_mock:
+        app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+        app.session_state["ui_language"] = "en"
+        app.session_state["documentary_topic"] = "Test Topic"
+        app.session_state["documentary_generate_button"] = True
+        app.run()
+
+    assert not app.exception
+    run_mock.assert_called_once()
+    assert run_mock.call_args.kwargs["stock_keyword_hint"] == ""
 
 
 def test_generate_with_untouched_advanced_fields_passes_the_defaults():

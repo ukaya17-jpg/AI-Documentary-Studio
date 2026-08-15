@@ -136,6 +136,27 @@ class TestBuildStoryboardPrompt(unittest.TestCase):
         )
         self.assertNotIn("Context facts:", prompt)
 
+    def test_omits_stock_keyword_hint_block_when_not_given(self):
+        # Regression guard: an empty (default) hint must leave the prompt
+        # byte-identical to before this parameter existed.
+        prompt = storyboard_generator.build_storyboard_prompt(_scene_plan(), _script(), TopicCategory.history)
+        self.assertNotIn("User-provided search hint", prompt)
+
+    def test_omits_stock_keyword_hint_block_when_blank(self):
+        prompt = storyboard_generator.build_storyboard_prompt(
+            _scene_plan(), _script(), TopicCategory.history, stock_keyword_hint="   "
+        )
+        self.assertNotIn("User-provided search hint", prompt)
+
+    def test_includes_stock_keyword_hint_with_selective_use_instruction(self):
+        # The hint must be woven in intelligently, not blindly appended to
+        # every scene's search terms -- the prompt must say so explicitly.
+        prompt = storyboard_generator.build_storyboard_prompt(
+            _scene_plan(), _script(), TopicCategory.history, stock_keyword_hint="1969 moon landing"
+        )
+        self.assertIn("User-provided search hint: 1969 moon landing", prompt)
+        self.assertIn("not indiscriminately on every scene", prompt)
+
 
 class TestGenerateStoryboard(unittest.TestCase):
     @patch("app.departments.creative.storyboard_generator.generate_json")
@@ -163,6 +184,22 @@ class TestGenerateStoryboard(unittest.TestCase):
             storyboard = storyboard_generator.generate_storyboard(ScenePlan(scenes=[]), Script())
             mock_generate_json.assert_not_called()
         self.assertEqual(storyboard.shots, [])
+
+    @patch("app.departments.creative.storyboard_generator.generate_json")
+    def test_stock_keyword_hint_reaches_the_generated_prompt(self, mock_generate_json):
+        mock_generate_json.return_value = {"shots": []}
+        storyboard_generator.generate_storyboard(
+            _scene_plan(), _script(), stock_keyword_hint="Ottoman archives"
+        )
+        prompt = mock_generate_json.call_args.args[0]
+        self.assertIn("User-provided search hint: Ottoman archives", prompt)
+
+    @patch("app.departments.creative.storyboard_generator.generate_json")
+    def test_default_empty_hint_leaves_generated_prompt_unaffected(self, mock_generate_json):
+        mock_generate_json.return_value = {"shots": []}
+        storyboard_generator.generate_storyboard(_scene_plan(), _script())
+        prompt = mock_generate_json.call_args.args[0]
+        self.assertNotIn("User-provided search hint", prompt)
 
 
 if __name__ == "__main__":
