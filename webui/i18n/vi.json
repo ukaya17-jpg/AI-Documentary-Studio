@@ -364,7 +364,7 @@
     "Format: educational": "Giáo dục",
     "Format: corporate": "Doanh nghiệp",
     "Pacing: short": "Shorts Nhanh (35 giây)",
-    "Pacing: long": "Shorts Dài (56 giây)",
+    "Pacing: long": "Video Trung Bình (5 phút)",
     "Category Auto Description": "Để AI tự động phát hiện danh mục phù hợp nhất từ chủ đề.",
     "Tone Auto Description": "Sử dụng tông giọng mặc định của danh mục đã chọn.",
     "Tone Neutral Fallback Description": "Chưa có phong cách riêng -- hiện đang dùng tông Đáng tin cậy.",

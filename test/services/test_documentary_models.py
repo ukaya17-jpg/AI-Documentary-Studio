@@ -48,10 +48,15 @@ class TestProfileDimensions(unittest.TestCase):
         self.assertIn(Pacing.long, PACING_SCENE_SPEC)
         # short.scene_count was 4 until a real content-dropping bug was
         # diagnosed and fixed (PROGRESS.md "Video-anlatım uyumsuzluğu") --
-        # raised to 7 to match short's own outline ceiling, same pattern
-        # long already had (that's why long never showed the bug).
+        # raised to 7 to match short's own outline ceiling.
         self.assertEqual(PACING_SCENE_SPEC[Pacing.short]["scene_count"], 7)
-        self.assertEqual(PACING_SCENE_SPEC[Pacing.long]["scene_count"], 7)
+
+    def test_long_pacing_totals_five_minutes(self):
+        # Kullanıcı onaylı (2026-08-15): "long" artık 5 dakikalık orta-uzunluk
+        # video -- 10 sahne x 30s = 300s, extended'in AYNI sahne-başı
+        # yoğunluğunda (sadece yarısı kadar sahne).
+        spec = PACING_SCENE_SPEC[Pacing.long]
+        self.assertEqual(spec["scene_count"] * spec["scene_duration"], 300.0)
 
     def test_extended_pacing_totals_ten_minutes(self):
         # GÖREV 2 (TAM OTONOMİ): uzun-form video -- 20 sahne x 30s = 600s.
@@ -65,9 +70,11 @@ class TestProfileDimensions(unittest.TestCase):
         for pacing in Pacing:
             self.assertIn(pacing, PACING_OUTLINE_SECTION_RANGE)
         # short/long: outline_generator'ın pacing-farkında olmadan önceki
-        # sabit-kodlu "4-7" metniyle birebir aynı -- regresyon garantisi.
+        # sabit-kodlu "4-7" metniyle birebir aynı (short) -- regresyon
+        # garantisi. long, kullanıcı onaylı (2026-08-15) 5dk'lık yeni
+        # sahne bütçesine göre extended ile aynı oranda genişletildi.
         self.assertEqual(PACING_OUTLINE_SECTION_RANGE[Pacing.short], (4, 7))
-        self.assertEqual(PACING_OUTLINE_SECTION_RANGE[Pacing.long], (4, 7))
+        self.assertEqual(PACING_OUTLINE_SECTION_RANGE[Pacing.long], (9, 12))
         # extended: scene_count=20'nin altında kalmaması için geniş bir üst
         # sınır (importance-bazlı elemeye yer bırakıyor).
         min_sections, max_sections = PACING_OUTLINE_SECTION_RANGE[Pacing.extended]

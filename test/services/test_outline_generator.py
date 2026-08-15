@@ -20,12 +20,18 @@ class TestBuildOutlinePrompt(unittest.TestCase):
         prompt = outline_generator.build_outline_prompt("The Fall of Rome")
         self.assertIn("Produce 4-7 sections", prompt)
 
-    def test_short_and_long_pacing_both_request_4_7_sections(self):
+    def test_short_pacing_requests_4_7_sections(self):
         # GÖREV 2 (TAM OTONOMİ): pacing-farkında hâle getirilmeden ÖNCEki
         # sabit-kodlu davranışla birebir aynı -- regresyon garantisi.
-        for pacing in (Pacing.short, Pacing.long):
-            prompt = outline_generator.build_outline_prompt("Topic", pacing=pacing)
-            self.assertIn("Produce 4-7 sections", prompt)
+        prompt = outline_generator.build_outline_prompt("Topic", pacing=Pacing.short)
+        self.assertIn("Produce 4-7 sections", prompt)
+
+    def test_long_pacing_requests_9_12_sections(self):
+        # Kullanıcı onaylı (2026-08-15): "long" artık 5dk'lık 10 sahnelik
+        # bir bütçe -- outline aralığı buna göre genişledi (eskiden 4-7'ydi,
+        # 56sn/7 sahnelik eski "long" için doğruydu).
+        prompt = outline_generator.build_outline_prompt("Topic", pacing=Pacing.long)
+        self.assertIn("Produce 9-12 sections", prompt)
 
     def test_extended_pacing_requests_many_more_sections(self):
         # 20 sahnelik bir extended scene_plan'a yetecek kadar outline

@@ -391,7 +391,7 @@
     "Format: educational": "Educational",
     "Format: corporate": "Corporate",
     "Pacing: short": "Quick Shorts (35s)",
-    "Pacing: long": "Extended Shorts (56s)",
+    "Pacing: long": "Medium Video (5min)",
     "Category Auto Description": "Let AI detect the best category from your topic.",
     "Tone Auto Description": "Use the selected category's default tone.",
     "Tone Neutral Fallback Description": "No dedicated style yet -- currently falls back to the Credible tone.",

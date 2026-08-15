@@ -32,11 +32,11 @@ class TestPlanScenes(unittest.TestCase):
         self.assertEqual(len(plan.scenes), 7)
         self.assertTrue(all(s.duration_seconds == 5.0 for s in plan.scenes))
 
-    def test_long_pacing_yields_seven_scenes_of_eight_seconds(self):
-        outline = _outline_with_sections([1, 2, 3, 4, 5, 1, 2, 3, 4, 5])
+    def test_long_pacing_yields_ten_scenes_of_thirty_seconds(self):
+        outline = _outline_with_sections([1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2])
         plan = scene_planner.plan_scenes(outline, Pacing.long)
-        self.assertEqual(len(plan.scenes), 7)
-        self.assertTrue(all(s.duration_seconds == 8.0 for s in plan.scenes))
+        self.assertEqual(len(plan.scenes), 10)
+        self.assertTrue(all(s.duration_seconds == 30.0 for s in plan.scenes))
 
     def test_keeps_highest_importance_sections(self):
         # 8 section, scene_count=7 -- tam olarak 1 tanesi elenmeli (en düşük
