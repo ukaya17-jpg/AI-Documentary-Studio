@@ -1,4 +1,5 @@
 import sys
+import typing
 import unittest
 from pathlib import Path
 
@@ -7,18 +8,52 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from app.config import characters
 
 
-class TestEmptyCharacterRegistry(unittest.TestCase):
-    """Registry temizligi (kullanici onayli): onceki 7 karakter kaldirildi,
-    _CHARACTER_SLUGS/CHARACTER_PAIRS su an kasitli olarak bos -- kullanici
-    Google Flow'da tasarladigi yeni karakterleriyle sifirdan dolduracak. Bu
-    testler artik "7 karakter" degil, bos registry'nin ve mekanizmanin
-    kendisinin (yeni karakter eklendiginde hala dogru calisacaginin)
-    davranisini dogruluyor.
+class TestNewFiveCharacterRegistry(unittest.TestCase):
+    """"Yeni 5 Karakter" seti (kullanıcı onaylı, Google Flow'da tasarlandı):
+    Professor Nova, Robo, Luna, Atom, Dino -- her biri gerçek voice_id'lerle
+    (kullanıcının paylaştığı ElevenLabs hesap kütüphanesinden) kayıtlı.
     """
 
-    def test_registry_is_currently_empty(self):
-        self.assertEqual(characters._CHARACTER_SLUGS, {})
-        self.assertEqual(characters.CHARACTER_PAIRS, {})
+    EXPECTED_SLUGS: typing.ClassVar[set[str]] = {"professor_nova", "robo", "luna", "atom", "dino"}
+
+    def test_all_five_slugs_are_registered(self):
+        self.assertEqual(set(characters._CHARACTER_SLUGS), self.EXPECTED_SLUGS)
+
+    def test_each_character_reference_loads_real_images(self):
+        for slug in self.EXPECTED_SLUGS:
+            ref = characters.get_character_reference(slug)
+            self.assertTrue(ref.frontal_image_url.startswith("data:image/jpeg;base64,"))
+            self.assertEqual(len(ref.reference_image_urls), 2)
+            for uri in ref.reference_image_urls:
+                self.assertTrue(uri.startswith("data:image/jpeg;base64,"))
+
+    def test_each_character_has_a_distinct_elevenlabs_voice(self):
+        voices = [characters.get_character_voice_name(slug) for slug in self.EXPECTED_SLUGS]
+        self.assertEqual(len(voices), len(set(voices)), "voice_name'ler benzersiz olmalı")
+        for voice in voices:
+            self.assertTrue(voice.startswith("elevenlabs:"))
+
+    def test_resolve_character_selection_returns_the_right_single_character(self):
+        for slug in self.EXPECTED_SLUGS:
+            refs = characters.resolve_character_selection(slug)
+            self.assertEqual(len(refs), 1)
+            expected_name, _folder, _voice = characters._CHARACTER_SLUGS[slug]
+            self.assertEqual(refs[0].name, expected_name)
+
+    def test_get_voice_name_for_character_reference_round_trips(self):
+        for slug in self.EXPECTED_SLUGS:
+            ref = characters.get_character_reference(slug)
+            expected_voice = characters.get_character_voice_name(slug)
+            self.assertEqual(
+                characters.get_voice_name_for_character_reference(ref), expected_voice
+            )
+
+
+class TestEmptyCharacterRegistry(unittest.TestCase):
+    """Registry artık boş DEĞİL (5 karakter var, bkz.
+    TestNewFiveCharacterRegistry) -- bu sınıf yalnızca "bilinmeyen slug"
+    davranışını (KeyError) doğruluyor.
+    """
 
     def test_unknown_slug_raises(self):
         with self.assertRaises(KeyError):
@@ -46,8 +81,12 @@ class TestResolveCharacterSelection(unittest.TestCase):
         # Eskiden kayitliydi, artik degil -- sessizce "karaktersiz"
         # davranmali, KeyError FIRLATMAMALI (webui dogrudan bu fonksiyonu
         # cagiriyor, session_state'te eski bir secim kalmis olabilir).
+        # NOT: "luna" burada YOK -- o slug artik YENI bir karaktere (Google
+        # Flow'daki astronot Luna) atanmis durumda, eski tavsan Luna ile
+        # ILGISIZ. resolve_character_selection("luna") artik gercek bir
+        # sonuc donduruyor, bkz. TestNewFiveCharacterRegistry.
         for legacy_slug in (
-            "bao", "luna", "riko", "finn", "wise_owl",
+            "bao", "riko", "finn", "wise_owl",
             "little_blue_bird", "mother_bird", "mother_and_baby",
         ):
             self.assertEqual(characters.resolve_character_selection(legacy_slug), [])

@@ -12,18 +12,18 @@ reference()` reads each file and inlines it as a base64 data URI, lazily
 (only for characters actually selected), mirroring the exact technique
 already proven in the real Kling O1 test.
 
-Registry temizligi (kullanici onayli): onceki 7 karakter (Bao, Luna, Riko,
-Finn, Wise Owl, Little Blue Bird, Mother Bird) hem burada hem
-resource/characters/ altindaki gorseller hem de webui/Main.py'deki emoji
-eslemesiyle birlikte KASITLI olarak kaldirildi -- kullanici Google Flow'da
-tasarladigi yeni karakter/mekan setiyle sifirdan baslamak istiyor. Bu
-dosyanin altyapisi (CharacterReference, resolve_character_selection,
-get_character_reference, vb.) DEGISMEDI -- yeni bir karakter eklemek icin
-tek yapilmasi gereken _CHARACTER_SLUGS'a bir satir eklemek ve
-resource/characters/<slug>/{front,three_quarter,back}.jpg dosyalarini
-yerlestirmek. Ses secimi icin: voice.get_elevenlabs_voices() icindeki
-gercek, favorilenmis hesap katalogundan, karakterin kisiligine uygun
-perde/enerjiyle secilmeli.
+Registry temizligi + yeni set (kullanici onayli): onceki 7 karakter (Bao,
+Luna, Riko, Finn, Wise Owl, Little Blue Bird, Mother Bird) kaldirildiktan
+sonra, kullanicinin Google Flow'da tasarladigi YENI 5 karakter (Professor
+Nova, Robo, Luna, Atom, Dino) eklendi -- eskiyle isim cakismasi olan tek
+karakter "Luna" (astronot/bilim insani), eski "Luna" (tavsan) ile ILGISIZ,
+tamamen farkli bir tasarim/gorsel. Bu dosyanin altyapisi (CharacterReference,
+resolve_character_selection, get_character_reference, vb.) hic degismedi --
+yeni bir karakter eklemek icin tek yapilmasi gereken _CHARACTER_SLUGS'a bir
+satir eklemek ve resource/characters/<slug>/{front,three_quarter,back}.jpg
+dosyalarini yerlestirmek. Ses secimi icin: voice.get_elevenlabs_voices()
+icindeki gercek, favorilenmis hesap katalogundan, karakterin kisiligine
+uygun perde/enerjiyle secilmeli.
 """
 
 import base64
@@ -31,12 +31,49 @@ import base64
 from app.models.character import CharacterReference
 from app.utils import utils
 
-_CHARACTER_SLUGS: dict[str, tuple[str, str, str]] = {}
+# slug -> (display name, folder name under resource/characters/, ElevenLabs
+# voice_name). Display name yalnizca "@ElementN as <n>" prompt onekini
+# olusturmak icin kullanilir (bkz. asset_generator.build_asset_plan) -- API'ye
+# gonderilmez.
+#
+# "Yeni 5 Karakter" seti (kullanici onayli, Google Flow'da tasarlandi): her
+# voice_name, kullanicinin PAYLASTIGI gercek ElevenLabs hesap kutuphanesinden
+# (voice_id + tam ad) birebir alindi -- uydurma bir voice_id DEGIL. Karakter
+# <-> ses eslesmesi dogrudan kullanicinin kendi tercihi:
+#   Professor Nova (bilim insani) -> Eyyüp Okan: "Dynamic and Authentic"
+#   Robo (minik, sevimli robot)   -> Gözde
+#   Luna (astronot/bilim insani)  -> Nazlı Yeni: "Friendly, Sympathetic"
+#   Atom (AI küp karakter)        -> Mark: "Cartoonish, Funny and Cheerful"
+#   Dino (yavru dinozor)          -> Alican: "Youthful, Encouraging"
+# 5 ses birbirinden FARKLI voice_id -- hicbiri paylasilmiyor.
+_CHARACTER_SLUGS: dict[str, tuple[str, str, str]] = {
+    "professor_nova": (
+        "Professor Nova", "professor_nova",
+        "elevenlabs:sqN4QwtcnanCCWx6TTYj:Eyyup Okan - Dynamic and Authentic",
+    ),
+    "robo": (
+        "Robo", "robo",
+        "elevenlabs:rtnDjO8siSxeTEeTVczO:Gözde",
+    ),
+    "luna": (
+        "Luna", "luna",
+        "elevenlabs:o9DOmAyPjfFu8AfoFAnM:Nazlı Yeni - Friendly, Sympathetic",
+    ),
+    "atom": (
+        "Atom", "atom",
+        "elevenlabs:DUnzBkwtjRWXPr6wRbmL:Mark - Cartoonish, Funny and Cheerful",
+    ),
+    "dino": (
+        "Dino", "dino",
+        "elevenlabs:wRfRD9nLN4QfAuuFAyqY:Alican - Youthful, Encouraging",
+    ),
+}
 
 # A composite ("pair") selection resolves to multiple individual character
 # slugs, in @ElementN order -- e.g. {"mother_and_baby": ["mother_bird",
 # "little_blue_bird"]}. Yeni karakterler eklenince, birlikte sahne
-# paylasmasi gereken ciftler burada tanimlanabilir.
+# paylasmasi gereken ciftler burada tanimlanabilir. Su an bu 5 karakter icin
+# tanimli bir cift YOK (YAGNI) -- ihtiyac olursa tek satirla eklenir.
 CHARACTER_PAIRS: dict[str, list[str]] = {}
 
 NO_CHARACTER = "none"
