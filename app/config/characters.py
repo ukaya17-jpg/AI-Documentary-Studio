@@ -78,6 +78,32 @@ CHARACTER_PAIRS: dict[str, list[str]] = {}
 
 NO_CHARACTER = "none"
 
+# "Sahne Bazlı Otomatik Kadrolama" planı (kullanıcı onaylı): NO_CHARACTER
+# ("karakter hiç kullanılmasın") ile AYNI şey DEĞİL -- AUTO_CHARACTER
+# seçiliyken default_pipeline, storyboard/script oluştuktan SONRA
+# app.departments.creative.casting_generator'ı çağırıp HER SAHNE için ayrı
+# ayrı (varsa) bir karakter seçtirir; sonuç sahneden sahneye değişebilir.
+# webui'nin karakter kart grid'inin YENİ varsayılanı budur (bkz.
+# webui/Main.py) -- elle bir slug seçmek bu otomatik davranışı ezer.
+AUTO_CHARACTER = "auto"
+
+
+def character_descriptions_for_casting() -> dict[str, str]:
+    """slug -> kısa kişilik açıklaması, casting_generator'ın LLM prompt'una
+    gömdüğü katalog için. Karakter tanıtım metinleriyle (webui/i18n'deki
+    "Character Preview: <slug>") KASITLI OLARAK AYRI bir kaynak -- o
+    metinler kullanıcıya İngilizce/9 dilde gösteriliyor, bu ise LLM'e
+    HER ZAMAN Türkçe/İngilizce karışık, tutarlı bir iç açıklama (i18n'den
+    bağımsız, çeviri kalitesine göre değişmemesi gerekiyor).
+    """
+    return {
+        "professor_nova": "Bilimi eğlenceli hale getiren meraklı, heyecanlı bir profesör. Laboratuvar/deney/açıklama sahnelerine uygun.",
+        "robo": "Meraklı, sevimli, yardımsever minik bir robot. Teknoloji/mekanik konulara uygun.",
+        "luna": "Uzayı ve bilimi keşfeden cesur bir astronot. Uzay/gözlem sahnelerine uygun.",
+        "atom": "Akıllı, komik, her şeyi bilen yapay zeka küpü. AI/veri/bilgi sahnelerine uygun.",
+        "dino": "Meraklı bir yavru dinozor. Doğa/tarih öncesi/keşif sahnelerine uygun.",
+    }
+
 
 def _data_uri(path: str) -> str:
     with open(path, "rb") as f:

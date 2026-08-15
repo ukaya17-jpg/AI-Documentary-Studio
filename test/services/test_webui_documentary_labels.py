@@ -6,7 +6,7 @@ from streamlit.testing.v1 import AppTest
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from app.config import characters
+from app.config import characters, locations
 from app.config.profile_dimensions import Format, Pacing, Tone, TopicCategory
 
 ROOT_DIR = Path(__file__).parent.parent.parent
@@ -90,7 +90,15 @@ def test_category_preview_keys_present_and_non_empty_in_every_locale():
 # de Category/Tone ile AYNI dinamik-key deseni (tr(f"Character: {value}")) --
 # aynı gerekçeyle (AST taraması f-string'leri yakalamıyor) ayrı doğrulanıyor.
 _ALL_CHARACTER_VALUES = (
-    [characters.NO_CHARACTER] + list(characters._CHARACTER_SLUGS) + list(characters.CHARACTER_PAIRS)
+    [characters.NO_CHARACTER, characters.AUTO_CHARACTER]
+    + list(characters._CHARACTER_SLUGS)
+    + list(characters.CHARACTER_PAIRS)
+)
+
+# "Mekan Sistemi" + "Sahne Bazlı Otomatik Kadrolama" planları (kullanıcı
+# onaylı): Location kart grid'i de AYNI dinamik-key deseni.
+_ALL_LOCATION_VALUES = [locations.NO_LOCATION, locations.AUTO_LOCATION] + list(
+    locations._LOCATION_SLUGS
 )
 
 
@@ -111,6 +119,23 @@ def test_character_none_description_present_in_every_locale():
         translation = _translation(locale)
         assert "Character None Description" in translation
         assert translation["Character None Description"].strip()
+
+
+def test_location_labels_present_and_non_empty_in_every_locale():
+    _assert_labels_present("Location", _ALL_LOCATION_VALUES)
+
+
+def test_location_preview_keys_present_and_non_empty_in_every_locale():
+    _assert_labels_present(
+        "Location Preview", [v for v in _ALL_LOCATION_VALUES if v != locations.NO_LOCATION]
+    )
+
+
+def test_location_none_description_present_in_every_locale():
+    for locale in ALL_LOCALES:
+        translation = _translation(locale)
+        assert "Location None Description" in translation
+        assert translation["Location None Description"].strip()
 
 
 def test_turkish_card_previews_are_not_leaked_english_llm_prompt_text():
@@ -153,7 +178,13 @@ def test_format_and_pacing_selectboxes_still_show_translated_labels():
     app.run()
 
     format_select = _selectbox_by_key(app, "documentary_format")
-    assert format_select.value == "standard"
+    # "Sahne Bazlı Otomatik Kadrolama" planı (kullanıcı onaylı): Karakter
+    # grid'inin YENİ varsayılanı AUTO_CHARACTER (bkz. o sabitin yorumu) --
+    # bu, mevcut "bir karakter seçiliyken Format'ı Çocuklar'a kilitle"
+    # güvenlik mekanizmasını (character_selection != NO_CHARACTER) artık
+    # varsayılan olarak da tetikliyor, KASITLI: Auto modda GERÇEKTEN bir
+    # karakter sahneye girebilir, güvenlik rehberliği baştan aktif olmalı.
+    assert format_select.value == "kids"
     assert "Eğitici" in format_select.options
     assert "educational" not in format_select.options
 
@@ -256,15 +287,18 @@ def test_character_cards_show_translated_labels_and_previews():
     assert none_button.label
 
 
-def test_default_character_selection_is_none_and_rendered_as_primary():
-    # Regresyon garantisi: Kategori/Ton'un "auto" varsayılanıyla AYNI
-    # desen, ama Character'ın varsayılanı "none" (bkz.
-    # _render_selection_card'ın default_value parametresi).
+def test_default_character_selection_is_auto_and_rendered_as_primary():
+    # "Sahne Bazlı Otomatik Kadrolama" planı (kullanıcı onaylı): Karakter'ın
+    # YENİ varsayılanı "auto" (Kategori/Ton'un "auto" varsayılanıyla AYNI
+    # desen, ama artık kavramsal olarak da aynı anlamda -- konuya göre
+    # otomatik seçim) -- "none" artık varsayılan DEĞİL, elle seçilmesi
+    # gerekiyor (bkz. _render_selection_card'ın default_value parametresi).
     app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
     app.session_state["ui_language"] = "en"
     app.run()
 
-    assert _button_by_key(app, "character_btn_none").proto.type == "primary"
+    assert _button_by_key(app, "character_btn_auto").proto.type == "primary"
+    assert _button_by_key(app, "character_btn_none").proto.type == "secondary"
 
 
 def test_selecting_a_character_locks_format_to_kids_and_disables_selectbox():

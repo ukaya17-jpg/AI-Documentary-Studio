@@ -41,6 +41,15 @@ class DocumentaryProject(BaseModel):
     # = eski davranışın birebir aynısı (1 elemanlı liste).
     character_references: list[CharacterReference] = Field(default_factory=list)
 
+    # "Mekan Sistemi" planı (kullanıcı onaylı): character_references ile
+    # AYNI CharacterReference modeli, AYNI Kling O1 mekanizması -- ama
+    # BİLİNÇLİ OLARAK ayrı bir alan/liste (bkz.
+    # default_pipeline.run_pipeline'ın location_references docstring'i --
+    # audio_renderer'ın "Karakter Sesi" mekanizması `len(character_
+    # references) == 1` kontrolüne dayandığı için, bir mekanın bu listeye
+    # karışması karakterin ses eşlemesini SESSİZCE bozardı).
+    location_references: list[CharacterReference] = Field(default_factory=list)
+
     voice_name: str = ""
     voice_rate: float = 1.0
     voice_volume: float = 1.0

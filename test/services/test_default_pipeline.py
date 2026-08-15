@@ -9,6 +9,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from app.config.profile_dimensions import Format, Pacing, Tone, TopicCategory
+from app.config import characters
 from app.models.asset import AssetCandidate, AssetPlan
 from app.models.audio import AudioPlan, AudioTrack
 from app.models.documentary_project import DocumentaryProject
@@ -379,6 +380,145 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
 
         _args, audio_kwargs = self.started["audio"].call_args
         self.assertEqual(audio_kwargs["character_references"], [bao])
+
+    def test_location_references_reach_asset_and_ai_video_stages_but_not_audio(self):
+        # "Mekan Sistemi" planı (kullanıcı onaylı): location_references,
+        # character_references ile AYNI @ElementN mekanizmasını paylaşıyor
+        # (asset/ai_video aşamalarında İKİSİ DE, sırayla, tek bir listede
+        # birleşmiş olarak görünmeli) -- ama audio_renderer'a ASLA
+        # ulaşmamalı (bkz. run_pipeline'ın location_references docstring'i:
+        # audio_renderer'ın "Karakter Sesi" mekanizması
+        # len(character_references) == 1 kontrolüne dayanıyor, bir mekan bu
+        # sayıyı 2'ye çıkarıp karakterin ses eşlemesini SESSİZCE bozardı).
+        from app.models.character import CharacterReference
+
+        bao = CharacterReference(name="Bao", frontal_image_url="data:image/jpeg;base64,x")
+        library = CharacterReference(name="Kütüphane", frontal_image_url="data:image/jpeg;base64,y")
+
+        with patch(
+            "app.pipeline.default_pipeline.ai_video_generator.generate_ai_clips",
+            return_value=self.downloaded_asset_plan,
+        ) as mock_generate_ai_clips:
+            default_pipeline.run_pipeline(
+                project_id="proj-1",
+                topic="The Fall of Rome",
+                language="auto",
+                pacing=Pacing.short,
+                voice_name="en-US-JennyNeural",
+                video_source="ai_generated",
+                character_references=[bao],
+                location_references=[library],
+            )
+
+        # Stage 7 (asset_generator.build_asset_plan): karakter + mekan,
+        # SIRAYLA, tek listede, HER sahne için (auto olmadığında sabit
+        # seçim her scene_index'e aynen kopyalanır -- bkz.
+        # _resolve_references_by_scene'in docstring'i).
+        _, asset_gen_kwargs = self.started["asset_gen"].call_args
+        self.assertEqual(
+            asset_gen_kwargs["character_references_by_scene"],
+            {0: [bao, library], 1: [bao, library]},
+        )
+
+        # Stage 8 (ai_video_generator.generate_ai_clips): AYNI birleşik sözlük.
+        _, ai_video_kwargs = mock_generate_ai_clips.call_args
+        self.assertEqual(
+            ai_video_kwargs["character_references_by_scene"],
+            {0: [bao, library], 1: [bao, library]},
+        )
+
+        # Stage 9 (audio_renderer): SADECE karakter -- mekan hiç ulaşmıyor.
+        _, audio_kwargs = self.started["audio"].call_args
+        self.assertEqual(audio_kwargs["character_references"], [bao])
+
+    def test_location_only_selection_never_reaches_audio_stage(self):
+        # Karaktersiz + sadece mekan seçili bir proje: audio_renderer'a
+        # character_references=[] (boş) gitmeli -- [location] DEĞİL. Bu,
+        # ses override mekanizmasının hiç tetiklenmemesini garanti eder.
+        from app.models.character import CharacterReference
+
+        library = CharacterReference(name="Kütüphane", frontal_image_url="data:image/jpeg;base64,y")
+
+        default_pipeline.run_pipeline(
+            project_id="proj-1",
+            topic="The Fall of Rome",
+            language="auto",
+            pacing=Pacing.short,
+            voice_name="en-US-JennyNeural",
+            location_references=[library],
+        )
+
+        _, audio_kwargs = self.started["audio"].call_args
+        self.assertFalse(audio_kwargs["character_references"])
+
+        _, asset_gen_kwargs = self.started["asset_gen"].call_args
+        self.assertEqual(
+            asset_gen_kwargs["character_references_by_scene"], {0: [library], 1: [library]}
+        )
+
+    def test_auto_character_selection_triggers_per_scene_casting(self):
+        # "Sahne Bazlı Otomatik Kadrolama" planı (kullanıcı onaylı): Auto
+        # modda casting_generator çağrılıyor VE her sahne KENDİ karakterini
+        # alabiliyor -- sahne 0 professor_nova, sahne 1 hiç karaktersiz.
+        # character_references (düz liste) bu modda TAMAMEN görmezden
+        # gelinmeli (auto_character=True iken göz ardı edilir).
+        from app.models.character import CharacterReference
+
+        should_be_ignored = CharacterReference(
+            name="Should Be Ignored", frontal_image_url="data:image/jpeg;base64,z"
+        )
+        nova_ref = CharacterReference(
+            name="Professor Nova", frontal_image_url="data:image/jpeg;base64,nova"
+        )
+
+        with patch(
+            "app.pipeline.default_pipeline.casting_generator.generate_casting_plan",
+            return_value={
+                0: {"character": "professor_nova", "location": None},
+                1: {"character": None, "location": None},
+            },
+        ) as mock_casting, patch(
+            "app.pipeline.default_pipeline.characters.get_character_reference",
+            return_value=nova_ref,
+        ):
+            default_pipeline.run_pipeline(
+                project_id="proj-1",
+                topic="The Fall of Rome",
+                language="auto",
+                pacing=Pacing.short,
+                voice_name="en-US-JennyNeural",
+                character_references=[should_be_ignored],
+                character_selection=characters.AUTO_CHARACTER,
+            )
+
+        mock_casting.assert_called_once()
+        _, asset_gen_kwargs = self.started["asset_gen"].call_args
+        self.assertEqual(
+            asset_gen_kwargs["character_references_by_scene"],
+            {0: [nova_ref], 1: []},
+        )
+        # Auto modda tek bir "sabit karakter" yok -- ses override hiç
+        # tetiklenmemeli (bkz. run_pipeline'ın character_selection
+        # docstring paragrafı).
+        _, audio_kwargs = self.started["audio"].call_args
+        self.assertEqual(audio_kwargs["character_references"], [should_be_ignored])
+
+    def test_non_auto_character_selection_never_calls_casting_generator(self):
+        # Regresyon garantisi: character_selection None/"none"/gerçek bir
+        # slug iken casting_generator'a HİÇ dokunulmamalı -- LLM çağrısı
+        # yok, ekstra maliyet yok.
+        with patch(
+            "app.pipeline.default_pipeline.casting_generator.generate_casting_plan"
+        ) as mock_casting:
+            default_pipeline.run_pipeline(
+                project_id="proj-1",
+                topic="The Fall of Rome",
+                language="auto",
+                pacing=Pacing.short,
+                voice_name="en-US-JennyNeural",
+            )
+
+        mock_casting.assert_not_called()
 
     def test_ai_generated_video_source_calls_ai_video_generator_not_asset_downloader(self):
         # Opt-in AI-generated video clips (fal.ai/Kling) branch at stage 8:

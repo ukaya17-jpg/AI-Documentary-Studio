@@ -5,10 +5,11 @@ AssetDownload -> Audio(TTS) -> Timeline -> SEO -> VideoRenderer
 """
 
 import os
-from typing import Callable
+from collections.abc import Callable
 
 from loguru import logger
 
+from app.config import characters, locations
 from app.config.profile_dimensions import (
     PACING_SCENE_SPEC,
     Format,
@@ -19,11 +20,12 @@ from app.config.profile_dimensions import (
     resolve_pacing,
     resolve_tone,
 )
-from app.models.character import CharacterReference
-from app.models.documentary_project import DocumentaryProject
-from app.models.schema import VideoAspect, VideoConcatMode
-from app.models.script import Script
-from app.departments.creative import scene_planner, script_generator, storyboard_generator
+from app.departments.creative import (
+    casting_generator,
+    scene_planner,
+    script_generator,
+    storyboard_generator,
+)
 from app.departments.growth import seo_generator, thumbnail_generator
 from app.departments.production import (
     ai_video_generator,
@@ -33,7 +35,15 @@ from app.departments.production import (
     timeline_builder,
     video_renderer,
 )
-from app.departments.research import intent_analyzer, outline_generator, research_planner
+from app.departments.research import (
+    intent_analyzer,
+    outline_generator,
+    research_planner,
+)
+from app.models.character import CharacterReference
+from app.models.documentary_project import DocumentaryProject
+from app.models.schema import VideoAspect, VideoConcatMode
+from app.models.script import Script
 from app.services import bgm as bgm_service
 from app.services import elevenlabs_music
 from app.thinking import quality_critic
@@ -100,6 +110,68 @@ def _auto_music_prompt(tone: Tone, topic: str) -> str:
     )
 
 
+def _resolve_references_by_scene(
+    storyboard,
+    script,
+    character_references: list[CharacterReference] | None,
+    location_references: list[CharacterReference] | None,
+    character_selection: str | None,
+    location_selection: str | None,
+) -> dict[int, list[CharacterReference]]:
+    """"Sahne Bazlı Otomatik Kadrolama" planı (kullanıcı onaylı): stage 6
+    (storyboard) bittikten hemen sonra çağrılır -- casting_generator'ın
+    gerçek sahne anlatımlarına ihtiyacı olduğu için daha erken çağrılamaz.
+
+    Auto OLMAYAN her iki boyut için de davranış TAMAMEN değişmiyor: aynı
+    character_references/location_references her sahneye aynen kopyalanıyor
+    (eskiden run_pipeline'ın en başında hesaplanan `combined_references`
+    ile BİREBİR aynı sonuç, sadece artık her scene_index için ayrı bir giriş
+    olarak).
+    """
+    character_auto = character_selection == characters.AUTO_CHARACTER
+    location_auto = location_selection == locations.AUTO_LOCATION
+
+    casting_by_scene: dict[int, dict] = {}
+    if character_auto or location_auto:
+        casting_by_scene = casting_generator.generate_casting_plan(
+            storyboard,
+            script,
+            characters.character_descriptions_for_casting() if character_auto else {},
+            locations.location_descriptions_for_casting() if location_auto else {},
+        )
+
+    result: dict[int, list[CharacterReference]] = {}
+    for shot in storyboard.shots:
+        idx = shot.scene_index
+        refs: list[CharacterReference] = []
+        if character_auto:
+            slug = casting_by_scene.get(idx, {}).get("character")
+            if slug:
+                try:
+                    refs.append(characters.get_character_reference(slug))
+                except KeyError:
+                    logger.warning(
+                        "documentary pipeline: casting picked unknown character "
+                        f"slug {slug!r} for scene {idx}, skipping"
+                    )
+        else:
+            refs.extend(character_references or [])
+        if location_auto:
+            slug = casting_by_scene.get(idx, {}).get("location")
+            if slug:
+                try:
+                    refs.append(locations.get_location_reference(slug))
+                except KeyError:
+                    logger.warning(
+                        "documentary pipeline: casting picked unknown location "
+                        f"slug {slug!r} for scene {idx}, skipping"
+                    )
+        else:
+            refs.extend(location_references or [])
+        result[idx] = refs
+    return result
+
+
 def run_pipeline(
     project_id: str,
     topic: str,
@@ -120,6 +192,9 @@ def run_pipeline(
     custom_system_prompt: str = "",
     custom_requirements: str = "",
     character_references: list[CharacterReference] | None = None,
+    location_references: list[CharacterReference] | None = None,
+    character_selection: str | None = None,
+    location_selection: str | None = None,
     on_stage_change: Callable[[int, str], None] | None = None,
     on_substage_progress: Callable[[int, int], None] | None = None,
 ) -> DocumentaryProject:
@@ -152,6 +227,36 @@ def run_pipeline(
     `format`/`Format.kids`: a character-consistent project is not
     required to also be kids-safe, and vice versa (same relationship as
     `tone`/`format`).
+
+    `location_references` is the exact same mechanism, applied to a
+    *place* instead of a *character* (see app.config.locations) -- kept as
+    a SEPARATE parameter/field from `character_references`, deliberately
+    NEVER merged into it: `_resolve_narration_voice()`
+    (audio_renderer.py) triggers its "Karakter Sesi" voice override only
+    when `len(character_references) == 1`, so mixing a location into that
+    same list would silently break the character's voice override the
+    moment a location is also selected. The two lists are combined ONLY
+    at the two call sites that actually build the @ElementN prompt/API
+    payload (stage 7/8 below) -- audio (stage 9) always receives
+    `character_references` alone, unchanged.
+
+    `character_selection`/`location_selection` are OPTIONAL, ADDITIVE hints
+    for "Sahne Bazlı Otomatik Kadrolama" (kullanıcı onaylı): when either
+    equals `characters.AUTO_CHARACTER`/`locations.AUTO_LOCATION`, that
+    dimension's `*_references` parameter above is ignored entirely and a
+    PER-SCENE choice is made instead, right after stage 6 (storyboard) --
+    app.departments.creative.casting_generator picks (or omits) a
+    character/location for EACH scene independently based on that scene's
+    actual narration, so which character/location appears CAN vary
+    scene-to-scene (e.g. one scene in the library, the next in the space
+    control center). Any other value (None/omitted, "none", a real slug)
+    changes NOTHING -- the corresponding `*_references` list (or its
+    absence) governs exactly as before, byte-identical to pre-Auto
+    behavior. This is why two separate parameters exist per dimension
+    instead of overloading `character_references` itself: existing/test
+    callers that pass already-built CharacterReference objects directly
+    (bypassing the registry entirely, e.g. for isolated unit tests) keep
+    working unmodified.
     """
     resolved_pacing = resolve_pacing(pacing)
     # Unlike tone, format doesn't depend on topic_category -- it can be
@@ -174,6 +279,7 @@ def run_pipeline(
         custom_system_prompt=custom_system_prompt,
         custom_requirements=custom_requirements,
         character_references=character_references or [],
+        location_references=location_references or [],
     )
 
     def stage(n: int, name: str):
@@ -253,13 +359,28 @@ def run_pipeline(
         )
         utils.save_project_snapshot(project)
 
+        # "Sahne Bazlı Otomatik Kadrolama" planı -- storyboard/script artık
+        # hazır, casting_generator (Auto modda) buradan itibaren
+        # çağrılabilir. Auto olmayan boyutlar için bu, eskiden burada
+        # hesaplanan `combined_references`'ın her sahneye aynen
+        # kopyalanmasıyla BİREBİR aynı sonucu üretir (bkz.
+        # _resolve_references_by_scene'in docstring'i).
+        references_by_scene = _resolve_references_by_scene(
+            project.storyboard,
+            project.script,
+            character_references,
+            location_references,
+            character_selection,
+            location_selection,
+        )
+
         stage(7, "asset")
         project.asset_plan = asset_generator.build_asset_plan(
             project.storyboard,
             provider=video_source,
             topic_category=project.topic_category,
             script=project.script,
-            character_references=character_references,
+            character_references_by_scene=references_by_scene,
         )
         utils.save_project_snapshot(project)
 
@@ -271,7 +392,7 @@ def run_pipeline(
                 project.asset_plan,
                 task_id=project.project_id,
                 aspect_ratio=video_aspect,
-                character_references=character_references,
+                character_references_by_scene=references_by_scene,
                 on_substage_progress=on_substage_progress,
             )
         else:

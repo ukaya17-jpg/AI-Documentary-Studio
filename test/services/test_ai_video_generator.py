@@ -223,7 +223,7 @@ class TestGenerateAiClips(unittest.TestCase):
         mock_service.download_video.return_value = True
 
         ai_video_generator.generate_ai_clips(
-            plan, self.task_id, character_references=[character_reference]
+            plan, self.task_id, character_references_by_scene={0: [character_reference]}
         )
 
         mock_service.submit_video_job.assert_any_call(
@@ -257,7 +257,7 @@ class TestGenerateAiClips(unittest.TestCase):
         mock_service.download_video.return_value = True
 
         ai_video_generator.generate_ai_clips(
-            plan, self.task_id, character_references=[mother, baby]
+            plan, self.task_id, character_references_by_scene={0: [mother, baby]}
         )
 
         mock_service.submit_video_job.assert_any_call(
@@ -265,6 +265,47 @@ class TestGenerateAiClips(unittest.TestCase):
             duration="5",
             aspect_ratio="9:16",
             character_elements=[mother.model_dump(), baby.model_dump()],
+        )
+
+    @patch("app.departments.production.ai_video_generator.time.sleep")
+    @patch("app.departments.production.ai_video_generator.fal_video_service")
+    def test_different_scenes_get_different_character_elements(self, mock_service, mock_sleep):
+        # "Sahne Bazlı Otomatik Kadrolama" planı (kullanıcı onaylı): Auto
+        # kadrolamada her sahnenin KENDİ karakteri/mekanı olabilir --
+        # character_references_by_scene'in gerçek amacı bu: sahne 0 Bao ile,
+        # sahne 1 BAŞKA bir karakterle (ya da hiç karaktersiz) gitmeli, aynı
+        # global listeye SIKIŞMAMALI.
+        from app.models.character import CharacterReference
+
+        plan = _plan({0: "bao in the library", 1: "an empty forest clearing"})
+        bao = CharacterReference(name="Bao", frontal_image_url="data:image/jpeg;base64,bao")
+        mock_service.submit_video_job.return_value = {
+            "success": True,
+            "request_id": "req-0",
+            "app_id": "fal-ai/kling-video",
+        }
+        mock_service.poll_job_status.return_value = {"success": True, "status": "COMPLETED"}
+        mock_service.get_job_result.return_value = {
+            "success": True,
+            "video_url": "https://v2.fal.media/clip.mp4",
+        }
+        mock_service.download_video.return_value = True
+
+        ai_video_generator.generate_ai_clips(
+            plan, self.task_id, character_references_by_scene={0: [bao], 1: []}
+        )
+
+        mock_service.submit_video_job.assert_any_call(
+            "bao in the library",
+            duration="5",
+            aspect_ratio="9:16",
+            character_elements=[bao.model_dump()],
+        )
+        mock_service.submit_video_job.assert_any_call(
+            "an empty forest clearing",
+            duration="5",
+            aspect_ratio="9:16",
+            character_elements=None,
         )
 
     @patch("app.departments.production.ai_video_generator.time.sleep")
