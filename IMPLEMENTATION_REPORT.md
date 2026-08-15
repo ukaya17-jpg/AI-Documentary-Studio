@@ -202,5 +202,9 @@ karşılık gelen 6 test dosyası.
 - `./deploy.sh` çalıştırıldı -- `git pull` + servis restart + health check.
 - `systemctl is-active ai-documentary-studio-webui.service` ile doğrulandı.
 
-(Bu raporun altına gerçek commit hash'i ve deploy health-check çıktısı,
-push+deploy adımlarından hemen sonra ekleniyor -- aşağıya bakın.)
+**Gerçek sonuç:**
+- Commit: `0764433` — `feat: scene voice + multi-character casting + CTA video style (5-part session)`
+- Push: `e38ef63..0764433 main -> main` (başarılı)
+- `./deploy.sh` çıktısı: `Already up to date.` (bu makine zaten prod sunucunun kendisi, autodeploy'dan önce elle çalıştırıldı) → `Deploy OK` (health check geçti)
+- Servis restart: `18:36:58` durduruldu, `18:36:59` yeniden başladı, hatasız (`journalctl` ile doğrulandı, exception yok)
+- `systemctl is-active ai-documentary-studio-webui.service` → `active`
