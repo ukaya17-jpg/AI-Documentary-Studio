@@ -53,7 +53,7 @@ def build_asset_plan(
     provider: str = "pexels",
     topic_category: TopicCategory | None = None,
     script: Script | None = None,
-    character_references: list[CharacterReference] | None = None,
+    character_references_by_scene: dict[int, list[CharacterReference]] | None = None,
 ) -> AssetPlan:
     narration_by_scene = {line.scene_index: line.text for line in script.lines} if script else {}
 
@@ -63,7 +63,14 @@ def build_asset_plan(
             prompt = f"{shot.shot_type}: {shot.description}" if shot.shot_type else shot.description
             if topic_category == TopicCategory.film_highlights:
                 prompt += _FILM_HIGHLIGHTS_LIKENESS_GUARD
-            if character_references:
+            # "Sahne Bazlı Otomatik Kadrolama" planı (kullanıcı onaylı):
+            # her sahnenin KENDİ referans listesi olabilir (Auto modda
+            # sahneden sahneye değişir) -- sabit-tüm-video seçiminde
+            # default_pipeline zaten AYNI listeyi her sahneye kopyalayarak
+            # verir, bu yüzden burada tek bir kod yolu yeterli, auto/sabit
+            # ayrımı YOK (default_pipeline'da çözülüyor).
+            scene_references = (character_references_by_scene or {}).get(shot.scene_index) or []
+            if scene_references:
                 # Kling O1 Reference-to-Video only applies `elements[]` when
                 # the prompt explicitly addresses each one as "@Element1",
                 # "@Element2", etc, in order (see
@@ -75,7 +82,7 @@ def build_asset_plan(
                 # before -- byte-identical, no regression.
                 element_refs = ", ".join(
                     f"@Element{i + 1} as {ref.name}"
-                    for i, ref in enumerate(character_references)
+                    for i, ref in enumerate(scene_references)
                 )
                 prompt = f"Take {element_refs}. {prompt}"
             # script=None (no real narration text available yet, e.g. an

@@ -206,7 +206,7 @@ class TestCharacterReferencePrefix(unittest.TestCase):
             ]
         )
         plan = asset_generator.build_asset_plan(
-            storyboard, provider="ai_generated", character_references=[self._character()]
+            storyboard, provider="ai_generated", character_references_by_scene={0: [self._character()]}
         )
 
         self.assertEqual(
@@ -227,7 +227,7 @@ class TestCharacterReferencePrefix(unittest.TestCase):
             shots=[StoryboardShot(scene_index=0, description="a lone ruin")]
         )
         plan = asset_generator.build_asset_plan(
-            storyboard, provider="ai_generated", character_references=[]
+            storyboard, provider="ai_generated", character_references_by_scene={0: []}
         )
 
         self.assertNotIn("@Element1", plan.candidates[0].prompt)
@@ -239,7 +239,7 @@ class TestCharacterReferencePrefix(unittest.TestCase):
             shots=[StoryboardShot(scene_index=0, description="ruins", search_terms=["ancient ruins"])]
         )
         plan = asset_generator.build_asset_plan(
-            storyboard, provider="pexels", character_references=[self._character()]
+            storyboard, provider="pexels", character_references_by_scene={0: [self._character()]}
         )
 
         self.assertEqual(plan.candidates[0].search_term, "ancient ruins")
@@ -252,7 +252,7 @@ class TestCharacterReferencePrefix(unittest.TestCase):
             storyboard,
             provider="ai_generated",
             topic_category=TopicCategory.film_highlights,
-            character_references=[self._character()],
+            character_references_by_scene={0: [self._character()]},
         )
 
         self.assertIn("@Element1 as Bao", plan.candidates[0].prompt)
@@ -274,10 +274,12 @@ class TestCharacterReferencePrefix(unittest.TestCase):
         plan = asset_generator.build_asset_plan(
             storyboard,
             provider="ai_generated",
-            character_references=[
-                self._character("Mother Bird"),
-                self._character("Little Blue Bird"),
-            ],
+            character_references_by_scene={
+                0: [
+                    self._character("Mother Bird"),
+                    self._character("Little Blue Bird"),
+                ]
+            },
         )
 
         self.assertEqual(

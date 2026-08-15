@@ -24,7 +24,7 @@ root_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 if root_dir not in sys.path:
     sys.path.append(root_dir)
 
-from app.config import characters, config
+from app.config import characters, config, locations
 from app.config.profile_dimensions import PACING_SCENE_SPEC, Format, Pacing, Tone, TopicCategory
 from app.departments.creative import script_generator
 from app.departments.growth import publisher
@@ -4322,6 +4322,10 @@ def _documentary_character_label(value):
     return tr(f"Character: {value}")
 
 
+def _documentary_location_label(value):
+    return tr(f"Location: {value}")
+
+
 def _documentary_pacing_label(value):
     return tr(f"Pacing: {value}")
 
@@ -4381,8 +4385,17 @@ _TONE_CARDS_PER_ROW = 4
 # Professor Nova, Robo, Luna, Atom, Dino. Yeni bir karakter
 # _CHARACTER_SLUGS'a eklendiğinde buraya da aynı slug için bir emoji
 # eklenmeli.
+#
+# "Sahne Bazlı Otomatik Kadrolama" planı (kullanıcı onaylı): AUTO_CHARACTER
+# ("🎲 İstediğine Göre") artık grid'in YENİ VARSAYILANI (bkz.
+# _render_category_tone_grid çağrısındaki default_value) -- konuya göre
+# hangi karakterin hangi sahnede göründüğüne LLM karar veriyor (bkz.
+# app.departments.creative.casting_generator). NO_CHARACTER ("🚫
+# Karaktersiz") hâlâ mevcut ama artık varsayılan DEĞİL -- kullanıcı
+# karakterleri tamamen kapatmak isterse elle seçmesi gerekiyor.
 _CHARACTER_ICONS = {
     characters.NO_CHARACTER: "🚫",
+    characters.AUTO_CHARACTER: "🎲",
     "professor_nova": "🧑‍🔬",
     "robo": "🤖",
     "luna": "👩‍🚀",
@@ -4390,6 +4403,33 @@ _CHARACTER_ICONS = {
     "dino": "🦖",
 }
 _CHARACTER_CARDS_PER_ROW = 4
+
+# "Mekan Sistemi" planı (kullanıcı onaylı): Character kart grid'iyle AYNI
+# desen -- character_references ile AYNI Kling O1 mekanizması ama AYRI bir
+# session_key/grid (bkz. app.config.locations'ın docstring'i: karakter ve
+# mekan asla aynı listede birleştirilmez, sadece pipeline'a girerken
+# combined_references olarak). 10 mekan (Google Flow'da tasarlandı, kullanıcı
+# onaylı) -- yeni bir mekan _LOCATION_SLUGS'a eklendiğinde buraya da aynı
+# slug için bir emoji eklenmeli.
+#
+# "Sahne Bazlı Otomatik Kadrolama" planı (kullanıcı onaylı): AUTO_LOCATION
+# ("🎲 İstediğine Göre") artık grid'in YENİ VARSAYILANI -- characters.
+# AUTO_CHARACTER ile AYNI gerekçe, bkz. o sabitin yorumu.
+_LOCATION_ICONS = {
+    locations.NO_LOCATION: "🚫",
+    locations.AUTO_LOCATION: "🎲",
+    "professor_nova_lab": "🧪",
+    "kutuphane": "📚",
+    "tarih_muzesi": "🏛️",
+    "gelecek_teknoloji_lab": "🛰️",
+    "gozlemevi": "🔭",
+    "uzay_kontrol_merkezi": "🚀",
+    "robot_atolyesi": "🔧",
+    "kimya_laboratuvari": "⚗️",
+    "ai_inovasyon_lab": "🤖",
+    "dunya_cografya_odasi": "🌍",
+}
+_LOCATION_CARDS_PER_ROW = 4
 
 # Modernizasyon B -- canlı ilerleme göstergesi (kullanıcı talebiyle). Key'ler
 # default_pipeline.run_pipeline()'ın stage()'e verdiği ham isimlerle (ör.
@@ -4512,6 +4552,15 @@ def _character_preview(character_value: str) -> str:
     if character_value == characters.NO_CHARACTER:
         return tr("Character None Description")
     return tr(f"Character Preview: {character_value}")
+
+
+def _location_preview(location_value: str) -> str:
+    """Bkz. _character_preview -- aynı desen, mekanlar için ayrı bir
+    "Location Preview: {value}" key'i.
+    """
+    if location_value == locations.NO_LOCATION:
+        return tr("Location None Description")
+    return tr(f"Location Preview: {location_value}")
 
 
 def _render_selection_card(
@@ -5181,7 +5230,7 @@ def _render_shared_documentary_form(video_source_fixed: str) -> None:
     # hazır olur" modeliyle tutarlı (bkz. GÖREV 1'in previous_pacing
     # deseni, hemen yukarıda).
     character_selection = st.session_state.get(
-        "documentary_character_selection", characters.NO_CHARACTER
+        "documentary_character_selection", characters.AUTO_CHARACTER
     )
     character_locks_format = character_selection != characters.NO_CHARACTER
     if character_locks_format:
@@ -5264,12 +5313,12 @@ def _render_shared_documentary_form(video_source_fixed: str) -> None:
         )
     tone = st.session_state.get("documentary_tone", "auto")
 
-    # "Çoklu Karakter Sistemi" planı (kullanıcı onaylı): Kategori/Ton ile
-    # AYNI kart-grid deseni -- 7 tekil karakter + "Anne Kuş & Yavrusu"
-    # (ikisi BİRLİKTE, tek bir kart) + "Karaktersiz". Varsayılan "auto"
-    # DEĞİL "none" (bkz. _render_selection_card'ın default_value notu).
+    # "Sahne Bazlı Otomatik Kadrolama" planı (kullanıcı onaylı): Kategori/
+    # Ton ile AYNI kart-grid deseni -- 5 tekil karakter + "🎲 İstediğine
+    # Göre" (AUTO_CHARACTER, YENİ VARSAYILAN -- konuya göre LLM her sahne
+    # için ayrı seçer) + "🚫 Karaktersiz" (karakterleri tamamen kapatır).
     current_character = st.session_state.get(
-        "documentary_character_selection", characters.NO_CHARACTER
+        "documentary_character_selection", characters.AUTO_CHARACTER
     )
     with st.expander(
         f"{tr('Documentary Character Select')}: "
@@ -5279,7 +5328,7 @@ def _render_shared_documentary_form(video_source_fixed: str) -> None:
         st.caption(tr("Documentary Character Help"))
         _render_category_tone_grid(
             kind="character",
-            values=[characters.NO_CHARACTER]
+            values=[characters.AUTO_CHARACTER, characters.NO_CHARACTER]
             + list(characters._CHARACTER_SLUGS)
             + list(characters.CHARACTER_PAIRS),
             icons=_CHARACTER_ICONS,
@@ -5287,12 +5336,44 @@ def _render_shared_documentary_form(video_source_fixed: str) -> None:
             previews_fn=_character_preview,
             session_key="documentary_character_selection",
             cards_per_row=_CHARACTER_CARDS_PER_ROW,
-            default_value=characters.NO_CHARACTER,
+            default_value=characters.AUTO_CHARACTER,
         )
     character_selection = st.session_state.get(
-        "documentary_character_selection", characters.NO_CHARACTER
+        "documentary_character_selection", characters.AUTO_CHARACTER
     )
     character_references = characters.resolve_character_selection(character_selection)
+
+    # "Mekan Sistemi" planı (kullanıcı onaylı): Character grid'iyle AYNI
+    # desen, hemen ardından -- ayrı bir session_key ("documentary_location_
+    # selection"), ayrı bir resolve (resolve_location_selection), pipeline'a
+    # girerken location_references olarak AYRI parametre (bkz.
+    # default_pipeline.run_pipeline'ın location_references docstring'i).
+    # Varsayılan da AYNI şekilde AUTO_LOCATION -- bkz. characters.
+    # AUTO_CHARACTER'ın yukarıdaki yorumu.
+    current_location = st.session_state.get(
+        "documentary_location_selection", locations.AUTO_LOCATION
+    )
+    with st.expander(
+        f"{tr('Documentary Location Select')}: "
+        f"{_documentary_location_label(current_location)}",
+        expanded=False,
+    ):
+        st.caption(tr("Documentary Location Help"))
+        _render_category_tone_grid(
+            kind="location",
+            values=[locations.AUTO_LOCATION, locations.NO_LOCATION]
+            + list(locations._LOCATION_SLUGS),
+            icons=_LOCATION_ICONS,
+            labels_fn=_documentary_location_label,
+            previews_fn=_location_preview,
+            session_key="documentary_location_selection",
+            cards_per_row=_LOCATION_CARDS_PER_ROW,
+            default_value=locations.AUTO_LOCATION,
+        )
+    location_selection = st.session_state.get(
+        "documentary_location_selection", locations.AUTO_LOCATION
+    )
+    location_references = locations.resolve_location_selection(location_selection)
 
     (
         voice_name,
@@ -5464,6 +5545,9 @@ def _render_shared_documentary_form(video_source_fixed: str) -> None:
                     custom_system_prompt=custom_system_prompt,
                     custom_requirements=custom_requirements,
                     character_references=character_references,
+                    location_references=location_references,
+                    character_selection=character_selection,
+                    location_selection=location_selection,
                     on_stage_change=_update_documentary_stage_status,
                     on_substage_progress=_update_documentary_ai_video_progress,
                 )

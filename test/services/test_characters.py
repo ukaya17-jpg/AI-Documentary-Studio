@@ -115,5 +115,25 @@ class TestGetVoiceNameForCharacterReference(unittest.TestCase):
         self.assertEqual(characters.get_voice_name_for_character_reference(unknown), "")
 
 
+class TestAutoCharacterConstant(unittest.TestCase):
+    """"Sahne Bazlı Otomatik Kadrolama" planı (kullanıcı onaylı): bkz.
+    test_locations.py'deki TestAutoLocationConstant'ın aynı gerekçesi.
+    """
+
+    def test_auto_character_is_not_a_registered_slug(self):
+        self.assertNotIn(characters.AUTO_CHARACTER, characters._CHARACTER_SLUGS)
+
+    def test_auto_character_differs_from_no_character(self):
+        self.assertNotEqual(characters.AUTO_CHARACTER, characters.NO_CHARACTER)
+
+    def test_resolve_character_selection_of_auto_returns_empty_list(self):
+        self.assertEqual(characters.resolve_character_selection(characters.AUTO_CHARACTER), [])
+
+    def test_character_descriptions_for_casting_keys_match_registry(self):
+        self.assertEqual(
+            set(characters.character_descriptions_for_casting()), set(characters._CHARACTER_SLUGS)
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

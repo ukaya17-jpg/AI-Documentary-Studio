@@ -68,7 +68,7 @@ def generate_ai_clips(
     asset_plan: AssetPlan,
     task_id: str,
     aspect_ratio: str = "9:16",
-    character_references: list[CharacterReference] | None = None,
+    character_references_by_scene: dict[int, list[CharacterReference]] | None = None,
     on_substage_progress: Callable[[int, int], None] | None = None,
 ) -> AssetPlan:
     """Generate one AI video clip per asset_plan candidate via fal.ai/Kling.
@@ -80,12 +80,20 @@ def generate_ai_clips(
     seconds get billed for "10"; scenes that fit in "5" stay at "5" (see
     asset_generator._kling_duration_for_word_count for the cost rationale).
 
-    `character_references`, if given, is passed to every submit_video_job()
-    call as `character_elements` (one dict per character, in @ElementN
-    order) -- see docs/character-consistency-research.md and fal_video.
+    `character_references_by_scene`, if given, maps each candidate's
+    scene_index to ITS OWN reference list, passed to that candidate's
+    submit_video_job() call as `character_elements` (one dict per
+    character/location, in @ElementN order, matching asset_generator.
+    build_asset_plan's per-scene prompt prefix EXACTLY -- same dict, same
+    order, built once in default_pipeline.py and passed to both functions)
+    -- see docs/character-consistency-research.md and fal_video.
     submit_video_job's docstring for why this always routes to Kling O1
-    regardless of the globally configured AI video provider. More than one
-    entry means multiple characters appear together in the same clips.
+    regardless of the globally configured AI video provider. "Sahne Bazlı
+    Otomatik Kadrolama" planı (kullanıcı onaylı): this is per-scene (not a
+    single global list applied to every clip) specifically so Auto-mode
+    casting can vary which character/location appears clip-to-clip;
+    fixed/manual selection still works identically, just via the SAME dict
+    with every scene_index mapped to the same list (see default_pipeline.py).
 
     Submits every candidate's job up front, then polls all still-pending
     jobs together each iteration until each one completes, fails, or the
@@ -111,9 +119,6 @@ def generate_ai_clips(
 
     total = len(candidates)
     task_directory = utils.task_dir(task_id)
-    character_elements = (
-        [ref.model_dump() for ref in character_references] if character_references else None
-    )
 
     # app_id is carried alongside request_id (not re-derived from the live
     # provider config at poll time) so a character job stays correctly
@@ -122,6 +127,10 @@ def generate_ai_clips(
     jobs: dict[int, tuple[str, str]] = {}
     failures: list[tuple[int, str]] = []
     for candidate in candidates:
+        scene_references = (character_references_by_scene or {}).get(candidate.scene_index) or []
+        character_elements = (
+            [ref.model_dump() for ref in scene_references] if scene_references else None
+        )
         result = fal_video_service.submit_video_job(
             candidate.prompt,
             duration=candidate.ai_duration,
