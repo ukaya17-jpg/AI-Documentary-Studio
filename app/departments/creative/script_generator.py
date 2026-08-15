@@ -74,7 +74,14 @@ FORMAT_GUIDANCE = {
         "structure this as a gentle children's story -- one simple scenario "
         "with a clear beginning, a small challenge, and a warm resolution "
         "that plainly demonstrates the episode's value, told directly to a "
-        "young child listening at home"
+        "young child listening at home. Do not invent or name any "
+        "character, protagonist, or companion -- character casting happens "
+        "in a later production stage this script has no visibility into, "
+        "so an invented name would not match whoever (if anyone) actually "
+        "appears on screen. Narrate directly to the viewer ('you'll see...', "
+        "'let's look at...') instead, or, only if the scenario truly needs a "
+        "subject, use an unnamed generic one ('a curious explorer', 'a "
+        "friend') -- never a proper name"
     ),
 }
 

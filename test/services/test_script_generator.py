@@ -320,6 +320,16 @@ class TestChildSafeGuidance(unittest.TestCase):
         self.assertIn("Format:", prompt)
         self.assertIn(script_generator.FORMAT_GUIDANCE[Format.kids], prompt)
 
+    def test_kids_format_forbids_inventing_a_named_character(self):
+        # PRODÜKSİYON HATASI (kullanıcı bildirdi, 2026-08-15): kids format'ı
+        # "bir hikaye" istediği için LLM kendi kendine "Mira" gibi bir
+        # karakter uydurdu -- script_generator, casting'den ÖNCE çalıştığı
+        # için (stage 5 script -> stage 6 storyboard -> casting) hangi
+        # karakterin (varsa) o sahnede olacağını hiç bilmiyor. Bu test,
+        # prompt'un artık isim uydurmayı açıkça yasakladığını kilitliyor.
+        prompt = script_generator.build_script_prompt(_scene_plan(), "Topic", format=Format.kids)
+        self.assertIn("Do not invent or name any character", prompt)
+
     def test_appears_after_growth_requirements(self):
         prompt = script_generator.build_script_prompt(_scene_plan(), "Topic", format=Format.kids)
         self.assertLess(
