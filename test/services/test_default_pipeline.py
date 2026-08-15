@@ -503,6 +503,57 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         _, audio_kwargs = self.started["audio"].call_args
         self.assertEqual(audio_kwargs["character_references"], [should_be_ignored])
 
+    def test_auto_character_with_realistic_none_input_never_leaks_into_audio_override(self):
+        # VS Code denetim raporu (madde 2, ⚠️): önceki test yapay bir
+        # character_references=[should_be_ignored] değeri kullanıyordu --
+        # bu, GERÇEK webui davranışını (Auto modda character_references
+        # HER ZAMAN None/boş gelir, resolve_character_selection("auto")
+        # kayıtlı bir slug olmadığı için [] döner) yansıtmıyordu. Bu test
+        # gerçekçi girdiyle VE casting'in HER sahnede AYNI karakteri
+        # (professor_nova) seçtiği -- yani "tek bir sabit karakter" gibi
+        # GÖRÜNEN -- en zorlayıcı senaryoyla, ses override'ının yine de
+        # HİÇ tetiklenmediğini kanıtlıyor.
+        from app.models.character import CharacterReference
+
+        nova_ref = CharacterReference(
+            name="Professor Nova", frontal_image_url="data:image/jpeg;base64,nova"
+        )
+
+        with patch(
+            "app.pipeline.default_pipeline.casting_generator.generate_casting_plan",
+            return_value={
+                0: {"character": "professor_nova", "location": None},
+                1: {"character": "professor_nova", "location": None},
+            },
+        ), patch(
+            "app.pipeline.default_pipeline.characters.get_character_reference",
+            return_value=nova_ref,
+        ):
+            default_pipeline.run_pipeline(
+                project_id="proj-1",
+                topic="The Fall of Rome",
+                language="auto",
+                pacing=Pacing.short,
+                voice_name="en-US-JennyNeural",
+                character_references=None,
+                character_selection=characters.AUTO_CHARACTER,
+            )
+
+        # Görsel tarafta (asset_gen) her iki sahne de professor_nova alıyor
+        # -- casting gerçekten çalışıyor.
+        _, asset_gen_kwargs = self.started["asset_gen"].call_args
+        self.assertEqual(
+            asset_gen_kwargs["character_references_by_scene"],
+            {0: [nova_ref], 1: [nova_ref]},
+        )
+        # Ama ses tarafı: character_references=None geldiği için
+        # audio_renderer'a da None/falsy gitmeli -- casting'in HER sahnede
+        # aynı karakteri seçmiş olması, ses override'ını TETİKLEMEMELİ.
+        # (_resolve_narration_voice sadece FIXED character_references
+        # listesine bakıyor, casting_by_scene'e hiç erişimi yok.)
+        _, audio_kwargs = self.started["audio"].call_args
+        self.assertFalse(audio_kwargs["character_references"])
+
     def test_non_auto_character_selection_never_calls_casting_generator(self):
         # Regresyon garantisi: character_selection None/"none"/gerçek bir
         # slug iken casting_generator'a HİÇ dokunulmamalı -- LLM çağrısı
