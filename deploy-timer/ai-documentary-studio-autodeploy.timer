@@ -1,0 +1,10 @@
+[Unit]
+Description=Check origin/main every 5 minutes and deploy AI Documentary Studio on new commits
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Unit=ai-documentary-studio-autodeploy.service
+
+[Install]
+WantedBy=timers.target

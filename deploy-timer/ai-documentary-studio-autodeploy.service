@@ -1,0 +1,7 @@
+[Unit]
+Description=AI Documentary Studio auto-deploy (git pull + restart on new commit)
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/MoneyPrinterTurbo/AI-Documentary-Studio
+ExecStart=/root/MoneyPrinterTurbo/AI-Documentary-Studio/auto-deploy.sh
