@@ -28,14 +28,19 @@ class TestTenLocationRegistry(unittest.TestCase):
             self.assertTrue(ref.frontal_image_url.startswith("data:image/jpeg;base64,"))
             self.assertTrue(ref.name)
 
-    def test_single_view_locations_have_no_extra_reference_images(self):
-        # Bu 10 mekan tek-açı (front.jpg only) yüklendi -- three_quarter/back
-        # diskte yok, bu yüzden reference_image_urls boş olmalı (KeyError
-        # DEĞİL -- opsiyonel-ekstra-açı mekanizması, bkz.
-        # get_location_reference docstring'i).
+    def test_single_view_locations_fall_back_to_duplicated_frontal_image(self):
+        # PRODÜKSİYON HATASI DÜZELTMESİ (kullanıcı bildirdi, 2026-08-15):
+        # bu 10 mekan tek-açı (front.jpg only) yüklendi -- three_quarter/
+        # back diskte yok. ESKİDEN bu, reference_image_urls'i BOŞ
+        # bırakıyordu -- fal.ai'nin gerçek O1 şeması bunu KABUL ETMİYOR
+        # ("array of 1-3", min 1), her sahnede 422 Unprocessable Entity'ye
+        # yol açıyordu. Artık CharacterReference'ın kendi model_validator'ı
+        # (bkz. app/models/character.py) boş kalan reference_image_urls'i
+        # frontal_image_url ile dolduruyor -- burada SADECE o davranışın
+        # mekan tarafında da gerçekten tetiklendiğini doğruluyoruz.
         for slug in self.EXPECTED_SLUGS:
             ref = locations.get_location_reference(slug)
-            self.assertEqual(ref.reference_image_urls, [])
+            self.assertEqual(ref.reference_image_urls, [ref.frontal_image_url])
 
     def test_resolve_location_selection_returns_the_right_single_location(self):
         for slug in self.EXPECTED_SLUGS:

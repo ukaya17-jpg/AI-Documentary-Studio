@@ -96,7 +96,13 @@ def get_location_reference(slug: str) -> CharacterReference:
     fail-loud contract as characters.get_character_reference).
     three_quarter.jpg/back.jpg are OPTIONAL -- included as extra reference
     angles only if present on disk, since these 10 locations currently
-    ship with a single view each.
+    ship with a single view each. If neither extra file exists,
+    CharacterReference's own model_validator (bkz. app/models/character.py)
+    duplicates frontal_image_url into reference_image_urls -- fal.ai's real
+    Kling O1 schema requires 1-3 entries there, NEVER zero (bu, üretimde
+    her sahnenin 422 Unprocessable Entity ile reddedilmesine yol açan
+    gerçek bir hataydı, 2026-08-15'te kullanıcı tarafından bildirildi ve
+    düzeltildi -- bkz. o dosyadaki fix'in tam açıklaması).
     """
     name, folder = _LOCATION_SLUGS[slug]
     base = utils.resource_dir(f"locations/{folder}")
