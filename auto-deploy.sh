@@ -6,6 +6,9 @@
 #
 # Not installed/scheduled by default -- this script only runs when
 # something (cron, a systemd timer, or a human) actually invokes it.
+#
+# UYARI: deploy-timer/'daki timer aktif edilirse, main'e her push
+# incelemesiz ve otomatik olarak canlıya yansır -- dikkatli push edin.
 set -euo pipefail
 cd "$(dirname "$0")"
 
