@@ -338,6 +338,62 @@ class TestChildSafeGuidance(unittest.TestCase):
         )
 
 
+class TestEngagementCtaGuidance(unittest.TestCase):
+    """"CTA/Etkileşim Formatlı Short Videolar" planı (kullanıcı onaylı):
+    `video_style="informational"` (varsayılan) davranışı HİÇ değiştirmemeli
+    -- SADECE "engagement_cta" verildiğinde ek bir talimat bloğu eklenmeli,
+    Kids formatı DAHİL (bilinçli olarak _growth_guidance_instructions'ın
+    kids-için-bastırılan "Engagement:" satırından bağımsız).
+    """
+
+    def test_default_informational_style_adds_no_extra_block(self):
+        prompt = script_generator.build_script_prompt(_scene_plan(), "Topic")
+        self.assertNotIn("Engagement format:", prompt)
+
+    def test_explicit_informational_style_adds_no_extra_block(self):
+        prompt = script_generator.build_script_prompt(
+            _scene_plan(), "Topic", video_style="informational"
+        )
+        self.assertNotIn("Engagement format:", prompt)
+
+    def test_engagement_cta_style_adds_the_question_driven_block(self):
+        prompt = script_generator.build_script_prompt(
+            _scene_plan(), "Topic", video_style="engagement_cta"
+        )
+        self.assertIn("Engagement format:", prompt)
+        self.assertIn("QUESTION-driven", prompt)
+
+    def test_engagement_cta_style_is_not_suppressed_by_kids_format(self):
+        # _growth_guidance_instructions'ın genel "Engagement:" satırı kids
+        # için bastırılıyor -- ama bu, FARKLI/bağımsız bir blok, kids
+        # formatında da eklenmeli (kullanıcının kendi örneği: "Sen Olsan
+        # Nasıl Bir Robot Tasarlardın?" zaten kids içerikte kullanılıyor).
+        prompt = script_generator.build_script_prompt(
+            _scene_plan(), "Topic", format=Format.kids, video_style="engagement_cta"
+        )
+        self.assertIn("Engagement format:", prompt)
+
+    def test_unknown_video_style_behaves_like_informational(self):
+        prompt = script_generator.build_script_prompt(
+            _scene_plan(), "Topic", video_style="not-a-real-style"
+        )
+        self.assertNotIn("Engagement format:", prompt)
+
+    @patch("app.departments.creative.script_generator.generate_json")
+    def test_generate_script_default_video_style_is_informational(self, mock_generate_json):
+        mock_generate_json.return_value = {"lines": []}
+        script_generator.generate_script(_scene_plan(), "Topic")
+        prompt_arg = mock_generate_json.call_args[0][0]
+        self.assertNotIn("Engagement format:", prompt_arg)
+
+    @patch("app.departments.creative.script_generator.generate_json")
+    def test_generate_script_passes_engagement_cta_through_to_the_prompt(self, mock_generate_json):
+        mock_generate_json.return_value = {"lines": []}
+        script_generator.generate_script(_scene_plan(), "Topic", video_style="engagement_cta")
+        prompt_arg = mock_generate_json.call_args[0][0]
+        self.assertIn("Engagement format:", prompt_arg)
+
+
 class TestCustomRequirements(unittest.TestCase):
     """GÖREV F (kullanıcı onaylı): kullanıcının kendi ek talimatları --
     otomatik büyüme ilkelerinin (Growth requirements) YERİNE değil, onun

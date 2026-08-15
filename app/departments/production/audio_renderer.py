@@ -7,11 +7,21 @@ reused as-is, not reimplemented.
 import os
 
 from app.config import characters
+from app.config.profile_dimensions import Format
 from app.models.audio import AudioPlan, AudioTrack
 from app.models.character import CharacterReference
 from app.models.script import Script
 from app.services import voice
 from app.utils import utils
+
+# "Varsayılan/Yedek Anlatıcı" planı (kullanıcı onaylı): Kids formatında,
+# Auto kadrolamanın bir sahneye YA hiç karakter YA DA (Çoklu Karakter Aynı
+# Sahnede planıyla) 2+ karakter atadığı -- yani hangi sesin okuyacağı
+# BELİRSİZ olduğu -- durumlarda Professor Nova varsayılan anlatıcı olarak
+# kullanılır. Kullanıcının kendi seçimi (registry'deki 5 karakterden
+# "anlatıcı" rolüne en nötr/uygun olanı). Kids DIŞINDA bu varsayılan HİÇ
+# uygulanmaz -- bkz. _resolve_scene_voice.
+_KIDS_DEFAULT_NARRATOR_SLUG = "professor_nova"
 
 
 def render_narration(
@@ -48,22 +58,58 @@ def render_narration(
     )
 
 
+def _voice_for_slug_or_none(slug: str | None) -> str | None:
+    if not slug:
+        return None
+    try:
+        return characters.get_character_voice_name(slug)
+    except KeyError:
+        return None
+
+
 def _resolve_scene_voice(
-    voice_name: str, casting_by_scene: dict[int, dict] | None, scene_index: int
+    voice_name: str,
+    casting_by_scene: dict[int, dict] | None,
+    scene_index: int,
+    format: Format | None = None,
 ) -> str:
-    """"Sahne Bazlı Gerçek Ses Değişimi" planı (kullanıcı onaylı): Auto
-    kadrolamanın bu sahne için seçtiği karakterin (varsa) kendi kayıtlı
-    sesini döndürür -- yoksa (karaktersiz sahne, ya da slug artık registry'de
-    yoksa) genel `voice_name`'e düşer. `_resolve_narration_voice()`'ın
-    (tek, proje-geneli karakter) DEĞİL, sahne bazlı `casting_by_scene`'in
-    üzerinde çalışır -- ikisi paralel, birbirinden bağımsız mekanizmalar.
+    """"Sahne Bazlı Gerçek Ses Değişimi" + "Çoklu Karakter Aynı Sahnede" +
+    "Varsayılan Anlatıcı" planları (kullanıcı onaylı) -- tek fonksiyonda:
+
+    - TAM OLARAK 1 karakter atanmışsa: o karakterin kendi sesi.
+    - 2+ karakter atanmışsa (hangi sesin okuyacağı BELİRSİZ): Kids formatında
+      _KIDS_DEFAULT_NARRATOR_SLUG (Professor Nova), diğer formatlarda
+      listenin İLK karakteri (casting_generator'ın kendi öncelik sırası).
+    - Hiç karakter atanmamışsa: Kids formatında yine Professor Nova,
+      diğer formatlarda genel `voice_name` (REGRESYON GARANTİSİ -- Kids
+      DIŞINDA bu fonksiyonun eklediği TEK davranış, karakter sayısı 1 iken
+      zaten var olan orijinal davranıştır).
+    - Her adımda, seçilen slug registry'de yoksa (KeyError) bir sonraki
+      seçeneğe sessizce düşülür, en kötü ihtimalle `voice_name`'e biter.
     """
-    character_slug = (casting_by_scene or {}).get(scene_index, {}).get("character")
-    if character_slug:
-        try:
-            return characters.get_character_voice_name(character_slug)
-        except KeyError:
-            pass
+    character_slugs = [
+        slug
+        for slug in (casting_by_scene or {}).get(scene_index, {}).get("characters", [])
+        if slug
+    ]
+
+    if len(character_slugs) == 1:
+        resolved = _voice_for_slug_or_none(character_slugs[0])
+        if resolved:
+            return resolved
+    elif len(character_slugs) >= 2:
+        if format == Format.kids:
+            resolved = _voice_for_slug_or_none(_KIDS_DEFAULT_NARRATOR_SLUG)
+            if resolved:
+                return resolved
+        resolved = _voice_for_slug_or_none(character_slugs[0])
+        if resolved:
+            return resolved
+    elif format == Format.kids:
+        resolved = _voice_for_slug_or_none(_KIDS_DEFAULT_NARRATOR_SLUG)
+        if resolved:
+            return resolved
+
     return voice_name
 
 
@@ -74,22 +120,23 @@ def render_narration_by_scene(
     casting_by_scene: dict[int, dict],
     voice_rate: float = 1.0,
     voice_volume: float = 1.0,
+    format: Format | None = None,
 ) -> AudioTrack:
     """Same external contract as render_narration() (one AudioTrack covering
     the WHOLE script), but synthesizes each script.lines[i] SEPARATELY,
-    using that scene's Auto-cast character's own registered voice where one
-    was picked (casting_by_scene, from casting_generator's per-scene
-    decision), falling back to `voice_name` otherwise -- then concatenates
-    the per-scene audio into one continuous audio.mp3 and merges the
-    per-scene subtitle cues (each anchored to that scene's own real,
-    measured TTS duration) into one subtitle.srt via
+    using that scene's Auto-cast character's own registered voice (or the
+    Kids-format default narrator / general voice_name fallback -- see
+    _resolve_scene_voice's docstring for the full priority order) -- then
+    concatenates the per-scene audio into one continuous audio.mp3 and
+    merges the per-scene subtitle cues (each anchored to that scene's own
+    real, measured TTS duration) into one subtitle.srt via
     voice.merge_scene_subtitles().
 
-    Only called by render_audio_plan() when Auto-mode casting actually
-    picked at least one character for at least one scene -- every other
-    case (no casting, Auto picked none, non-Auto fixed/no character) keeps
-    using the original single-call render_narration(), so those projects
-    are byte-for-byte unaffected by this function's existence.
+    Only called by render_audio_plan() when per-scene rendering is actually
+    worthwhile (see _should_use_per_scene_narration) -- every other case
+    (no Auto casting, non-Auto fixed/no character) keeps using the original
+    single-call render_narration(), so those projects are byte-for-byte
+    unaffected by this function's existence.
     """
     from pydub import AudioSegment
 
@@ -107,7 +154,7 @@ def render_narration_by_scene(
     cumulative_seconds = 0.0
 
     for line in script.lines:
-        scene_voice = _resolve_scene_voice(voice_name, casting_by_scene, line.scene_index)
+        scene_voice = _resolve_scene_voice(voice_name, casting_by_scene, line.scene_index, format)
         scene_audio_file = os.path.join(task_directory, f"audio_scene_{line.scene_index}.mp3")
         scene_subtitle_file = os.path.join(
             task_directory, f"subtitle_scene_{line.scene_index}.srt"
@@ -179,10 +226,29 @@ def _resolve_narration_voice(
     return voice_name
 
 
-def _casting_by_scene_has_a_character(casting_by_scene: dict[int, dict] | None) -> bool:
-    return bool(casting_by_scene) and any(
-        (entry or {}).get("character") for entry in casting_by_scene.values()
-    )
+def _should_use_per_scene_narration(
+    casting_by_scene: dict[int, dict] | None, format: Format | None
+) -> bool:
+    """Per-scene rendering (N separate TTS calls) is only worth its extra
+    cost/latency when it can actually produce a DIFFERENT result than the
+    single-call path for at least one scene:
+
+    - any scene has 1+ cast characters (their own voice would differ from
+      the general voice_name), OR
+    - format is Kids (the "no character assigned" fallback -- Professor
+      Nova instead of the general voice_name -- can apply even when NO
+      scene has a cast character at all).
+
+    `casting_by_scene` being falsy (Auto character casting never ran --
+    character_selection != AUTO_CHARACTER) always short-circuits to False,
+    REGARDLESS of format -- this is the regression guarantee: fixed/no-
+    character projects (Kids or not) are never touched by this function.
+    """
+    if not casting_by_scene:
+        return False
+    if format == Format.kids:
+        return True
+    return any((entry or {}).get("characters") for entry in casting_by_scene.values())
 
 
 def render_audio_plan(
@@ -194,21 +260,22 @@ def render_audio_plan(
     bgm_file: str = "",
     character_references: list[CharacterReference] | None = None,
     casting_by_scene: dict[int, dict] | None = None,
+    format: Format | None = None,
 ) -> AudioPlan:
     """"Sahne Bazlı Gerçek Ses Değişimi" planı (kullanıcı onaylı): Auto
-    kadrolamanın en az bir sahne için gerçekten bir karakter seçtiği
-    durumda (`casting_by_scene`), render_narration_by_scene()'in sahne
-    bazlı çoklu-ses yoluna dallanır -- her diğer durumda (casting_by_scene
-    boş/None, ya da Auto hiçbir sahnede karakter seçmemişse) davranış
-    ESKİSİYLE BİREBİR AYNI kalır: _resolve_narration_voice() + tek çağrılı
-    render_narration(). İki mekanizma (_resolve_narration_voice'un tek
-    sabit karakter override'ı ile bu sahne-bazlı yol) birbirini ASLA
-    tetiklemez -- Auto modda zaten `character_references` (sabit liste)
-    boş geliyor, non-Auto modda ise `casting_by_scene` hiç üretilmiyor.
+    kadrolama gerçekten devredeyken (bkz. _should_use_per_scene_narration),
+    render_narration_by_scene()'in sahne bazlı çoklu-ses yoluna dallanır --
+    her diğer durumda davranış ESKİSİYLE BİREBİR AYNI kalır:
+    _resolve_narration_voice() + tek çağrılı render_narration(). İki
+    mekanizma (_resolve_narration_voice'un tek sabit karakter override'ı ile
+    bu sahne-bazlı yol) birbirini ASLA tetiklemez -- Auto modda zaten
+    `character_references` (sabit liste) boş geliyor, non-Auto modda ise
+    `casting_by_scene` hiç üretilmiyor (character_selection ==
+    AUTO_CHARACTER DEĞİLSE default_pipeline bu parametreyi hiç doldurmaz).
     """
-    if _casting_by_scene_has_a_character(casting_by_scene):
+    if _should_use_per_scene_narration(casting_by_scene, format):
         narration = render_narration_by_scene(
-            script, task_id, voice_name, casting_by_scene, voice_rate, voice_volume
+            script, task_id, voice_name, casting_by_scene, voice_rate, voice_volume, format
         )
     else:
         resolved_voice_name = _resolve_narration_voice(voice_name, character_references)

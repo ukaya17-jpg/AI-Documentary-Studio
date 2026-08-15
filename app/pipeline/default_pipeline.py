@@ -152,8 +152,12 @@ def _resolve_references_by_scene(
         idx = shot.scene_index
         refs: list[CharacterReference] = []
         if character_auto:
-            slug = casting_by_scene.get(idx, {}).get("character")
-            if slug:
+            # "Çoklu Karakter Aynı Sahnede" planı (kullanıcı onaylı):
+            # casting_by_scene[idx]["characters"] artık 0-N slug içeren bir
+            # liste (önceki tekil "character" alanının yerine) -- LİSTE
+            # SIRASI korunuyor, fal.ai'ye @Element1/@Element2/... olarak
+            # tam bu sırayla gidecek (bkz. asset_generator.build_asset_plan).
+            for slug in casting_by_scene.get(idx, {}).get("characters", []):
                 try:
                     refs.append(characters.get_character_reference(slug))
                 except KeyError:
@@ -199,6 +203,7 @@ def run_pipeline(
     custom_system_prompt: str = "",
     custom_requirements: str = "",
     stock_keyword_hint: str = "",
+    video_style: str = "informational",
     character_references: list[CharacterReference] | None = None,
     location_references: list[CharacterReference] | None = None,
     character_selection: str | None = None,
@@ -265,6 +270,15 @@ def run_pipeline(
     callers that pass already-built CharacterReference objects directly
     (bypassing the registry entirely, e.g. for isolated unit tests) keep
     working unmodified.
+
+    `video_style` (kullanıcı onaylı, "CTA/Etkileşim Formatlı Short
+    Videolar" planı): OPSİYONEL, ADDITIVE -- varsayılan "informational"
+    davranışı hiç değiştirmez (script_generator.build_script_prompt'un
+    ilgili bloğu no-op kalır). "engagement_cta" verildiğinde script,
+    izleyiciye doğrudan bir soru sorup yorum bırakmaya davet eden bir
+    kapanışla üretilir -- bkz. script_generator.py'nin
+    _engagement_cta_instructions() docstring'i. Format.kids ile TAM
+    UYUMLU (aynı ton/karakter-sesi mekanizması, hiç dokunulmuyor).
     """
     resolved_pacing = resolve_pacing(pacing)
     # Unlike tone, format doesn't depend on topic_category -- it can be
@@ -307,7 +321,14 @@ def run_pipeline(
         # after intent analysis -- can't be resolved alongside resolved_pacing
         # up front. With no override, this reproduces each category's old
         # hard-locked tone exactly (see resolve_tone/DEFAULT_TONE_BY_CATEGORY).
-        resolved_tone = resolve_tone(project.topic_category, tone)
+        # `format=resolved_format` (kullanıcı onaylı, "Ton Varsayılanı" planı):
+        # Kids formatında -- tone_override verilmediği sürece -- topic_
+        # category'den BAĞIMSIZ olarak Tone.nurturing'e sabitlenir (aksi halde
+        # ör. topic_category=space bir kids projesini "epic" -- hızlı/yoğun,
+        # 3-8 yaş için ZARARLI olduğu script_generator.py'de zaten belgeli --
+        # tona düşürüyordu). Açık bir tone_override HER ZAMAN kazanır, kids
+        # dahil -- regresyon garantisi.
+        resolved_tone = resolve_tone(project.topic_category, tone, format=resolved_format)
         project.tone = resolved_tone
         # Otomatik müzik stili atama (bkz. TONE_MUSIC_STYLE): kullanıcı
         # ElevenLabs BGM seçip prompt'u boş bıraktıysa, tona göre kendiliğinden
@@ -355,6 +376,7 @@ def run_pipeline(
             tone=resolved_tone,
             format=resolved_format,
             custom_requirements=custom_requirements,
+            video_style=video_style,
         )
         utils.save_project_snapshot(project)
 
@@ -435,6 +457,7 @@ def run_pipeline(
             bgm_file=bgm_file,
             character_references=character_references,
             casting_by_scene=casting_by_scene,
+            format=resolved_format,
         )
         utils.save_project_snapshot(project)
 

@@ -41,6 +41,15 @@ STOCK_KEYWORD_HINT_KEYS = (
     "Documentary Stock Keyword Hint Help",
 )
 
+# "CTA/Etkileşim Formatlı Short Videolar" planı (kullanıcı onaylı): AYNI
+# "Gelişmiş Ayarlar" expander'ında, custom_requirements'ın hemen ardından --
+# her iki video kaynağı sayfasında da (stok/AI) görünür, video_source_fixed'e
+# bağlı DEĞİL (stock_keyword_hint'in aksine).
+VIDEO_STYLE_KEYS = (
+    "Documentary Video Style",
+    "Documentary Video Style Help",
+)
+
 
 def _translation(locale):
     data = json.loads((I18N_DIR / f"{locale}.json").read_text(encoding="utf-8"))
@@ -65,6 +74,83 @@ def test_stock_keyword_hint_keys_present_and_non_empty_in_every_locale():
         for key in STOCK_KEYWORD_HINT_KEYS:
             assert key in translation, f"{key!r} missing from {locale}.json"
             assert translation[key].strip(), f"{key!r} is empty in {locale}.json"
+
+
+def test_video_style_keys_present_and_non_empty_in_every_locale():
+    for locale in ALL_LOCALES:
+        translation = _translation(locale)
+        for key in VIDEO_STYLE_KEYS:
+            assert key in translation, f"{key!r} missing from {locale}.json"
+            assert translation[key].strip(), f"{key!r} is empty in {locale}.json"
+
+
+def test_video_style_field_shown_on_both_stock_and_ai_video_pages():
+    for page_hash in (None, _QUALITY_PAGE_HASH):
+        app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+        app.session_state["ui_language"] = "en"
+        if page_hash is not None:
+            app._page_hash = page_hash
+        app.run()
+
+        assert not app.exception
+        video_style = _widget_by_key(app.selectbox, "documentary_video_style")
+        assert video_style.value == "informational"
+
+
+def test_generate_with_untouched_video_style_passes_informational_default():
+    with patch.object(
+        default_pipeline, "run_pipeline", return_value=_fake_project()
+    ) as run_mock:
+        app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+        app.session_state["ui_language"] = "en"
+        app.session_state["documentary_topic"] = "Test Topic"
+        app.session_state["documentary_generate_button"] = True
+        app.run()
+
+    assert not app.exception
+    run_mock.assert_called_once()
+    assert run_mock.call_args.kwargs["video_style"] == "informational"
+
+
+def test_generate_passes_engagement_cta_video_style_to_run_pipeline():
+    with patch.object(
+        default_pipeline, "run_pipeline", return_value=_fake_project()
+    ) as run_mock:
+        app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+        app.session_state["ui_language"] = "en"
+        app.session_state["documentary_topic"] = "Test Topic"
+        app.session_state["documentary_video_style"] = "engagement_cta"
+        app.session_state["documentary_generate_button"] = True
+        app.run()
+
+    assert not app.exception
+    run_mock.assert_called_once()
+    assert run_mock.call_args.kwargs["video_style"] == "engagement_cta"
+
+
+def test_short_pacing_scope_hint_shown_for_short_pacing():
+    # "İçerik Derinliği/Kapsam İncelemesi" planı (kullanıcı onaylı): "short"
+    # (varsayılan pacing) seçiliyken yumuşak bir ipucu görünmeli.
+    app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+    app.session_state["ui_language"] = "en"
+    app.run()
+
+    assert not app.exception
+    en_translation = _translation("en")
+    hint_text = en_translation["Documentary Short Pacing Scope Hint"]
+    assert any(hint_text == c.value for c in app.caption)
+
+
+def test_short_pacing_scope_hint_hidden_for_other_pacings():
+    app = AppTest.from_file(str(WEBUI_MAIN), default_timeout=30)
+    app.session_state["ui_language"] = "en"
+    app.session_state["documentary_pacing"] = "long"
+    app.run()
+
+    assert not app.exception
+    en_translation = _translation("en")
+    hint_text = en_translation["Documentary Short Pacing Scope Hint"]
+    assert not any(hint_text == c.value for c in app.caption)
 
 
 def test_stock_keyword_hint_field_shown_on_stock_productions_page():

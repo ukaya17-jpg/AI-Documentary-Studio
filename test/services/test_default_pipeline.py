@@ -482,8 +482,8 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         with patch(
             "app.pipeline.default_pipeline.casting_generator.generate_casting_plan",
             return_value={
-                0: {"character": "professor_nova", "location": None},
-                1: {"character": None, "location": None},
+                0: {"characters": ["professor_nova"], "location": None},
+                1: {"characters": [], "location": None},
             },
         ) as mock_casting, patch(
             "app.pipeline.default_pipeline.characters.get_character_reference",
@@ -530,8 +530,8 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         with patch(
             "app.pipeline.default_pipeline.casting_generator.generate_casting_plan",
             return_value={
-                0: {"character": "professor_nova", "location": None},
-                1: {"character": "professor_nova", "location": None},
+                0: {"characters": ["professor_nova"], "location": None},
+                1: {"characters": ["professor_nova"], "location": None},
             },
         ), patch(
             "app.pipeline.default_pipeline.characters.get_character_reference",
@@ -575,8 +575,8 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
             name="Professor Nova", frontal_image_url="data:image/jpeg;base64,nova"
         )
         raw_casting = {
-            0: {"character": "professor_nova", "location": None},
-            1: {"character": None, "location": None},
+            0: {"characters": ["professor_nova"], "location": None},
+            1: {"characters": [], "location": None},
         }
 
         with patch(
@@ -811,6 +811,117 @@ class TestRunPipelineWithMockedStages(unittest.TestCase):
         self.assertEqual(self.started["script"].call_args[1]["format"], Format.educational)
         self.assertNotIn("format", self.started["research"].call_args[1])
         self.assertNotIn("format", self.started["outline"].call_args[1])
+
+    def test_kids_format_defaults_tone_to_nurturing_regardless_of_category(self):
+        # "Ton Varsayılanı" planı (kullanıcı onaylı): "The Fall of Rome" ->
+        # topic_category=history -> normalde Tone.credibility (bkz.
+        # test_tone_override_wins_over_category_default) -- ama Format.kids
+        # ile, tone_override YOKKEN, kategoriden BAĞIMSIZ Tone.nurturing
+        # kullanılmalı.
+        project = default_pipeline.run_pipeline(
+            project_id="proj-1",
+            topic="The Fall of Rome",
+            language="auto",
+            pacing=Pacing.short,
+            voice_name="en-US-JennyNeural",
+            format=Format.kids,
+        )
+
+        self.assertEqual(project.tone, Tone.nurturing)
+        self.assertEqual(self.started["script"].call_args[1]["tone"], Tone.nurturing)
+
+    def test_kids_format_explicit_tone_override_still_wins(self):
+        project = default_pipeline.run_pipeline(
+            project_id="proj-1",
+            topic="The Fall of Rome",
+            language="auto",
+            pacing=Pacing.short,
+            voice_name="en-US-JennyNeural",
+            format=Format.kids,
+            tone=Tone.epic,
+        )
+
+        self.assertEqual(project.tone, Tone.epic)
+
+    def test_non_kids_format_tone_default_is_unaffected(self):
+        # Regresyon garantisi: Kids DIŞINDAKİ formatlar topic_category'nin
+        # kendi varsayılan tonunu (history -> credibility) hiç etkilemiyor.
+        project = default_pipeline.run_pipeline(
+            project_id="proj-1",
+            topic="The Fall of Rome",
+            language="auto",
+            pacing=Pacing.short,
+            voice_name="en-US-JennyNeural",
+            format=Format.educational,
+        )
+
+        self.assertEqual(project.tone, Tone.credibility)
+
+    def test_video_style_flows_to_script_generator(self):
+        default_pipeline.run_pipeline(
+            project_id="proj-1",
+            topic="The Fall of Rome",
+            language="auto",
+            pacing=Pacing.short,
+            voice_name="en-US-JennyNeural",
+            video_style="engagement_cta",
+        )
+
+        self.assertEqual(self.started["script"].call_args[1]["video_style"], "engagement_cta")
+
+    def test_video_style_defaults_to_informational(self):
+        # Regresyon garantisi: video_style hiç geçilmezse script_generator
+        # eskisiyle birebir aynı ("informational", no-op) davranışı almalı.
+        default_pipeline.run_pipeline(
+            project_id="proj-1",
+            topic="The Fall of Rome",
+            language="auto",
+            pacing=Pacing.short,
+            voice_name="en-US-JennyNeural",
+        )
+
+        self.assertEqual(self.started["script"].call_args[1]["video_style"], "informational")
+
+    def test_auto_casting_assigns_multiple_characters_to_the_same_scene(self):
+        # "Çoklu Karakter Aynı Sahnede" planı (kullanıcı onaylı): bir sahneye
+        # 2+ karakter atanabiliyor -- character_references_by_scene, LİSTE
+        # SIRASINI koruyarak ikisini de içermeli (asset_generator'ın
+        # @Element1/@Element2 sırası bu listeye dayanıyor).
+        from app.models.character import CharacterReference
+
+        registry_refs = {
+            "professor_nova": CharacterReference(
+                name="Professor Nova", frontal_image_url="data:image/jpeg;base64,nova"
+            ),
+            "robo": CharacterReference(
+                name="Robo", frontal_image_url="data:image/jpeg;base64,robo"
+            ),
+        }
+
+        with patch(
+            "app.pipeline.default_pipeline.casting_generator.generate_casting_plan",
+            return_value={
+                0: {"characters": ["professor_nova", "robo"], "location": None},
+                1: {"characters": [], "location": None},
+            },
+        ), patch(
+            "app.pipeline.default_pipeline.characters.get_character_reference",
+            side_effect=lambda slug: registry_refs[slug],
+        ):
+            default_pipeline.run_pipeline(
+                project_id="proj-1",
+                topic="The Fall of Rome",
+                language="auto",
+                pacing=Pacing.short,
+                voice_name="en-US-JennyNeural",
+                character_selection=characters.AUTO_CHARACTER,
+            )
+
+        _, asset_gen_kwargs = self.started["asset_gen"].call_args
+        self.assertEqual(
+            asset_gen_kwargs["character_references_by_scene"],
+            {0: [registry_refs["professor_nova"], registry_refs["robo"]], 1: []},
+        )
 
     def test_elevenlabs_bgm_type_generates_music_and_overrides_render_bgm_file(self):
         # GÖREV 6 (gece oturumu): "elevenlabs" bgm_type, generate_bgm_from_

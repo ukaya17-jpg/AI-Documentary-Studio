@@ -125,6 +125,43 @@ class TestProfileDimensions(unittest.TestCase):
         self.assertEqual(resolve_tone(None, None), Tone.neutral)
         self.assertEqual(resolve_tone("not-a-category", None), Tone.neutral)
 
+    def test_resolve_tone_kids_format_defaults_to_nurturing_regardless_of_category(self):
+        # "Ton Varsayılanı" planı (kullanıcı onaylı, 2026-08-15): Kids
+        # formatında -- tone_override verilmediği sürece -- topic_category
+        # NE OLURSA OLSUN Tone.nurturing dönmeli (aksi halde ör.
+        # topic_category=space bir Kids projesini script_generator.py'nin
+        # kendisinin "3-8 yaş için ZARARLI" dediği "epic" tonuna
+        # düşürüyordu).
+        for category in DEFAULT_TONE_BY_CATEGORY:
+            self.assertEqual(resolve_tone(category, None, format=Format.kids), Tone.nurturing)
+        self.assertEqual(resolve_tone(None, None, format=Format.kids), Tone.nurturing)
+
+    def test_resolve_tone_explicit_override_wins_even_for_kids_format(self):
+        # Kullanıcı Kids formatında BİLİNÇLİ olarak başka bir ton seçerse
+        # (ör. epic), o tercihe saygı duyulmalı -- nurturing varsayılanı
+        # SADECE override YOKKEN devreye girer.
+        self.assertEqual(
+            resolve_tone(TopicCategory.space, Tone.epic, format=Format.kids), Tone.epic
+        )
+
+    def test_resolve_tone_non_kids_format_does_not_change_category_default(self):
+        # Regresyon garantisi: Kids DIŞINDAKİ formatlar (educational,
+        # corporate) topic_category'nin kendi varsayılan tonunu hiç
+        # etkilememeli -- yeni `format` parametresi SADECE Kids için no-op
+        # olmayan bir davranış ekliyor.
+        self.assertEqual(
+            resolve_tone(TopicCategory.space, None, format=Format.educational), Tone.epic
+        )
+        self.assertEqual(
+            resolve_tone(TopicCategory.travel, None, format=Format.corporate), Tone.cinematic
+        )
+
+    def test_resolve_tone_omitted_format_behaves_exactly_like_before(self):
+        # Regresyon garantisi: mevcut TÜM çağrı yerleri `format` hiç
+        # geçmiyor -- omit edilince davranış birebir eskisiyle aynı kalmalı.
+        for category, expected_tone in DEFAULT_TONE_BY_CATEGORY.items():
+            self.assertEqual(resolve_tone(category, None), expected_tone)
+
     def test_resolve_format_valid_and_invalid(self):
         # Unlike resolve_tone, there's no category-based default to fall
         # back to -- None means "no format applied", not "unresolved".

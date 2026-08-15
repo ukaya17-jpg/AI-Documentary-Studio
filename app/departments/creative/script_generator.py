@@ -188,6 +188,36 @@ def _child_safe_guidance_instructions(format: Format | None) -> str:
     return "\n\nChild safety requirements (mandatory for kids content):\n" + "\n".join(lines)
 
 
+# "CTA/Etkileşim Formatlı Short Videolar" planı (kullanıcı onaylı): halihazırda
+# kullanıcının 6 aylık içerik takviminde somutlaşmış bir format -- haftanın
+# 4 short'undan biri bilgilendirici değil, doğrudan bir SORU/CTA taşıyor (ör.
+# "Uzayda En Çok Neyi Merak Ediyorsun? Yorumlarda Söyle!", "Sen Olsan Nasıl
+# Bir Robot Tasarlardın?"). `_growth_guidance_instructions`'ın genel
+# "Engagement:" satırından (orada TEK cümle, opsiyonel bir ek, kids formatı
+# için BASTIRILIYOR) BİLEREK FARKLI/DAHA GÜÇLÜ: burada soru videonun
+# MERKEZİ, ve kids formatında da KASITLI OLARAK bastırılmıyor -- kullanıcının
+# kendi örneği ("Sen Olsan Nasıl Bir Robot Tasarlardın?") zaten kids içerikte
+# kullanılan bir CTA. Varsayılan "informational" ile HİÇBİR davranış
+# değişmez (no-op) -- regresyon garantisi.
+_ENGAGEMENT_CTA_GUIDANCE = (
+    "\n\nEngagement format: this is a short, casual, QUESTION-driven video, "
+    "not an information dump -- a brief, vivid setup (1-2 scenes) is enough "
+    "context, then pivot to directly asking the viewer a specific, "
+    "easy-to-answer question about the topic, inviting them to answer in "
+    "the comments. The question is the HEART of the video, not an "
+    "afterthought tacked onto the end -- most of the narration should "
+    "build curiosity toward it rather than explain facts. This applies "
+    "even in a kids-format episode (a gentle, age-appropriate question "
+    "like 'what kind of robot would you build?' is exactly right there)."
+)
+
+
+def _engagement_cta_instructions(video_style: str) -> str:
+    if video_style != "engagement_cta":
+        return ""
+    return _ENGAGEMENT_CTA_GUIDANCE
+
+
 def build_script_prompt(
     scene_plan: ScenePlan,
     topic: str,
@@ -197,6 +227,7 @@ def build_script_prompt(
     tone: Tone | None = None,
     format: Format | None = None,
     custom_requirements: str = "",
+    video_style: str = "informational",
 ) -> str:
     scene_lines = []
     for scene in scene_plan.scenes:
@@ -235,6 +266,7 @@ closely as possible so the timing lines up with the scene's on-screen duration:
     prompt += _story_craft_instructions(scene_plan, outline)
     prompt += _growth_guidance_instructions(format)
     prompt += _child_safe_guidance_instructions(format)
+    prompt += _engagement_cta_instructions(video_style)
     # GÖREV F (kullanıcı onaylı): kullanıcının kendi ek talimatları --
     # otomatik büyüme ilkelerinin (yukarıdaki _growth_guidance_instructions)
     # YERİNE değil, onun HEMEN ARDINA ek bir blok olarak ekleniyor, böylece
@@ -276,6 +308,7 @@ def generate_script(
     tone: Tone | None = None,
     format: Format | None = None,
     custom_requirements: str = "",
+    video_style: str = "informational",
 ) -> Script:
     if not scene_plan.scenes:
         return Script(full_text="", lines=[], language=language)
@@ -289,6 +322,7 @@ def generate_script(
         tone=tone,
         format=format,
         custom_requirements=custom_requirements,
+        video_style=video_style,
     )
     data = generate_json(prompt)
     lines_by_index = _parse_lines(data.get("lines", []))

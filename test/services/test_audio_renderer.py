@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+from app.config.profile_dimensions import Format
 from app.models.audio import AudioTrack
 from app.models.script import Script, ScriptLine
 from app.departments.production import audio_renderer
@@ -137,11 +138,11 @@ class TestRenderNarrationByScene(unittest.TestCase):
         # Scene 0 -> Fake A's voice, scene 1 -> no character (falls back to
         # the general voice), scene 2 -> Fake B's voice (its "location"
         # entry, if any, must never affect voice selection -- only
-        # "character" does, matching _resolve_narration_voice's semantics).
+        # "characters" does, matching _resolve_narration_voice's semantics).
         casting_by_scene = {
-            0: {"character": "fake_a", "location": None},
-            1: {"character": None, "location": None},
-            2: {"character": "fake_b", "location": "somewhere"},
+            0: {"characters": ["fake_a"], "location": None},
+            1: {"characters": [], "location": None},
+            2: {"characters": ["fake_b"], "location": "somewhere"},
         }
 
         with patch.dict(characters._CHARACTER_SLUGS, fake_registry, clear=True):
@@ -183,7 +184,7 @@ class TestRenderNarrationByScene(unittest.TestCase):
         )
 
         audio_renderer.render_narration_by_scene(
-            script, self.task_id, "tr-TR-AhmetNeural", {0: {"character": None, "location": None}}
+            script, self.task_id, "tr-TR-AhmetNeural", {0: {"characters": [], "location": None}}
         )
 
         self.assertFalse(
@@ -208,9 +209,9 @@ class TestRenderNarrationByScene(unittest.TestCase):
 
 class TestRenderAudioPlanDispatch(unittest.TestCase):
     """render_audio_plan(), render_narration_by_scene()'e SADECE
-    casting_by_scene en az bir sahnede gerçek bir karakter içeriyorsa
-    dallanmalı -- her diğer durumda (regresyon garantisi) eskisi gibi
-    render_narration() + _resolve_narration_voice() kullanılmalı.
+    _should_use_per_scene_narration() True dönerse dallanmalı -- her diğer
+    durumda (regresyon garantisi) eskisi gibi render_narration() +
+    _resolve_narration_voice() kullanılmalı.
     """
 
     def setUp(self):
@@ -243,8 +244,8 @@ class TestRenderAudioPlanDispatch(unittest.TestCase):
         script = Script(full_text="Text", lines=[ScriptLine(scene_index=0, text="Text")])
         mock_render_narration.return_value = AudioTrack()
         casting_by_scene = {
-            0: {"character": None, "location": "somewhere"},
-            1: {"character": None, "location": None},
+            0: {"characters": [], "location": "somewhere"},
+            1: {"characters": [], "location": None},
         }
 
         audio_renderer.render_audio_plan(
@@ -261,7 +262,7 @@ class TestRenderAudioPlanDispatch(unittest.TestCase):
     ):
         script = Script(full_text="Text", lines=[ScriptLine(scene_index=0, text="Text")])
         mock_render_by_scene.return_value = AudioTrack()
-        casting_by_scene = {0: {"character": "fake_a", "location": None}}
+        casting_by_scene = {0: {"characters": ["fake_a"], "location": None}}
 
         audio_renderer.render_audio_plan(
             script, self.task_id, "tr-TR-AhmetNeural", casting_by_scene=casting_by_scene
@@ -269,6 +270,115 @@ class TestRenderAudioPlanDispatch(unittest.TestCase):
 
         mock_render_by_scene.assert_called_once()
         mock_render_narration.assert_not_called()
+
+    @patch("app.departments.production.audio_renderer.render_narration_by_scene")
+    @patch("app.departments.production.audio_renderer.render_narration")
+    def test_uses_per_scene_path_for_kids_format_even_with_no_character_anywhere(
+        self, mock_render_narration, mock_render_by_scene
+    ):
+        # "Varsayılan/Yedek Anlatıcı" planı: Kids formatında, karaktersiz
+        # sahneler bile genel voice_name yerine Professor Nova'yı almalı --
+        # bu yüzden Auto casting hiçbir sahnede karakter seçmemiş olsa BİLE,
+        # format kids ise per-scene yola dallanılmalı.
+        script = Script(full_text="Text", lines=[ScriptLine(scene_index=0, text="Text")])
+        mock_render_by_scene.return_value = AudioTrack()
+        casting_by_scene = {0: {"characters": [], "location": None}}
+
+        audio_renderer.render_audio_plan(
+            script,
+            self.task_id,
+            "tr-TR-AhmetNeural",
+            casting_by_scene=casting_by_scene,
+            format=Format.kids,
+        )
+
+        mock_render_by_scene.assert_called_once()
+        mock_render_narration.assert_not_called()
+
+    @patch("app.departments.production.audio_renderer.render_narration_by_scene")
+    @patch("app.departments.production.audio_renderer.render_narration")
+    def test_kids_format_with_falsy_casting_by_scene_still_uses_single_call_path(
+        self, mock_render_narration, mock_render_by_scene
+    ):
+        # Regresyon garantisi (character_selection != AUTO_CHARACTER): Kids
+        # format TEK BAŞINA per-scene yolu tetiklemez -- casting_by_scene
+        # boş/None ise (Auto karakter kadrolaması hiç çalışmadıysa) format
+        # ne olursa olsun eski davranış korunur.
+        script = Script(full_text="Text", lines=[ScriptLine(scene_index=0, text="Text")])
+        mock_render_narration.return_value = AudioTrack()
+
+        audio_renderer.render_audio_plan(
+            script,
+            self.task_id,
+            "tr-TR-AhmetNeural",
+            casting_by_scene=None,
+            format=Format.kids,
+        )
+
+        mock_render_narration.assert_called_once()
+        mock_render_by_scene.assert_not_called()
+
+
+class TestResolveSceneVoice(unittest.TestCase):
+    """"Çoklu Karakter Aynı Sahnede" + "Varsayılan/Yedek Anlatıcı" planları
+    (kullanıcı onaylı): _resolve_scene_voice()'ın tam öncelik sırasını
+    (1 karakter / 2+ karakter / 0 karakter, her biri Kids formatına göre)
+    doğrudan test eder.
+    """
+
+    _REGISTRY = {
+        "professor_nova": ("Professor Nova", "professor_nova", "elevenlabs:nova:Nova Voice"),
+        "fake_a": ("Fake A", "fake_a", "elevenlabs:aaa:Voice A"),
+        "fake_b": ("Fake B", "fake_b", "elevenlabs:bbb:Voice B"),
+    }
+
+    def _resolve(self, casting_by_scene, format=None):
+        from app.config import characters
+
+        with patch.dict(characters._CHARACTER_SLUGS, self._REGISTRY, clear=True):
+            return audio_renderer._resolve_scene_voice(
+                "general-voice", casting_by_scene, 0, format
+            )
+
+    def test_single_character_uses_its_own_voice_regardless_of_format(self):
+        casting = {0: {"characters": ["fake_a"], "location": None}}
+        self.assertEqual(self._resolve(casting, None), "elevenlabs:aaa:Voice A")
+        self.assertEqual(self._resolve(casting, Format.kids), "elevenlabs:aaa:Voice A")
+
+    def test_no_character_non_kids_falls_back_to_general_voice(self):
+        casting = {0: {"characters": [], "location": None}}
+        self.assertEqual(self._resolve(casting, None), "general-voice")
+        self.assertEqual(self._resolve(casting, Format.educational), "general-voice")
+
+    def test_no_character_kids_format_falls_back_to_professor_nova(self):
+        # "Varsayılan/Yedek Anlatıcı" planı: Kids formatında karaktersiz
+        # sahnede genel voice_name YERİNE Professor Nova kullanılmalı.
+        casting = {0: {"characters": [], "location": None}}
+        self.assertEqual(self._resolve(casting, Format.kids), "elevenlabs:nova:Nova Voice")
+
+    def test_multiple_characters_non_kids_falls_back_to_the_first_in_priority_order(self):
+        casting = {0: {"characters": ["fake_a", "fake_b"], "location": None}}
+        self.assertEqual(self._resolve(casting, None), "elevenlabs:aaa:Voice A")
+        self.assertEqual(self._resolve(casting, Format.educational), "elevenlabs:aaa:Voice A")
+
+    def test_multiple_characters_kids_format_falls_back_to_professor_nova(self):
+        # "Çoklu Karakter Aynı Sahnede" planı: birden fazla karakter varken
+        # hangi sesin okuyacağı belirsiz -- Kids'te Professor Nova kazanır,
+        # listedeki sıralamadan (fake_a ilk olsa bile) bağımsız.
+        casting = {0: {"characters": ["fake_a", "fake_b"], "location": None}}
+        self.assertEqual(self._resolve(casting, Format.kids), "elevenlabs:nova:Nova Voice")
+
+    def test_unregistered_single_character_falls_back_to_general_voice(self):
+        casting = {0: {"characters": ["ghost"], "location": None}}
+        self.assertEqual(self._resolve(casting, None), "general-voice")
+
+    def test_scene_not_present_in_casting_by_scene_behaves_like_no_character(self):
+        self.assertEqual(self._resolve({}, None), "general-voice")
+        self.assertEqual(self._resolve({}, Format.kids), "elevenlabs:nova:Nova Voice")
+
+    def test_none_casting_by_scene_behaves_like_no_character(self):
+        self.assertEqual(self._resolve(None, None), "general-voice")
+        self.assertEqual(self._resolve(None, Format.kids), "elevenlabs:nova:Nova Voice")
 
 
 class TestResolveNarrationVoice(unittest.TestCase):

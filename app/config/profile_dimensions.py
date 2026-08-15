@@ -176,7 +176,18 @@ def resolve_topic_category(value: str | TopicCategory | None) -> TopicCategory |
 def resolve_tone(
     topic_category: str | TopicCategory | None,
     tone_override: str | Tone | None = None,
+    format: Format | None = None,
 ) -> Tone:
+    """`format` (kullanıcı onaylı, "Ton Varsayılanı" planı, 2026-08-15):
+    OPSİYONEL, geriye dönük uyumlu -- omit edilirse (mevcut TÜM çağrı
+    yerleri) davranış birebir eskisiyle aynı kalır. Verilirse VE
+    `Format.kids`'e eşitse VE `tone_override` boşsa, topic_category'den
+    TAMAMEN BAĞIMSIZ olarak Tone.nurturing döner -- 15 diğer tonun HEPSİ
+    kasıtlı olarak "fast-paced, punchy, never slow" (bkz. script_generator.
+    TONE_VOICE_GUIDANCE'ın üstündeki yorum), 3-8 yaş için ZARARLI. Açık bir
+    `tone_override` HER ZAMAN kazanır -- kids içerik dahil, kullanıcı
+    bilinçli olarak başka bir ton seçtiyse ona saygı duyulur.
+    """
     if tone_override not in (None, ""):
         if isinstance(tone_override, Tone):
             return tone_override
@@ -184,6 +195,8 @@ def resolve_tone(
             return Tone(str(tone_override).strip().lower())
         except ValueError:
             pass  # invalid override string -- fall through to the category default
+    if format == Format.kids:
+        return Tone.nurturing
     category = resolve_topic_category(topic_category)
     return DEFAULT_TONE_BY_CATEGORY.get(category, Tone.neutral)
 

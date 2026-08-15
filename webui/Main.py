@@ -5012,11 +5012,18 @@ def _render_documentary_advanced_settings(video_source_fixed: str):
     """Sistem promptu + özel senaryo gereksinimleri + stok arama ipucu +
     altyazı görünümü.
 
-    Döner: (custom_system_prompt, custom_requirements, stock_keyword_hint) --
-    üçü de run_pipeline()'a doğrudan geçiriliyor. Font ayarları ayrıca
-    dönmüyor, çünkü config.ui[...]'a yazılıyor ve build_video_params() bunu
-    render anında zaten okuyor (proje-özel bir parametre değil, global
-    ayar).
+    Döner: (custom_system_prompt, custom_requirements, stock_keyword_hint,
+    video_style) -- dördü de run_pipeline()'a doğrudan geçiriliyor. Font
+    ayarları ayrıca dönmüyor, çünkü config.ui[...]'a yazılıyor ve
+    build_video_params() bunu render anında zaten okuyor (proje-özel bir
+    parametre değil, global ayar).
+
+    `video_style` ("CTA/Etkileşim Formatlı Short Videolar" planı, kullanıcı
+    onaylı): SADECE iki değer -- "informational" (varsayılan, mevcut TÜM
+    davranış) ve "engagement_cta" (script_generator'a doğrudan bir soru/
+    yorum daveti ile kapanan bir script ürettirir, bkz.
+    script_generator._engagement_cta_instructions). Format.kids DAHİL her
+    formatla çalışır.
 
     `video_source_fixed`: GÖREV 5 -- hangi sayfadan çağrıldığını bilmesi
     gerekiyor, çünkü Sistem Promptu varsayılanı sayfaya göre değişiyor
@@ -5049,6 +5056,15 @@ def _render_documentary_advanced_settings(video_source_fixed: str):
             key="documentary_custom_requirements",
             help=tr("Documentary Custom Requirements Help"),
         ).strip()
+
+        video_style = st.selectbox(
+            tr("Documentary Video Style"),
+            options=["informational", "engagement_cta"],
+            index=0,
+            key="documentary_video_style",
+            format_func=lambda v: tr(f"Documentary Video Style: {v}"),
+            help=tr("Documentary Video Style Help"),
+        )
 
         stock_keyword_hint = ""
         if video_source_fixed == _DOCUMENTARY_STOCK_VIDEO_SOURCE:
@@ -5108,7 +5124,7 @@ def _render_documentary_advanced_settings(video_source_fixed: str):
         # (bkz. app.config.config), bu yüzden her rerun'da çağırmak güvenli.
         config.save_config()
 
-    return custom_system_prompt, custom_requirements, stock_keyword_hint
+    return custom_system_prompt, custom_requirements, stock_keyword_hint, video_style
 
 
 def _render_shared_documentary_form(video_source_fixed: str) -> None:
@@ -5235,6 +5251,21 @@ def _render_shared_documentary_form(video_source_fixed: str) -> None:
     ):
         st.session_state["documentary_video_aspect"] = VideoAspect.landscape.value
     st.session_state["documentary_pacing_last_seen"] = pacing
+
+    # "İçerik Derinliği/Kapsam İncelemesi" planı (kullanıcı onaylı, 2026-08-15):
+    # gerçek bir üretimde ("Jüpiter'in 95 Uydusu") "short" pacing (35s, 7
+    # sahne x 5s) 7 zengin outline bölümünü (Galileo'nun keşfi, 4 isimli uydu,
+    # düzensiz uydu popülasyonu) her birine ~11 kelime bütçesiyle sıkıştırmak
+    # zorunda kaldı -- BUG DEĞİL (scene_planner'ın trimming'i hiç devreye
+    # girmedi, 7 bölüm zaten scene_count=7'ye eşitti), "short"un kendisi
+    # kasıtlı olarak bir "Shorts" uzunluğu (bkz. profile_dimensions.py'nin
+    # PACING_SCENE_SPEC yorumu). Kod tarafında düzeltilecek bir şey yok --
+    # burada YALNIZCA yumuşak, bilgilendirici bir ipucu: kullanıcı çok
+    # yönlü/çok-varlıklı bir konu yazıp "short" seçili bıraktıysa, "Orta
+    # Video (5dk)"nın daha uygun olabileceğini hatırlatıyoruz. Hiçbir şeyi
+    # engellemiyor/değiştirmiyor -- sadece bir st.caption.
+    if pacing == Pacing.short.value:
+        st.caption(tr("Documentary Short Pacing Scope Hint"))
 
     # "Çoklu Karakter Sistemi" planı (kullanıcı onaylı, GÜVENLİK): bir
     # karakter (tekil ya da "Anne Kuş & Yavrusu" çifti) seçiliyken Format
@@ -5403,7 +5434,7 @@ def _render_shared_documentary_form(video_source_fixed: str) -> None:
         bgm_volume,
         video_music_prompt,
     ) = _render_documentary_audio_settings()
-    custom_system_prompt, custom_requirements, stock_keyword_hint = (
+    custom_system_prompt, custom_requirements, stock_keyword_hint, video_style = (
         _render_documentary_advanced_settings(video_source_fixed)
     )
 
@@ -5564,6 +5595,7 @@ def _render_shared_documentary_form(video_source_fixed: str) -> None:
                     custom_system_prompt=custom_system_prompt,
                     custom_requirements=custom_requirements,
                     stock_keyword_hint=stock_keyword_hint,
+                    video_style=video_style,
                     character_references=character_references,
                     location_references=location_references,
                     character_selection=character_selection,

@@ -46,6 +46,15 @@ class TestBuildCastingPrompt(unittest.TestCase):
         prompt = casting_generator.build_casting_prompt(_storyboard(), _script(), {}, {})
         self.assertIn("katalog boş", prompt)
 
+    def test_prompt_mentions_the_max_characters_cap(self):
+        # "Çoklu Karakter Aynı Sahnede" planı: prompt LLM'e kaç karaktere
+        # kadar seçebileceğini açıkça söylemeli -- kod içindeki gerçek
+        # sınırla (casting_generator._MAX_CHARACTERS_PER_SCENE) tutarlı.
+        prompt = casting_generator.build_casting_prompt(
+            _storyboard(), _script(), {"professor_nova": "x"}, {}
+        )
+        self.assertIn(str(casting_generator._MAX_CHARACTERS_PER_SCENE), prompt)
+
 
 class TestGenerateCastingPlan(unittest.TestCase):
     def test_empty_storyboard_returns_empty_dict_without_calling_llm(self):
@@ -73,8 +82,12 @@ class TestGenerateCastingPlan(unittest.TestCase):
             "app.departments.creative.casting_generator.generate_json",
             return_value={
                 "casting": [
-                    {"scene_index": 0, "character": "professor_nova", "location": "kimya_laboratuvari"},
-                    {"scene_index": 1, "character": None, "location": "gozlemevi"},
+                    {
+                        "scene_index": 0,
+                        "characters": ["professor_nova"],
+                        "location": "kimya_laboratuvari",
+                    },
+                    {"scene_index": 1, "characters": [], "location": "gozlemevi"},
                 ]
             },
         ):
@@ -87,31 +100,91 @@ class TestGenerateCastingPlan(unittest.TestCase):
         self.assertEqual(
             result,
             {
-                0: {"character": "professor_nova", "location": "kimya_laboratuvari"},
-                1: {"character": None, "location": "gozlemevi"},
+                0: {"characters": ["professor_nova"], "location": "kimya_laboratuvari"},
+                1: {"characters": [], "location": "gozlemevi"},
             },
         )
 
-    def test_hallucinated_slug_is_dropped_not_raised(self):
-        # LLM kataloğu bilmediği bir slug uydurursa (ör. eski kaldırılmış
-        # bir karakter) sessizce None'a düşmeli -- çökmemeli.
+    def test_parses_multiple_characters_in_priority_order(self):
+        # "Çoklu Karakter Aynı Sahnede" planı (kullanıcı onaylı): bir sahnede
+        # 2+ karakter aynı anda görünebilir -- liste sırası korunmalı (ilk
+        # eleman = en yüksek öncelik, bkz. audio_renderer'ın ses seçimi).
         with patch(
             "app.departments.creative.casting_generator.generate_json",
             return_value={
                 "casting": [
-                    {"scene_index": 0, "character": "bao", "location": "made_up_place"},
+                    {
+                        "scene_index": 0,
+                        "characters": ["professor_nova", "robo"],
+                        "location": None,
+                    },
+                ]
+            },
+        ):
+            result = casting_generator.generate_casting_plan(
+                _storyboard(), _script(), {"professor_nova": "x", "robo": "y"}, {}
+            )
+        self.assertEqual(result[0]["characters"], ["professor_nova", "robo"])
+
+    def test_caps_characters_at_the_max_and_logs_a_warning(self):
+        # fal.ai Kling O1'in elements[] sınırı (bkz. docs/character-
+        # consistency-research.md) -- LLM kataloğu bilse bile fazla karakter
+        # istemişse, en düşük öncelikliler (liste sonu) sessizce düşürülmeli.
+        four_characters = ["professor_nova", "robo", "luna", "atom"]
+        with patch(
+            "app.departments.creative.casting_generator.generate_json",
+            return_value={
+                "casting": [{"scene_index": 0, "characters": four_characters, "location": None}]
+            },
+        ), patch("app.departments.creative.casting_generator.logger") as mock_logger:
+            result = casting_generator.generate_casting_plan(
+                _storyboard(),
+                _script(),
+                {slug: slug for slug in four_characters},
+                {},
+            )
+        self.assertEqual(
+            result[0]["characters"],
+            four_characters[: casting_generator._MAX_CHARACTERS_PER_SCENE],
+        )
+        mock_logger.warning.assert_called_once()
+
+    def test_hallucinated_slug_is_dropped_not_raised(self):
+        # LLM kataloğu bilmediği bir slug uydurursa (ör. eski kaldırılmış
+        # bir karakter) sessizce düşmeli -- çökmemeli.
+        with patch(
+            "app.departments.creative.casting_generator.generate_json",
+            return_value={
+                "casting": [
+                    {"scene_index": 0, "characters": ["bao"], "location": "made_up_place"},
                 ]
             },
         ):
             result = casting_generator.generate_casting_plan(
                 _storyboard(), _script(), {"professor_nova": "x"}, {"kimya_laboratuvari": "y"}
             )
-        self.assertEqual(result[0], {"character": None, "location": None})
+        self.assertEqual(result[0], {"characters": [], "location": None})
+
+    def test_hallucinated_slug_among_valid_ones_is_dropped_but_valid_ones_kept(self):
+        with patch(
+            "app.departments.creative.casting_generator.generate_json",
+            return_value={
+                "casting": [
+                    {"scene_index": 0, "characters": ["professor_nova", "bao", "robo"], "location": None},
+                ]
+            },
+        ):
+            result = casting_generator.generate_casting_plan(
+                _storyboard(), _script(), {"professor_nova": "x", "robo": "y"}, {}
+            )
+        self.assertEqual(result[0]["characters"], ["professor_nova", "robo"])
 
     def test_scenes_missing_from_llm_response_default_to_null(self):
         with patch(
             "app.departments.creative.casting_generator.generate_json",
-            return_value={"casting": [{"scene_index": 0, "character": "professor_nova", "location": None}]},
+            return_value={
+                "casting": [{"scene_index": 0, "characters": ["professor_nova"], "location": None}]
+            },
         ):
             result = casting_generator.generate_casting_plan(
                 _storyboard(), _script(), {"professor_nova": "x"}, {}
@@ -120,7 +193,7 @@ class TestGenerateCastingPlan(unittest.TestCase):
         # sözlükte bir girişi olmalı (asset_generator her scene_index için
         # bir giriş bulmayı bekliyor).
         self.assertIn(1, result)
-        self.assertEqual(result[1], {"character": None, "location": None})
+        self.assertEqual(result[1], {"characters": [], "location": None})
 
     def test_malformed_items_are_skipped(self):
         with patch(
@@ -131,9 +204,23 @@ class TestGenerateCastingPlan(unittest.TestCase):
                 _storyboard(), _script(), {"professor_nova": "x"}, {}
             )
         # Hiçbiri geçerli parse edilemedi -- her iki sahne de varsayılan
-        # null girişle sonuçlanmalı, exception FIRLAMAMALI.
-        self.assertEqual(result[0], {"character": None, "location": None})
-        self.assertEqual(result[1], {"character": None, "location": None})
+        # boş girişle sonuçlanmalı, exception FIRLAMAMALI.
+        self.assertEqual(result[0], {"characters": [], "location": None})
+        self.assertEqual(result[1], {"characters": [], "location": None})
+
+    def test_non_list_characters_field_is_treated_as_empty(self):
+        # LLM yanlışlıkla eski tekil "character": "professor_nova" biçimini
+        # döndürürse (liste DEĞİL) çökmemeli, boş listeye düşmeli.
+        with patch(
+            "app.departments.creative.casting_generator.generate_json",
+            return_value={
+                "casting": [{"scene_index": 0, "characters": "professor_nova", "location": None}]
+            },
+        ):
+            result = casting_generator.generate_casting_plan(
+                _storyboard(), _script(), {"professor_nova": "x"}, {}
+            )
+        self.assertEqual(result[0]["characters"], [])
 
 
 if __name__ == "__main__":
